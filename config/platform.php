@@ -16,7 +16,7 @@ return [
      |
      */
 
-    'domain' => env('DASHBOARD_DOMAIN', null),
+    'domain' => env('budget-boss', null),
 
     /*
      |--------------------------------------------------------------------------
@@ -29,7 +29,7 @@ return [
      |
      */
 
-    'prefix' => env('DASHBOARD_PREFIX', '/panel'),
+    'prefix' => env('DASHBOARD_PREFIX', '/'),
 
     /*
      |--------------------------------------------------------------------------

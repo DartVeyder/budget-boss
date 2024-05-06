@@ -11,6 +11,8 @@ use App\Orchid\Screens\Examples\ExampleGridScreen;
 use App\Orchid\Screens\Examples\ExampleLayoutsScreen;
 use App\Orchid\Screens\Examples\ExampleScreen;
 use App\Orchid\Screens\Examples\ExampleTextEditorsScreen;
+use App\Orchid\Screens\Finance\Transaction\TransactionEditScreen;
+use App\Orchid\Screens\Finance\Transaction\TransactionListScreen;
 use App\Orchid\Screens\PlatformScreen;
 use App\Orchid\Screens\Role\RoleEditScreen;
 use App\Orchid\Screens\Role\RoleListScreen;
@@ -34,6 +36,30 @@ use Tabuna\Breadcrumbs\Trail;
 // Main
 Route::screen('/main', PlatformScreen::class)
     ->name('platform.main');
+
+//Platform > Transactions
+Route::screen('transactions', TransactionListScreen::class)
+    ->name('platform.transactions')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.index')
+        ->push(__('Transactions'), route('platform.transactions')));
+
+//Platform > Transactions
+Route::screen('transactions/{id}/edit', TransactionEditScreen::class)
+    ->name('platform.transactions.edit')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.index')
+        ->parent('platform.transactions')
+        ->push(__('Transactions')));
+
+//Platform > Transactions
+Route::screen('transactions/create', TransactionEditScreen::class)
+    ->name('platform.transactions.create')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.transactions')
+
+        ->push(__('Add')));
+
 
 // Platform > Profile
 Route::screen('profile', UserProfileScreen::class)

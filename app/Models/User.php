@@ -66,4 +66,8 @@ class User extends Authenticatable
         'updated_at',
         'created_at',
     ];
+
+    public function transactions(): object{
+        return $this->hasMany(FinanceTransactions::class);
+    }
 }

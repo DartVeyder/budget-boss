@@ -97,5 +97,19 @@
     "Filters": "Фільтри",
     "Upload file": "Завантажити файл",
     "Media catalog": "Медіа каталог",
-    "Configure columns": "Налаштувати колонки"
+    "Configure columns": "Налаштувати колонки",
+    "Transactions": "Транзакції",
+    "Finance" : "Фінанси",
+    "Home" : "Головна",
+    "Transactions add": "Додати транзакцію",
+    "Category": "Категорія",
+    "Type": "Тип",
+    "Payment method": "Спосіб оплати",
+    "Currency": "Валюта",
+    "Source": "Від кого",
+    "Amount": "Сума",
+    "Expected arrival date": "Очікувана дата надходження",
+    "": "",
+    "": "",
+    "": ""
 }

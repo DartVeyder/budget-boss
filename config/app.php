@@ -16,7 +16,7 @@ return [
     |
     */
 
-    'name' => env('budget-boss', 'Laravel'),
+    'name' => env('APP_NAME', 'Budget Boss Panel'),
 
     /*
     |--------------------------------------------------------------------------
@@ -55,7 +55,7 @@ return [
     |
     */
 
-    'url' => env('APP_URL', 'http://localhost'),
+    'url' => env('APP_URL', 'http://budget_boss'),
 
     'asset_url' => env('ASSET_URL'),
 
