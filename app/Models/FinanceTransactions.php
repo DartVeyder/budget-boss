@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Orchid\Filters\Filterable;
 use Orchid\Metrics\Chartable;
 use Orchid\Screen\AsSource;
@@ -13,11 +14,13 @@ class FinanceTransactions extends Model
     use HasFactory;
     use AsSource;
     use Filterable;
-    use Chartable;
+    use SoftDeletes;
 
+    protected $dates = ['deleted_at'];
     protected $guarded = [];
 
-    public function currency(): object{
+
+    public function currency(){
         return $this->belongsTo(FinanceCurrencies::class);
     }
 

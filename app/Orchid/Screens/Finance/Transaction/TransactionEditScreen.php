@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Actions\Link;
 use Orchid\Screen\Screen;
+use Orchid\Support\Facades\Toast;
 
 class TransactionEditScreen extends Screen
 {
@@ -64,7 +65,10 @@ class TransactionEditScreen extends Screen
         ];
     }
 
-    public function save(FinanceTransactions $transactions, Request $request): void{
+    public function save(FinanceTransactions $transactions, Request $request){
         $this->transactionService->save($transactions, $request);
+        Toast::info(__('You have successfully created a transaction.'));
+        return redirect()->route('platform.transactions');
+
     }
 }

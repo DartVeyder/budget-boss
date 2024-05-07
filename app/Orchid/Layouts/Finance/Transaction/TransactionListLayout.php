@@ -2,6 +2,7 @@
 namespace App\Orchid\Layouts\Finance\Transaction;
 
 
+use App\Models\FinanceTransactions;
 use Orchid\Screen\Actions\Link;
 use Orchid\Screen\Components\Cells\DateTimeSplit;
 use Orchid\Screen\Fields\Input;
@@ -22,17 +23,18 @@ class TransactionListLayout extends Table
     {
         return [
             TD::make('id', __('ID')),
+            TD::make('amount', __('Amount')),
+            TD::make('finance_currency', __('Currency'))
+                ->render(function ($call) {
+                    dd($call->employee);
+                    return $call->employee->name;
+                }),
 
             TD::make('created_at', __('Created'))
                 ->usingComponent(DateTimeSplit::class)
                 ->align(TD::ALIGN_RIGHT)
-                ->defaultHidden()
                 ->sort(),
 
-            TD::make('updated_at', __('Last edit'))
-                ->usingComponent(DateTimeSplit::class)
-                ->align(TD::ALIGN_RIGHT)
-                ->sort(),
         ];
     }
 }

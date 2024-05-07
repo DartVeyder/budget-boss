@@ -16,8 +16,12 @@ class TransactionListScreen extends Screen
      */
     public function query(): iterable
     {
+
         return [
-            FinanceTransactions::all()
+            "transactions" =>
+                FinanceTransactions::filters()
+                    ->defaultSort('id', 'desc')
+                    ->paginate()
         ];
     }
 
