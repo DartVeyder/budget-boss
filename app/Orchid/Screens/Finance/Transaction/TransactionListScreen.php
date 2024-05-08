@@ -2,7 +2,7 @@
 
 namespace App\Orchid\Screens\Finance\Transaction;
 
-use App\Models\FinanceTransactions;
+use App\Models\FinanceTransaction;
 use App\Orchid\Layouts\Finance\Transaction\TransactionListLayout;
 use Orchid\Screen\Actions\Link;
 use Orchid\Screen\Screen;
@@ -19,7 +19,7 @@ class TransactionListScreen extends Screen
 
         return [
             "transactions" =>
-                FinanceTransactions::filters()
+                FinanceTransaction::filters()
                     ->defaultSort('id', 'desc')
                     ->paginate()
         ];

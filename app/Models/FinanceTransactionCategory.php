@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Orchid\Filters\Filterable;
 use Orchid\Screen\AsSource;
 
-class FinanceTransactionTypes extends Model
+class FinanceTransactionCategory extends Model
 {
     use HasFactory;
     use AsSource;
@@ -16,6 +16,6 @@ class FinanceTransactionTypes extends Model
     protected $guarded = [];
 
     public function transactions(): object{
-        return $this->hasMany(FinanceTransactions::class);
+        return $this->hasMany(FinanceTransaction::class);
     }
 }

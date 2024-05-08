@@ -2,7 +2,7 @@
 
 namespace App\Orchid\Screens\Finance\Transaction;
 
-use App\Models\FinanceTransactions;
+use App\Models\FinanceTransaction;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditRows;
 use App\Services\Finance\Transaction\TransactionService;
 use Illuminate\Http\Request;
@@ -22,7 +22,7 @@ class TransactionEditScreen extends Screen
      *
      * @return array
      */
-    public function query(FinanceTransactions $transactions): iterable
+    public function query(FinanceTransaction $transactions): iterable
     {
         return [
             'transactions' => $transactions
@@ -65,7 +65,7 @@ class TransactionEditScreen extends Screen
         ];
     }
 
-    public function save(FinanceTransactions $transactions, Request $request){
+    public function save(FinanceTransaction $transactions, Request $request){
         $this->transactionService->save($transactions, $request);
         Toast::info(__('You have successfully created a transaction.'));
         return redirect()->route('platform.transactions');

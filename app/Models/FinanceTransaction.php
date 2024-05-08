@@ -4,12 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Orchid\Filters\Filterable;
-use Orchid\Metrics\Chartable;
 use Orchid\Screen\AsSource;
 
-class FinanceTransactions extends Model
+class FinanceTransaction extends Model
 {
     use HasFactory;
     use AsSource;
@@ -20,24 +20,24 @@ class FinanceTransactions extends Model
     protected $guarded = [];
 
 
-    public function currency(){
-        return $this->belongsTo(FinanceCurrencies::class);
+    public function currency(): BelongsTo{
+        return $this->belongsTo(FinanceCurrency::class, 'finance_currency_id');
     }
 
     public function source(): object{
-        return $this->belongsTo(FinanceSources::class);
+        return $this->belongsTo(FinanceSource::class);
     }
 
     public function transactionCategory(): object{
-        return $this->belongsTo(FinanceTransactionCategories::class);
+        return $this->belongsTo(FinanceTransactionCategory::class);
     }
 
     public function paymentMethod(): object{
-        return $this->belongsTo(FinancePaymentMethods::class);
+        return $this->belongsTo(FinancePaymentMethod::class);
     }
 
-    public function transactionType(): object{
-        return $this->belongsTo(FinanceTransactionTypes::class);
+    public function transactionType(): BelongsTo{
+        return $this->belongsTo(FinanceTransactionType::class, 'finance_transaction_type_id');
     }
 
     public function user(): object{

@@ -68,6 +68,6 @@ class User extends Authenticatable
     ];
 
     public function transactions(): object{
-        return $this->hasMany(FinanceTransactions::class);
+        return $this->hasMany(FinanceTransaction::class);
     }
 }

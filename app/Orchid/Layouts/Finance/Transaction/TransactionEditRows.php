@@ -2,11 +2,11 @@
 
 namespace App\Orchid\Layouts\Finance\Transaction;
 
-use App\Models\FinanceCurrencies;
-use App\Models\FinancePaymentMethods;
-use App\Models\FinanceSources;
-use App\Models\FinanceTransactionCategories;
-use App\Models\FinanceTransactionTypes;
+use App\Models\FinanceCurrency;
+use App\Models\FinancePaymentMethod;
+use App\Models\FinanceSource;
+use App\Models\FinanceTransactionCategory;
+use App\Models\FinanceTransactionType;
 use Orchid\Screen\Field;
 use Orchid\Screen\Fields\DateTimer;
 use Orchid\Screen\Fields\Input;
@@ -35,22 +35,22 @@ class TransactionEditRows extends Rows
             Select::make('finance_transaction_category_id')
                 ->title('Category')
                 ->required()
-                ->fromModel(FinanceTransactionCategories::class, 'name'),
+                ->fromModel(FinanceTransactionCategory::class, 'name'),
             Select::make('finance_transaction_type_id')
                 ->title('Type')
                 ->required()
-                ->fromModel(FinanceTransactionTypes::class, 'name'),
+                ->fromModel(FinanceTransactionType::class, 'name'),
             Select::make('finance_payment_method_id')
                 ->title('Payment method')
                 ->required()
-                ->fromModel(FinancePaymentMethods::class, 'name'),
+                ->fromModel(FinancePaymentMethod::class, 'name'),
             Select::make('finance_currency_id')
                 ->required()
                 ->title('Currency')
-                ->fromModel(FinanceCurrencies::class, 'name'),
+                ->fromModel(FinanceCurrency::class, 'name'),
             Select::make('finance_source_id')
                 ->title('Source')
-                ->fromModel(FinanceSources::class, 'name')
+                ->fromModel(FinanceSource::class, 'name')
                 ->empty(''),
             Input::make("amount")
                 ->title('Amount')
