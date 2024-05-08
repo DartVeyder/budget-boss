@@ -34,6 +34,8 @@ class PlatformProvider extends OrchidServiceProvider
     public function menu(): array
     {
         return [
+            Menu::make('Information panel')
+                ->route('platform.main'),
             Menu::make('Transactions')
                 ->title('Finance')
                 ->route('platform.transactions'),

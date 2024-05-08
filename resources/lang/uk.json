@@ -102,6 +102,7 @@
     "Finance" : "Фінанси",
     "Home" : "Головна",
     "Transactions add": "Додати транзакцію",
+    "Transactions edit": "Редагувати транзакцію",
     "Category": "Категорія",
     "Type": "Тип",
     "Payment method": "Спосіб оплати",
@@ -110,6 +111,14 @@
     "Amount": "Сума",
     "Expected arrival date": "Очікувана дата надходження",
     "You have successfully created a transaction.": "Ви успішно створили транзакцію.",
-    "": "",
-    "": ""
+    "Information panel": "Інформаційна панель",
+    "Balance": "Залишок",
+    "View" : "Переглянути",
+    "Transaction": "Транзакція",
+    "You have successfully remove": "Ви успішно видалили",
+    "Actions" : "Дії",
+    "Total balance": "Баланс",
+    "Expense" : "Витрати",
+    "Income" : "Доходи",
+    "History transactions" : "Історія транзакцій"
 }

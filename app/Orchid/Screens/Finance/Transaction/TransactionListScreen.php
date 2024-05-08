@@ -4,8 +4,10 @@ namespace App\Orchid\Screens\Finance\Transaction;
 
 use App\Models\FinanceTransaction;
 use App\Orchid\Layouts\Finance\Transaction\TransactionListLayout;
+use Illuminate\Http\Request;
 use Orchid\Screen\Actions\Link;
 use Orchid\Screen\Screen;
+use Orchid\Support\Facades\Toast;
 
 class TransactionListScreen extends Screen
 {
@@ -59,5 +61,13 @@ class TransactionListScreen extends Screen
         return [
             TransactionListLayout::class
         ];
+    }
+
+    public function remove(Request $request)
+    {
+        FinanceTransaction::findOrFail($request->get('id'))->delete();
+
+        Toast::info(__('You have successfully remove'));
+        return redirect()->route('platform.transactions');
     }
 }

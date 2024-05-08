@@ -14,6 +14,7 @@ use Orchid\Support\Facades\Toast;
 class TransactionEditScreen extends Screen
 {
     protected  $transactionService;
+    public $transaction;
     public function __construct(TransactionService $transactionService){
         $this->transactionService = $transactionService;
     }
@@ -22,10 +23,10 @@ class TransactionEditScreen extends Screen
      *
      * @return array
      */
-    public function query(FinanceTransaction $transactions): iterable
+    public function query(FinanceTransaction $transaction): iterable
     {
         return [
-            'transactions' => $transactions
+            'transaction' => $transaction
         ];
     }
 
@@ -36,7 +37,7 @@ class TransactionEditScreen extends Screen
      */
     public function name(): ?string
     {
-        return 'Transactions add';
+        return $this->transaction->exists ?  'Transactions edit' : 'Transactions add';
     }
 
     /**
@@ -65,10 +66,11 @@ class TransactionEditScreen extends Screen
         ];
     }
 
-    public function save(FinanceTransaction $transactions, Request $request){
-        $this->transactionService->save($transactions, $request);
-        Toast::info(__('You have successfully created a transaction.'));
+    public function save(FinanceTransaction $transaction, Request $request){
+        $this->transactionService->save($transaction, $request);
+        Toast::info(__('You have successfully created.'));
         return redirect()->route('platform.transactions');
-
     }
+
+
 }

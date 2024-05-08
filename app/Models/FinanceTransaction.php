@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Orchid\Filters\Filterable;
+use Orchid\Metrics\Chartable;
 use Orchid\Screen\AsSource;
 
 class FinanceTransaction extends Model
@@ -15,7 +16,9 @@ class FinanceTransaction extends Model
     use AsSource;
     use Filterable;
     use SoftDeletes;
+    use Chartable;
 
+    protected $table = 'finance_transactions';
     protected $dates = ['deleted_at'];
     protected $guarded = [];
 
@@ -28,8 +31,8 @@ class FinanceTransaction extends Model
         return $this->belongsTo(FinanceSource::class);
     }
 
-    public function transactionCategory(): object{
-        return $this->belongsTo(FinanceTransactionCategory::class);
+    public function transactionCategory(): BelongsTo{
+        return $this->belongsTo(FinanceTransactionCategory::class, 'finance_transaction_category_id');
     }
 
     public function paymentMethod(): object{

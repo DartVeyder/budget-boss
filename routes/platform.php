@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Orchid\Screens\DashboardScreen;
 use App\Orchid\Screens\Examples\ExampleActionsScreen;
 use App\Orchid\Screens\Examples\ExampleCardsScreen;
 use App\Orchid\Screens\Examples\ExampleChartsScreen;
@@ -11,6 +12,7 @@ use App\Orchid\Screens\Examples\ExampleGridScreen;
 use App\Orchid\Screens\Examples\ExampleLayoutsScreen;
 use App\Orchid\Screens\Examples\ExampleScreen;
 use App\Orchid\Screens\Examples\ExampleTextEditorsScreen;
+use App\Orchid\Screens\Finance\Transaction\TransactionCardScreen;
 use App\Orchid\Screens\Finance\Transaction\TransactionEditScreen;
 use App\Orchid\Screens\Finance\Transaction\TransactionListScreen;
 use App\Orchid\Screens\PlatformScreen;
@@ -34,7 +36,7 @@ use Tabuna\Breadcrumbs\Trail;
 */
 
 // Main
-Route::screen('/main', PlatformScreen::class)
+Route::screen('/main', DashboardScreen::class)
     ->name('platform.main');
 
 //Platform > Transactions
@@ -45,20 +47,27 @@ Route::screen('transactions', TransactionListScreen::class)
         ->push(__('Transactions'), route('platform.transactions')));
 
 //Platform > Transactions
-Route::screen('transactions/{id}/edit', TransactionEditScreen::class)
+Route::screen('transactions/{transaction}/edit', TransactionEditScreen::class)
     ->name('platform.transactions.edit')
     ->breadcrumbs(fn (Trail $trail) => $trail
-        ->parent('platform.index')
         ->parent('platform.transactions')
-        ->push(__('Transactions')));
+        ->push(__('Edit')));
+
 
 //Platform > Transactions
 Route::screen('transactions/create', TransactionEditScreen::class)
     ->name('platform.transactions.create')
     ->breadcrumbs(fn (Trail $trail) => $trail
         ->parent('platform.transactions')
-
         ->push(__('Add')));
+
+//Platform > Transactions
+Route::screen('transactions/{transaction}', TransactionCardScreen::class)
+    ->name('platform.transactions.card')
+    ->breadcrumbs(fn (Trail $trail, $transaction) => $trail
+        ->parent('platform.transactions')
+        ->push($transaction->id));
+
 
 
 // Platform > Profile
