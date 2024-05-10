@@ -3,7 +3,7 @@
 namespace App\Orchid\Screens\Finance\Transaction;
 
 use App\Models\FinanceTransaction;
-use App\Orchid\Layouts\Finance\Transaction\TransactionEditRows;
+use App\Orchid\Layouts\Finance\Transaction\TransactionEditExpensesRows;
 use App\Services\Finance\Transaction\TransactionService;
 use Illuminate\Http\Request;
 use Orchid\Screen\Actions\Button;
@@ -62,7 +62,7 @@ class TransactionEditScreen extends Screen
     public function layout(): iterable
     {
         return [
-            TransactionEditRows::class
+            TransactionEditExpensesRows::class
         ];
     }
 

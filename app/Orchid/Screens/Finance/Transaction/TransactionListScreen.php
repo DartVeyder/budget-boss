@@ -3,10 +3,16 @@
 namespace App\Orchid\Screens\Finance\Transaction;
 
 use App\Models\FinanceTransaction;
+use App\Orchid\Layouts\Finance\Transaction\TransactionEditExpensesRows;
+use App\Orchid\Layouts\Finance\Transaction\TransactionEditIncomeRows;
+use App\Orchid\Layouts\Finance\Transaction\TransactionEditTransferRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionListLayout;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Orchid\Screen\Actions\Link;
+use Orchid\Screen\Actions\ModalToggle;
 use Orchid\Screen\Screen;
+use Orchid\Support\Facades\Layout;
 use Orchid\Support\Facades\Toast;
 
 class TransactionListScreen extends Screen
@@ -22,6 +28,8 @@ class TransactionListScreen extends Screen
         return [
             "transactions" =>
                 FinanceTransaction::filters()
+                    ->where('transaction_type_id', "!=" , 3)
+                    ->where('user_id' , Auth::user()->id)
                     ->defaultSort('id', 'desc')
                     ->paginate()
         ];
@@ -45,9 +53,15 @@ class TransactionListScreen extends Screen
     public function commandBar(): iterable
     {
         return [
-            Link::make(__('Add'))
-                ->icon('bs.plus-circle')
-                ->route('platform.transactions.create'),
+            ModalToggle::make(__('Income'))
+                ->modal('income')
+                ->method('save'),
+            ModalToggle::make(__('Expenses'))
+                ->modal('expenses')
+                ->method('save'),
+            ModalToggle::make(__('Transfer'))
+                ->modal('transfer')
+                ->method('saveTransfer')
         ];
     }
 
@@ -59,10 +73,42 @@ class TransactionListScreen extends Screen
     public function layout(): iterable
     {
         return [
-            TransactionListLayout::class
+            TransactionListLayout::class,
+            Layout::modal('income', [
+                TransactionEditIncomeRows::class
+            ])->title(__('New income')),
+            Layout::modal('expenses', [
+                TransactionEditExpensesRows::class
+            ])->title(__('New expenses')),
+            Layout::modal('transfer', [
+                TransactionEditTransferRows::class
+            ])->title(__('Transfer')),
         ];
     }
 
+    public function save(Request $request, FinanceTransaction $transaction){
+        $transaction->fill($request->all())->save();
+        Toast::info(__('You have successfully created.'));
+    }
+
+    public function  saveTransfer(Request $request){
+        $data = $request->input('transaction');
+        $bills =  $request->input('bills');
+
+
+        $income =  $data;
+        $income['type'] = 'income';
+        $income['transaction_type_id'] = 3;
+        $income['finance_bill_id']  =   $bills['with_bill_id'];
+        FinanceTransaction::create($income);
+
+        $expenses =  $data;
+        $expenses['type'] = 'expenses';
+        $expenses['transaction_type_id'] = 3;
+        $expenses['finance_bill_id']  = $bills['to_bill_id'];
+        FinanceTransaction::create($expenses);
+
+    }
     public function remove(Request $request)
     {
         FinanceTransaction::findOrFail($request->get('id'))->delete();

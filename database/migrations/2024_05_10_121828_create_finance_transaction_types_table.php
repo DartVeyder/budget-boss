@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -12,16 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('finance_currencies', function (Blueprint $table) {
+        Schema::create('finance_transaction_types', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('code');
-        });
+            $table->string('alias')->nullable();
+            $table->timestamps();
 
-        DB::table('finance_currencies')->insert([
-            ['name' => 'Гривня', 'code' => 'uah'],
-            ['name' => 'Долар', 'code' => 'usd'],
-        ]);
+        });
     }
 
     /**
@@ -29,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('finance_currencies');
+        Schema::dropIfExists('finance_transaction_types');
     }
 };

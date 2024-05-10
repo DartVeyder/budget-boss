@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -12,16 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('finance_payment_methods', function (Blueprint $table) {
+        Schema::create('finance_bills', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('user_id');
             $table->string('name');
-        });
+            $table->timestamps();
 
-        DB::table('finance_payment_methods')->insert([
-            ['name' => 'Готівка'],
-            ['name' => 'Монобанк'],
-            ['name' => 'Приватбанк'],
-        ]);
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+        });
     }
 
     /**
@@ -29,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('finance_payment_methods');
+        Schema::dropIfExists('finance_bills');
     }
 };

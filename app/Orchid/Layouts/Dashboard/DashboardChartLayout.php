@@ -7,37 +7,28 @@ use Orchid\Screen\Layouts\Chart;
 class DashboardChartLayout extends Chart
 {
     /**
-     * Height of the chart.
+     * Add a title to the Chart.
      *
-     * @var int
+     * @var string
      */
-    protected $height = 300;
+    protected $title = 'DemoCharts';
 
     /**
-     * Configuring line.
+     * Available options:
+     * 'bar', 'line',
+     * 'pie', 'percentage'
      *
-     * @var array
+     * @var string
      */
-    protected $lineOptions = [
-        'spline'     => 1,
-        'regionFill' => 1,
-        'hideDots'   => 0,
-        'hideLine'   => 0,
-        'heatline'   => 0,
-        'dotSize'    => 3,
-    ];
+    protected $type = 'bar';
 
     /**
-     * To highlight certain values on the Y axis, markers can be set.
-     * They will shown as dashed lines on the graph.
+     * Data source.
+     *
+     * The name of the key to fetch it from the query.
+     * The results of which will be elements of the charts.
+     *
+     * @var string
      */
-    protected function markers(): ?array
-    {
-        return [
-            [
-                'label'   => 'Medium',
-                'value'   => 40,
-            ],
-        ];
-    }
+    protected $target = 'charts';
 }

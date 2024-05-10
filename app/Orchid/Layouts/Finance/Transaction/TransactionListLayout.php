@@ -25,19 +25,19 @@ class TransactionListLayout extends Table
     public function columns(): array
     {
         return [
-            TD::make('id', __('ID')),
-            TD::make('finance_transaction_category_id', __('Category'))
+            TD::make('transaction_category_id', __('Category'))
                 ->render(
-                    fn(FinanceTransaction $transaction) => $transaction->transactionCategory->name
+                    fn(FinanceTransaction $transaction) => ($transaction->category)? $transaction->category->name : ''
                 ),
-
+            TD::make('Bill', __('Bill'))
+                ->render(
+                fn(FinanceTransaction $transaction) => $transaction->bill->name
+            ),
             TD::make('amount', __('Amount'))
                 ->render(function ($transaction){
-                    return view('finance.transaction.partials.amount', ['amount' => $transaction->amount, 'currency' => $transaction->currency->code ] );
+                    return view('finance.transaction.partials.amount', $transaction );
                 }),
 
-
-            TD::make('balance', __('Balance')),
             TD::make('created_at', __('Created'))
                 ->usingComponent(DateTimeSplit::class)
                 ->align(TD::ALIGN_RIGHT)
@@ -48,12 +48,12 @@ class TransactionListLayout extends Table
                 ->render(fn (FinanceTransaction $transaction) => DropDown::make()
                     ->icon('bs.three-dots-vertical')
                     ->list([
-                        Link::make(__('View'))
-                            ->route('platform.transactions.card', $transaction->id)
-                            ->icon('bs.eye'),
-                        Link::make(__('Edit'))
-                            ->route('platform.transactions.edit', $transaction->id)
-                            ->icon('bs.pencil'),
+//                        Link::make(__('View'))
+//                            ->route('platform.transactions.card', $transaction->id)
+//                            ->icon('bs.eye'),
+//                        Link::make(__('Edit'))
+//                            ->route('platform.transactions.edit', $transaction->id)
+//                            ->icon('bs.pencil'),
 
                         Button::make(__('Delete'))
                             ->icon('bs.trash3')

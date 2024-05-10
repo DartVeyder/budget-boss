@@ -118,7 +118,15 @@
     "You have successfully remove": "Ви успішно видалили",
     "Actions" : "Дії",
     "Total balance": "Баланс",
-    "Expense" : "Витрати",
+    "Expenses" : "Витрати",
     "Income" : "Доходи",
-    "History transactions" : "Історія транзакцій"
+    "Transfer": "Переказ",
+    "History transactions" : "Історія транзакцій",
+    "New income": "Новий дохід",
+    "New expenses" : "Нова витрата",
+    "Comment" : "Коментар",
+    "Top-up amount": "Сума поповнення",
+    "Bills" : "Рахунки",
+    "Bill" : "Рахунок",
+    "Money spent": "Витрачено грошей"
 }
