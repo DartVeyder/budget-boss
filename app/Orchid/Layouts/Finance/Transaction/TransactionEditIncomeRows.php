@@ -39,31 +39,31 @@ class TransactionEditIncomeRows extends Rows
     protected function fields(): iterable
     {
         return [
-            Relation::make('transaction_category_id')
+            Relation::make('transaction.transaction_category_id')
                 ->title('Category')
                 ->required()
                 ->fromModel(FinanceTransactionCategory::class, 'name')
                 ->applyScope('income'),
-            Relation::make('finance_bill_id')
+            Relation::make('transaction.finance_bill_id')
                 ->title('Bills')
                 ->required()
                 ->fromModel(FinanceBill::class, 'name')
                 ->applyScope('user'),
-            Input::make("amount")
+            Input::make("transaction.amount")
                 ->title('Top-up amount')
                 ->required()
                 ->type('number') ,
 
-            TextArea::make("comment")
+            TextArea::make("transaction.comment")
                 ->title('Comment')
                 ->value(''),
-            Input::make('transaction_type_id')
+            Input::make('transaction.transaction_type_id')
                 ->value(2)
                 ->hidden(),
-            Input::make('type')
+            Input::make('transaction.type')
                 ->value('income')
                 ->hidden(),
-            Input::make('user_id')
+            Input::make('transaction.user_id')
                 ->value(Auth::user()->id)
                 ->hidden(),
         ];

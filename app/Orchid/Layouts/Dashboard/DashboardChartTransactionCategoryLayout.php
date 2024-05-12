@@ -4,7 +4,7 @@ namespace App\Orchid\Layouts\Dashboard;
 
 use Orchid\Screen\Layouts\Chart;
 
-class DashboardChartLayout extends Chart
+class DashboardChartTransactionCategoryLayout extends Chart
 {
     /**
      * Add a title to the Chart.
@@ -20,7 +20,7 @@ class DashboardChartLayout extends Chart
      *
      * @var string
      */
-    protected $type = 'bar';
+    protected $type = 'pie';
 
     /**
      * Data source.

@@ -7,6 +7,7 @@ use App\Orchid\Layouts\Finance\Transaction\TransactionEditExpensesRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditIncomeRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditTransferRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionListLayout;
+use App\Orchid\Layouts\Finance\Transaction\TransactionSelection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Orchid\Screen\Actions\Link;
@@ -27,7 +28,7 @@ class TransactionListScreen extends Screen
 
         return [
             "transactions" =>
-                FinanceTransaction::filters()
+                FinanceTransaction::filters(TransactionSelection::class)
                     ->where('transaction_type_id', "!=" , 3)
                     ->where('user_id' , Auth::user()->id)
                     ->defaultSort('id', 'desc')
@@ -73,6 +74,7 @@ class TransactionListScreen extends Screen
     public function layout(): iterable
     {
         return [
+            TransactionSelection::class,
             TransactionListLayout::class,
             Layout::modal('income', [
                 TransactionEditIncomeRows::class
@@ -87,7 +89,7 @@ class TransactionListScreen extends Screen
     }
 
     public function save(Request $request, FinanceTransaction $transaction){
-        $transaction->fill($request->all())->save();
+        $transaction->fill($request->input('transaction'))->save();
         Toast::info(__('You have successfully created.'));
     }
 
@@ -95,15 +97,19 @@ class TransactionListScreen extends Screen
         $data = $request->input('transaction');
         $bills =  $request->input('bills');
 
+        if( $bills['with_bill_id'] ==  $bills['to_bill_id']){
+            Toast::info(__('It is not possible to transfer to the same account'));
+            return ;
+        }
 
         $income =  $data;
-        $income['type'] = 'income';
+        $income['type'] = 'expenses';
         $income['transaction_type_id'] = 3;
         $income['finance_bill_id']  =   $bills['with_bill_id'];
         FinanceTransaction::create($income);
 
         $expenses =  $data;
-        $expenses['type'] = 'expenses';
+        $expenses['type'] = 'income';
         $expenses['transaction_type_id'] = 3;
         $expenses['finance_bill_id']  = $bills['to_bill_id'];
         FinanceTransaction::create($expenses);

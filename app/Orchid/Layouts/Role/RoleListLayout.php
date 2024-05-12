@@ -6,7 +6,7 @@ namespace App\Orchid\Layouts\Role;
 
 use Orchid\Platform\Models\Role;
 use Orchid\Screen\Actions\Link;
-use Orchid\Screen\Components\Cells\DateTimeSplit;
+use App\Orchid\Screens\Components\Cells\DateTime;
 use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Layouts\Table;
 use Orchid\Screen\TD;
@@ -37,13 +37,13 @@ class RoleListLayout extends Table
                 ->filter(Input::make()),
 
             TD::make('created_at', __('Created'))
-                ->usingComponent(DateTimeSplit::class)
+                ->usingComponent(DateTime::class)
                 ->align(TD::ALIGN_RIGHT)
                 ->defaultHidden()
                 ->sort(),
 
             TD::make('updated_at', __('Last edit'))
-                ->usingComponent(DateTimeSplit::class)
+                ->usingComponent(DateTime::class)
                 ->align(TD::ALIGN_RIGHT)
                 ->sort(),
         ];

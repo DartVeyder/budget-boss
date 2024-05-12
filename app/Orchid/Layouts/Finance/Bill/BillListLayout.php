@@ -1,12 +1,8 @@
 <?php
-namespace App\Orchid\Layouts\Finance\Transaction;
+namespace App\Orchid\Layouts\Finance\Bill;
 
 
-use App\Models\FinanceBill;
 use App\Models\FinanceTransaction;
-use App\Models\FinanceTransactionCategory;
-use App\Models\FinanceTransactionType;
-use Illuminate\Support\Facades\Auth;
 use Orchid\Platform\Models\User;
 use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Actions\DropDown;
@@ -14,16 +10,15 @@ use Orchid\Screen\Actions\Link;
 use App\Orchid\Screens\Components\Cells\DateTime;
 use App\Orchid\Screens\Components\Cells\DateTimeSplit;
 use Orchid\Screen\Fields\Input;
-use Orchid\Screen\Fields\Select;
 use Orchid\Screen\Layouts\Table;
 use Orchid\Screen\TD;
 
-class TransactionListLayout extends Table
+class BillListLayout extends Table
 {
     /**
      * @var string
      */
-    public $target = 'transactions';
+    public $target = 'bills';
 
     /**
      * @return TD[]
@@ -32,38 +27,20 @@ class TransactionListLayout extends Table
     {
         return [
             TD::make('transaction_category_id', __('Category'))
-                ->sort()
-                ->filter(
-                    TD::FILTER_SELECT,
-                    FinanceTransactionCategory::where('user_id', Auth::user()->id)
-                        ->pluck('name', 'id'))
                 ->render(
                     fn(FinanceTransaction $transaction) => ($transaction->category)? $transaction->category->name : ''
                 ),
-            TD::make('finance_bill_id', __('Bill'))
-                ->sort()
-                ->filter(
-                    TD::FILTER_SELECT,
-                    FinanceBill::where('user_id', Auth::user()->id)
-                        ->pluck('name', 'id'))
+            TD::make('Bill', __('Bill'))
                 ->render(
                 fn(FinanceTransaction $transaction) => $transaction->bill->name
             ),
             TD::make('amount', __('Amount'))
-                ->sort()
-                ->filter(
-                    TD::FILTER_NUMBER_RANGE
-                )
                 ->render(function ($transaction){
                     return view('finance.transaction.partials.amount', $transaction );
                 }),
 
             TD::make('created_at', __('Created'))
-                ->sort()
-                ->filter(TD::FILTER_DATE_RANGE)
-                ->render(
-                    fn (FinanceTransaction $transaction) => $transaction->created_at
-                )
+                ->usingComponent(DateTime::class)
                 ->align(TD::ALIGN_RIGHT)
                 ->sort(),
             TD::make(__('Actions'))
@@ -72,10 +49,12 @@ class TransactionListLayout extends Table
                 ->render(fn (FinanceTransaction $transaction) => DropDown::make()
                     ->icon('bs.three-dots-vertical')
                     ->list([
-                        Link::make(__('Edit'))
-                            ->route('platform.transactions.edit', [$transaction->id])
-
-                            ->icon('bs.pencil'),
+//                        Link::make(__('View'))
+//                            ->route('platform.transactions.card', $transaction->id)
+//                            ->icon('bs.eye'),
+//                        Link::make(__('Edit'))
+//                            ->route('platform.transactions.edit', $transaction->id)
+//                            ->icon('bs.pencil'),
 
                         Button::make(__('Delete'))
                             ->icon('bs.trash3')

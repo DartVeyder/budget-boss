@@ -18,7 +18,7 @@ use Orchid\Screen\Fields\Select;
 use Orchid\Screen\Fields\TextArea;
 use Orchid\Screen\Layouts\Rows;
 
-class TransactionEditExpensesRows extends Rows
+class TransactionEditRows extends Rows
 {
     /**
      * @var string
@@ -39,29 +39,30 @@ class TransactionEditExpensesRows extends Rows
     protected function fields(): iterable
     {
         return [
+            Select::make('transaction.transaction_type_id')
+                ->fromModel(FinanceTransactionType::class, 'name')
+                ->title('Type'),
             Relation::make('transaction.transaction_category_id')
                 ->title('Category')
                 ->required()
                 ->fromModel(FinanceTransactionCategory::class, 'name')
-                ->applyScope('expenses'),
+                 ,
             Relation::make('transaction.finance_bill_id')
                 ->title('Bills')
                 ->required()
                 ->fromModel(FinanceBill::class, 'name')
                 ->applyScope('user'),
             Input::make("transaction.amount")
-                ->title('Money spent')
+                ->title('Top-up amount')
                 ->required()
-                ->type('number'),
+                ->type('number') ,
 
             TextArea::make("transaction.comment")
                 ->title('Comment')
                 ->value(''),
-            Input::make('transaction.transaction_type_id')
-                ->value(1)
-                ->hidden(),
+
             Input::make('transaction.type')
-                ->value('expenses')
+                ->value('income')
                 ->hidden(),
             Input::make('transaction.user_id')
                 ->value(Auth::user()->id)

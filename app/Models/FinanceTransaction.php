@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Orchid\Filters\Filterable;
+use Orchid\Filters\Types\Where;
+use Orchid\Filters\Types\WhereDateStartEnd;
+use Orchid\Filters\Types\WhereMaxMin;
 use Orchid\Metrics\Chartable;
 use Orchid\Screen\AsSource;
 
@@ -18,6 +21,27 @@ class FinanceTransaction extends Model
     use Chartable;
 
     protected $guarded = [];
+
+    /**
+     * @var array
+     */
+    protected $allowedFilters = [
+        'transaction_type_id'  => Where::class,
+        'transaction_category_id'=> Where::class,
+        'finance_bill_id' => Where::class,
+        'created_at' => WhereDateStartEnd::class,
+        'amount' => WhereMaxMin::class
+    ];
+
+
+    protected $allowedSorts = [
+        'id',
+        'transaction_type_id',
+        'transaction_category_id',
+        'amount',
+        'finance_bill_id',
+        'created_at'
+    ];
 
     public function bill(){
         return $this->belongsTo(FinanceBill::class , 'finance_bill_id');

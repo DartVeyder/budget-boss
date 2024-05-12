@@ -10,6 +10,7 @@ use App\Orchid\Layouts\User\UserPasswordLayout;
 use App\Orchid\Layouts\User\UserRoleLayout;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Orchid\Access\Impersonation;
@@ -174,6 +175,9 @@ class UserEditScreen extends Screen
 
         $user->replaceRoles($request->input('user.roles'));
 
+        if($user->wasRecentlyCreated) {
+            $this->dataInsert($user->id);
+        }
         Toast::info(__('User was saved.'));
 
         return redirect()->route('platform.systems.users');
@@ -203,5 +207,29 @@ class UserEditScreen extends Screen
         Toast::info(__('You are now impersonating this user'));
 
         return redirect()->route(config('platform.index'));
+    }
+
+    private function  dataInsert($user_id): void{
+        DB::table('finance_bills')->insert([
+            ['name' => 'Готівка', 'user_id' => $user_id ],
+            ['name' => 'Монобанк', 'user_id' => $user_id ],
+            ['name' => 'Приватбанк' , 'user_id' => $user_id],
+        ]);
+
+        DB::table('finance_transaction_categories')->insert([
+            ['name' => 'Зарплата', 'transaction_type_id' => 2, 'user_id'=> $user_id],
+            ['name' => 'Фріланс', 'transaction_type_id' =>2, 'user_id'=> $user_id],
+            ['name' => 'Інше', 'transaction_type_id' => 2, 'user_id'=> $user_id],
+            ['name' => 'Переказ', 'transaction_type_id' => 2, 'user_id'=> $user_id],
+            ['name' => 'Їжа', 'transaction_type_id' => 1, 'user_id'=> $user_id],
+            ['name' => 'Житло', 'transaction_type_id' => 1, 'user_id'=> $user_id],
+            ['name' => 'Транспорт', 'transaction_type_id' => 1, 'user_id'=> $user_id],
+            ['name' => 'Розваги', 'transaction_type_id' => 1, 'user_id'=> $user_id],
+            ['name' => 'Комунальні послуги', 'transaction_type_id' => 1, 'user_id'=> $user_id],
+            ['name' => 'Подарунки', 'transaction_type_id' => 1, 'user_id'=> $user_id],
+            ['name' => 'Інше', 'transaction_type_id' => 1, 'user_id'=> $user_id],
+            ['name' => 'Переказ', 'transaction_type_id' => 1, 'user_id'=> $user_id],
+
+        ]);
     }
 }

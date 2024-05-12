@@ -4,6 +4,8 @@ namespace App\Orchid\Screens\Finance\Transaction;
 
 use App\Models\FinanceTransaction;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditExpensesRows;
+use App\Orchid\Layouts\Finance\Transaction\TransactionEditIncomeRows;
+use App\Orchid\Layouts\Finance\Transaction\TransactionEditRows;
 use App\Services\Finance\Transaction\TransactionService;
 use Illuminate\Http\Request;
 use Orchid\Screen\Actions\Button;
@@ -13,11 +15,8 @@ use Orchid\Support\Facades\Toast;
 
 class TransactionEditScreen extends Screen
 {
-    protected  $transactionService;
     public $transaction;
-    public function __construct(TransactionService $transactionService){
-        $this->transactionService = $transactionService;
-    }
+
     /**
      * Fetch data to be displayed on the screen.
      *
@@ -62,15 +61,14 @@ class TransactionEditScreen extends Screen
     public function layout(): iterable
     {
         return [
-            TransactionEditExpensesRows::class
+            TransactionEditRows::class
         ];
     }
 
-    public function save(FinanceTransaction $transaction, Request $request){
-        $this->transactionService->save($transaction, $request);
+    public function save(Request $request, FinanceTransaction $transaction){
+        $transaction->fill($request->input('transaction'))->save();
         Toast::info(__('You have successfully created.'));
         return redirect()->route('platform.transactions');
     }
-
 
 }

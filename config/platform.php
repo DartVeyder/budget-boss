@@ -126,7 +126,7 @@ return [
      */
 
     'resource' => [
-        'stylesheets' => [],
+        'stylesheets' => ['resources/css/app.css'],
         'scripts'     => [],
     ],
 
@@ -160,8 +160,8 @@ return [
      */
 
     'template' => [
-        'header' => '',
-        'footer' => '',
+        'header' => 'brand.header',
+        'footer' => 'brand.footer',
     ],
 
     /*

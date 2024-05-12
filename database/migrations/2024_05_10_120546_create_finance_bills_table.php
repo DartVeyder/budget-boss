@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -19,6 +20,12 @@ return new class extends Migration
 
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
+
+        DB::table('finance_bills')->insert([
+            ['name' => 'Готівка', 'user_id' => 1 ],
+            ['name' => 'Монобанк', 'user_id' => 1 ],
+            ['name' => 'Приватбанк' , 'user_id' => 1],
+        ]);
     }
 
     /**

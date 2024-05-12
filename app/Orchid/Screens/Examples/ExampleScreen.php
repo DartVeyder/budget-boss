@@ -8,8 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Actions\ModalToggle;
-use Orchid\Screen\Components\Cells\Currency;
-use Orchid\Screen\Components\Cells\DateTimeSplit;
 use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Repository;
 use Orchid\Screen\Screen;
@@ -148,13 +146,11 @@ class ExampleScreen extends Screen
 
                 TD::make('price', 'Price')
                     ->width('100')
-                    ->usingComponent(Currency::class, before: '$')
                     ->align(TD::ALIGN_RIGHT)
                     ->sort(),
 
                 TD::make('created_at', 'Created')
                     ->width('100')
-                    ->usingComponent(DateTimeSplit::class)
                     ->align(TD::ALIGN_RIGHT),
             ]),
 

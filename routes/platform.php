@@ -12,7 +12,13 @@ use App\Orchid\Screens\Examples\ExampleGridScreen;
 use App\Orchid\Screens\Examples\ExampleLayoutsScreen;
 use App\Orchid\Screens\Examples\ExampleScreen;
 use App\Orchid\Screens\Examples\ExampleTextEditorsScreen;
+use App\Orchid\Screens\Finance\Bill\BillScreen;
+use App\Orchid\Screens\Finance\Transaction\Category\CategoryExpensesScreen;
+use App\Orchid\Screens\Finance\Transaction\Category\CategoryIncomeScreen;
+use App\Orchid\Screens\Finance\Transaction\Category\CategoryScreen;
+use App\Orchid\Screens\Finance\Transaction\Category\TransactionCategoryListScreen;
 use App\Orchid\Screens\Finance\Transaction\TransactionCardScreen;
+use App\Orchid\Screens\Finance\Transaction\TransactionEditExpensesScreen;
 use App\Orchid\Screens\Finance\Transaction\TransactionEditScreen;
 use App\Orchid\Screens\Finance\Transaction\TransactionListScreen;
 use App\Orchid\Screens\PlatformScreen;
@@ -46,7 +52,7 @@ Route::screen('transactions', TransactionListScreen::class)
         ->parent('platform.index')
         ->push(__('Transactions'), route('platform.transactions')));
 
-//Platform > Transactions
+//Platform > Transactions > edit
 Route::screen('transactions/{transaction}/edit', TransactionEditScreen::class)
     ->name('platform.transactions.edit')
     ->breadcrumbs(fn (Trail $trail) => $trail
@@ -54,19 +60,38 @@ Route::screen('transactions/{transaction}/edit', TransactionEditScreen::class)
         ->push(__('Edit')));
 
 
-//Platform > Transactions
-Route::screen('transactions/create', TransactionEditScreen::class)
-    ->name('platform.transactions.create')
+//Platform > Transactions > Category
+Route::screen('transactions/categories', CategoryScreen::class)
+    ->name('platform.transactions.categories')
     ->breadcrumbs(fn (Trail $trail) => $trail
         ->parent('platform.transactions')
-        ->push(__('Add')));
+        ->push(__('Categories'), route('platform.transactions')));
 
-//Platform > Transactions
-Route::screen('transactions/{transaction}', TransactionCardScreen::class)
-    ->name('platform.transactions.card')
-    ->breadcrumbs(fn (Trail $trail, $transaction) => $trail
+
+Route::screen('transactions/categories/income',  CategoryIncomeScreen::class)
+    ->name('platform.transactions.categories.income')
+    ->breadcrumbs(fn (Trail $trail) => $trail
         ->parent('platform.transactions')
-        ->push($transaction->id));
+        ->push(__('Categories'), route('platform.transactions')));
+
+Route::screen('transactions/categories/expenses', CategoryExpensesScreen::class)
+    ->name('platform.transactions.categories.expenses')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.transactions')
+        ->push(__('Categories'), route('platform.transactions')));
+
+//Platform > Bills
+Route::screen('/bills',  BillScreen::class)
+    ->name('platform.bills')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.index')
+        ->push(__('Bills'), route('platform.bills')));
+
+
+
+
+
+
 
 
 
