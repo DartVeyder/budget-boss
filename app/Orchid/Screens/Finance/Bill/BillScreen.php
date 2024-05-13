@@ -73,7 +73,7 @@ class BillScreen extends Screen
                 ])
             ])
                 ->applyButton(__('Save'))
-                ->title(__('New category income')),
+                ->title(__('New bill')),
         ];
     }
 
