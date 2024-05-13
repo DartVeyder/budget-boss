@@ -1,5 +1,5 @@
 <div class="container-fluid ">
-    <div class="row m-n1" >
+    <div class="row " style="  margin: 0 -28px;" >
         @foreach ($bills as $key => $bill)
                 <div class="col-md-4  ">
                     <div class="bill-card p-3 bg-white rounded m-2" style="height: 180px">
