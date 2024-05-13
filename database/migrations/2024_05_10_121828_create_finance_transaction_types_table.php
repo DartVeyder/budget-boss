@@ -20,9 +20,9 @@ return new class extends Migration
 
         });
         DB::table('finance_transaction_types')->insert([
-            ['name' => 'Витрати', 'slug' => 'vitrati', 'active' => 1  ],
-            ['name' => 'Дохід', 'slug' => 'dohid' ,'active' => 1 ],
-            ['name' => 'Переказ', 'slug' => 'perekaz', 'active' => 0  ],
+            ['name' => 'Витрати', 'slug' => 'vitrati' ],
+            ['name' => 'Дохід', 'slug' => 'dohid' ],
+            ['name' => 'Переказ', 'slug' => 'perekaz'  ],
         ]);
     }
 
