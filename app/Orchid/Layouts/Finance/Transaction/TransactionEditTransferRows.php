@@ -39,12 +39,12 @@ class TransactionEditTransferRows extends Rows
     protected function fields(): iterable
     {
         return [
-            Select::make('bills.with_bill_id')
+            Relation::make('bills.with_bill_id')
                 ->title('Bills')
                 ->required()
                 ->fromModel(FinanceBill::class, 'name')
                 ->applyScope('user'),
-            Select::make('bills.to_bill_id')
+            Relation::make('bills.to_bill_id')
                 ->title('Bills')
                 ->required()
                 ->fromModel(FinanceBill::class, 'name')
