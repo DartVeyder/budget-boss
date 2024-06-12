@@ -2,6 +2,7 @@
 
 namespace App\Orchid\Screens\Finance\Transaction;
 
+use App\Models\FinanceBill;
 use App\Models\FinanceTransaction;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditExpensesRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditIncomeRows;
@@ -88,12 +89,17 @@ class TransactionListScreen extends Screen
         ];
     }
 
-    public function save(Request $request, FinanceTransaction $transaction){
-        $transaction->fill($request->input('transaction'))->save();
+    public function save(Request $request, FinanceTransaction $financeTransaction): void{
+        $transaction = $request->input('transaction');
+
+        $bill = FinanceBill::find($transaction['finance_bill_id']);
+        $transaction['finance_currency_id'] = $bill->finance_currency_id;
+        $transaction['currency_code'] =  $bill->currency->code;
+        $financeTransaction->fill($transaction)->save();
         Toast::info(__('You have successfully created.'));
     }
 
-    public function  saveTransfer(Request $request){
+    public function  saveTransfer(Request $request): void{
         $data = $request->input('transaction');
         $bills =  $request->input('bills');
 
@@ -115,7 +121,7 @@ class TransactionListScreen extends Screen
         FinanceTransaction::create($expenses);
 
     }
-    public function remove(Request $request)
+    public function remove(Request $request): object
     {
         FinanceTransaction::findOrFail($request->get('id'))->delete();
 

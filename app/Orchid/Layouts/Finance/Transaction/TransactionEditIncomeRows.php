@@ -4,6 +4,7 @@ namespace App\Orchid\Layouts\Finance\Transaction;
 
 use App\Models\FinanceBill;
 use App\Models\FinanceCurrency;
+use App\Models\FinanceInvoice;
 use App\Models\FinancePaymentMethod;
 use App\Models\FinanceSource;
 use App\Models\FinanceTransaction;
@@ -44,6 +45,9 @@ class TransactionEditIncomeRows extends Rows
                 ->required()
                 ->fromModel(FinanceTransactionCategory::class, 'name')
                 ->applyScope('income'),
+            Relation::make('transaction.finance_invoice_id')
+                ->title('Invoice')
+                ->fromModel(FinanceInvoice::class, 'name'),
             Relation::make('transaction.finance_bill_id')
                 ->title('Bills')
                 ->required()

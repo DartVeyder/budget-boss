@@ -13,6 +13,7 @@ use App\Orchid\Screens\Examples\ExampleLayoutsScreen;
 use App\Orchid\Screens\Examples\ExampleScreen;
 use App\Orchid\Screens\Examples\ExampleTextEditorsScreen;
 use App\Orchid\Screens\Finance\Bill\BillScreen;
+use App\Orchid\Screens\Finance\Invoice\InvoiceListScreen;
 use App\Orchid\Screens\Finance\Transaction\Category\CategoryExpensesScreen;
 use App\Orchid\Screens\Finance\Transaction\Category\CategoryIncomeScreen;
 use App\Orchid\Screens\Finance\Transaction\Category\CategoryScreen;
@@ -21,7 +22,6 @@ use App\Orchid\Screens\Finance\Transaction\TransactionCardScreen;
 use App\Orchid\Screens\Finance\Transaction\TransactionEditExpensesScreen;
 use App\Orchid\Screens\Finance\Transaction\TransactionEditScreen;
 use App\Orchid\Screens\Finance\Transaction\TransactionListScreen;
-use App\Orchid\Screens\PlatformScreen;
 use App\Orchid\Screens\Role\RoleEditScreen;
 use App\Orchid\Screens\Role\RoleListScreen;
 use App\Orchid\Screens\User\UserEditScreen;
@@ -67,13 +67,14 @@ Route::screen('transactions/categories', CategoryScreen::class)
         ->parent('platform.transactions')
         ->push(__('Categories'), route('platform.transactions')));
 
-
+//Platform > Transactions > Category > Income
 Route::screen('transactions/categories/income',  CategoryIncomeScreen::class)
     ->name('platform.transactions.categories.income')
     ->breadcrumbs(fn (Trail $trail) => $trail
         ->parent('platform.transactions')
         ->push(__('Categories'), route('platform.transactions')));
 
+//Platform > Transactions > Category > Expenses
 Route::screen('transactions/categories/expenses', CategoryExpensesScreen::class)
     ->name('platform.transactions.categories.expenses')
     ->breadcrumbs(fn (Trail $trail) => $trail
@@ -87,7 +88,12 @@ Route::screen('/bills',  BillScreen::class)
         ->parent('platform.index')
         ->push(__('Bills'), route('platform.bills')));
 
-
+//Platform > Invoices
+Route::screen('/invoices', InvoiceListScreen::class)
+    ->name('platform.invoices')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.index')
+        ->push(__('Invoices'), route('platform.invoices')));
 
 
 

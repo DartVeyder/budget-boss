@@ -3,6 +3,7 @@
 namespace App\Orchid\Screens\Finance\Bill;
 
 use App\Models\FinanceBill;
+use App\Models\FinanceCurrency;
 use App\Models\FinanceTransactionCategory;
 use App\Orchid\Layouts\Finance\Bill\BillListLayout;
 use App\Orchid\Layouts\Finance\Transaction\Category\CategoryRows;
@@ -11,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Orchid\Screen\Actions\ModalToggle;
 use Orchid\Screen\Fields\Input;
+use Orchid\Screen\Fields\Select;
 use Orchid\Support\Facades\Layout;
 use Orchid\Screen\Screen;
 use Orchid\Support\Facades\Toast;
@@ -66,7 +68,12 @@ class BillScreen extends Screen
             Layout::modal('addBill', [
                 Layout::rows([
                     Input::make("name")
-                    ->title("Name"),
+                        ->required()
+                        ->title("Name"),
+                    Select::make("finance_currency_id")
+                        ->required()
+                        ->fromModel(FinanceCurrency::class, 'name')
+                        ->title("Currency"),
                     Input::make('user_id')
                         ->value(Auth::user()->id)
                         ->hidden(),

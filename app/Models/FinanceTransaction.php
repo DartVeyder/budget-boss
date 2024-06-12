@@ -51,6 +51,10 @@ class FinanceTransaction extends Model
         return $this->belongsTo(FinanceTransactionCategory::class, 'transaction_category_id');
     }
 
+    public function currency(){
+        return $this->belongsTo(FinanceCurrency::class, 'finance_currency_id');
+    }
+
     public function type(){
         return $this->belongsTo(FinanceTransactionType::class);
     }

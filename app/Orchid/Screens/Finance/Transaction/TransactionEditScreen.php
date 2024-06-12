@@ -66,6 +66,7 @@ class TransactionEditScreen extends Screen
     }
 
     public function save(Request $request, FinanceTransaction $transaction){
+
         $transaction->fill($request->input('transaction'))->save();
         Toast::info(__('You have successfully created.'));
         return redirect()->route('platform.transactions');

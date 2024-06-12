@@ -26,5 +26,9 @@ class FinanceBill extends Model
         return $this->hasMany(FinanceTransaction::class,'finance_bill_id');
     }
 
+    public function currency(){
+        return $this->belongsTo(FinanceCurrency::class, 'finance_currency_id');
+    }
+
 
 }

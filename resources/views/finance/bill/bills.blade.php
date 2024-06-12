@@ -1,3 +1,5 @@
+
+
 <div class="container-fluid ">
     <div class="row " style="  margin: 0 -28px;" >
         @foreach ($bills as $key => $bill)

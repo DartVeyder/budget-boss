@@ -55,7 +55,14 @@ class TransactionListLayout extends Table
                     TD::FILTER_NUMBER_RANGE
                 )
                 ->render(function ($transaction){
-                    return view('finance.transaction.partials.amount', $transaction );
+
+                    return view('finance.transaction.partials.amount',
+                        [
+                            'type' => $transaction['type'],
+                            'amount' => $transaction['amount'],
+                            'symbol' =>  $transaction->currency->symbol
+                        ]
+                    );
                 }),
 
             TD::make('created_at', __('Created'))
