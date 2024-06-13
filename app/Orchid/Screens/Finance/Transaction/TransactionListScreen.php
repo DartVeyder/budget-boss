@@ -3,6 +3,7 @@
 namespace App\Orchid\Screens\Finance\Transaction;
 
 use App\Models\FinanceBill;
+use App\Models\FinanceInvoice;
 use App\Models\FinanceTransaction;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditExpensesRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditIncomeRows;
@@ -57,10 +58,10 @@ class TransactionListScreen extends Screen
         return [
             ModalToggle::make(__('Income'))
                 ->modal('income')
-                ->method('save'),
+                ->method('saveIncome'),
             ModalToggle::make(__('Expenses'))
                 ->modal('expenses')
-                ->method('save'),
+                ->method('saveExpenses'),
             ModalToggle::make(__('Transfer'))
                 ->modal('transfer')
                 ->method('saveTransfer')
@@ -89,14 +90,57 @@ class TransactionListScreen extends Screen
         ];
     }
 
-    public function save(Request $request, FinanceTransaction $financeTransaction): void{
+    public function saveIncome(Request $request, FinanceTransaction $financeTransaction): void{
         $transaction = $request->input('transaction');
 
-        $bill = FinanceBill::find($transaction['finance_bill_id']);
+        if($transaction['finance_invoice_id']){
+            $invoice = FinanceInvoice::find($transaction['finance_invoice_id']);
+            $transaction['accrual_date'] = $invoice->created_at;
+        }
+
+        $transaction = array_merge($transaction, $this->getCurrencyTransaction($transaction['finance_bill_id']));
+
+        $financeTransaction->fill($transaction)->save();
+        $this->updateStatusInvoice($transaction['finance_invoice_id']);
+
+
+        Toast::info(__('You have successfully created.'));
+    }
+
+    public function saveExpenses(Request $request, FinanceTransaction $financeTransaction): void{
+        $transaction = $request->input('transaction');
+
+        $transaction = array_merge($transaction, $this->getCurrencyTransaction($transaction['finance_bill_id']));
+
+        $financeTransaction->fill($transaction)->save();
+
+        Toast::info(__('You have successfully created.'));
+    }
+
+    private function getCurrencyTransaction($bill_id){
+        $bill = FinanceBill::find($bill_id);
         $transaction['finance_currency_id'] = $bill->finance_currency_id;
         $transaction['currency_code'] =  $bill->currency->code;
-        $financeTransaction->fill($transaction)->save();
-        Toast::info(__('You have successfully created.'));
+
+        return $transaction;
+    }
+
+    private function updateStatusInvoice($invoice_id):void
+    {
+        if($invoice_id){
+            $data = [];
+            $invoice = FinanceInvoice::find($invoice_id);
+            $amount_paid = FinanceTransaction::where('finance_invoice_id', $invoice_id)->get()->sum('amount');
+            $data['amount_paid'] =  $amount_paid;
+            if($amount_paid >= $invoice->total){
+                $data['status'] = 'paid';
+            }else{
+                $data['status'] = 'not_paid';
+            }
+
+            FinanceInvoice::where('id', $invoice_id)->update($data);
+        }
+
     }
 
     public function  saveTransfer(Request $request): void{
@@ -123,7 +167,14 @@ class TransactionListScreen extends Screen
     }
     public function remove(Request $request): object
     {
-        FinanceTransaction::findOrFail($request->get('id'))->delete();
+        $transaction = FinanceTransaction::findOrFail($request->get('id'));
+        $transaction->delete();
+
+        if($transaction->finance_invoice_id){
+            $this->updateStatusInvoice($transaction->finance_invoice_id);
+        }
+
+
 
         Toast::info(__('You have successfully remove'));
         return redirect()->route('platform.transactions');

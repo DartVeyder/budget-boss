@@ -49,6 +49,11 @@ class TransactionListLayout extends Table
                 ->render(
                 fn(FinanceTransaction $transaction) => $transaction->bill->name
             ),
+            TD::make('finance_invoice_id', __('№ Invoice'))
+                ->render(
+
+                    fn(FinanceTransaction $transaction) => ($transaction->invoice)?$transaction->invoice->invoice_number : ''
+                ),
             TD::make('amount', __('Amount'))
                 ->sort()
                 ->filter(

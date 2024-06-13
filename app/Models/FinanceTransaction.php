@@ -54,6 +54,9 @@ class FinanceTransaction extends Model
     public function currency(){
         return $this->belongsTo(FinanceCurrency::class, 'finance_currency_id');
     }
+    public function invoice(){
+        return $this->belongsTo(FinanceInvoice::class, 'finance_invoice_id');
+    }
 
     public function type(){
         return $this->belongsTo(FinanceTransactionType::class);

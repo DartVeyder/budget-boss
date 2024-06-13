@@ -64,7 +64,7 @@ class BillScreen extends Screen
     public function layout(): iterable
     {
         return [
-            Layout::view('finance.bill.bills'),
+            Layout::view('finance.bill.index'),
             Layout::modal('addBill', [
                 Layout::rows([
                     Input::make("name")

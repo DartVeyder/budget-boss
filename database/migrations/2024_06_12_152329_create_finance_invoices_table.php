@@ -18,7 +18,7 @@ return new class extends Migration
             $table->unsignedBigInteger('user_id');
             $table->decimal('amount_paid', 10, 2)->default(0);
             $table->decimal('total', 10, 2)->default(0);
-            $table->enum('status', ['draft', 'sent', 'paid', 'cancelled'])->default('draft');
+            $table->enum('status', ['not_paid', 'paid', 'cancelled'])->default('not_paid');
             $table->text('comment')->nullable();
             $table->timestamps();
 

@@ -206,5 +206,10 @@
     "Expenses per month": "Витрати за місяць",
     "Access Controls": "Контроль доступу",
     "New bill": "Новий рахунок",
-    "Invoices": "Інвойси"
+    "Invoices": "Інвойси",
+    "From whom": "Від кого",
+    "Total": "Сума",
+    "Amount paid" : "Оплачено",
+    "New invoice": "Новий інвойс",
+    "№ Invoice": "№ інвойса"
 }
