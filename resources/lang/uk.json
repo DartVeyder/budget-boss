@@ -203,6 +203,7 @@
     "Expenses for this month": "Витрати за цей місяць",
     "Data for the current month": "Дані за поточний місяць",
     "Statistics for the week": "Статистика за тиждень",
+    "Statistics for the year": "Статистика за рік",
     "Expenses per month": "Витрати за місяць",
     "Access Controls": "Контроль доступу",
     "New bill": "Новий рахунок",
@@ -211,5 +212,15 @@
     "Total": "Сума",
     "Amount paid" : "Оплачено",
     "New invoice": "Новий інвойс",
-    "№ Invoice": "№ інвойса"
+    "№ Invoice": "№ інвойса",
+    "March": "Березень",
+    "April": "Квітень",
+    "May": "Травень",
+    "June": "Червень",
+    "July": "Липень",
+    "August": "Серпень",
+    "September": "Вересень",
+    "October": "Жовтень",
+    "November": "Листопад",
+    "December": "Грудень"
 }

@@ -13,6 +13,7 @@ use App\Orchid\Layouts\Examples\ChartLineExample;
 use App\Orchid\Layouts\Finance\Transaction\TransactionListLayout;
 use App\Orchid\Screens\Components\Cells\DateTime;
 use App\Services\Finance\Bill\BillService;
+use App\Services\Metrics\Chartable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -22,10 +23,19 @@ use App\Orchid\Screens\Components\Cells\DateTimeSplit;
 use Orchid\Screen\Screen;
 use Orchid\Screen\TD;
 use Orchid\Support\Facades\Layout;
+use SaKanjo\EasyMetrics\Metrics\Trend;
+use SaKanjo\EasyMetrics\Metrics\Value;
 
 class DashboardScreen extends Screen
 {
     use BillService;
+    use Chartable;
+
+
+
+    private function toChart(){
+
+    }
     /**
      * Fetch data to be displayed on the screen.
      *
@@ -40,10 +50,10 @@ class DashboardScreen extends Screen
 
         $balance =   $income->sum('amount') - $expenses->sum('amount');
 
+
+
         $start = Carbon::now()->subDay(6);
         $end = Carbon::now()->subDay(0);
-
-
         return [
             'metrics' => [
                 "total" => [
@@ -57,8 +67,8 @@ class DashboardScreen extends Screen
             ],
             'charts'  => [
                 'transactions' =>[
-                    $income->sumByDays('amount', $start, $end, 'created_at')->toChart(__('Income')),
-                    $expenses->sumByDays('amount', $start, $end, 'created_at')->toChart(__('Expenses')),
+                    $this->toCharts($income),
+                    $this->toCharts($expenses)
                 ],
                 'categories' =>[
                     'expenses' => $this->getCategoriesChart(1),
@@ -134,8 +144,7 @@ class DashboardScreen extends Screen
                 DashboardChartTransactionCategoryLayout::make('charts.categories.income'),
                 DashboardChartTransactionCategoryLayout::make('charts.categories.expenses'),
             ]),
-
-            DashboardChartTransactionLayout::make('charts.transactions', __('Statistics for the week')),
+            DashboardChartTransactionLayout::make('charts.transactions', __('Statistics for the year')),
             TransactionListLayout::class
 
 
