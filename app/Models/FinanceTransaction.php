@@ -17,7 +17,6 @@ class FinanceTransaction extends Model
     use HasFactory;
     use AsSource;
     use Filterable;
-    use SoftDeletes;
     use Chartable;
 
     protected $guarded = [];

@@ -50,10 +50,10 @@ class DashboardScreen extends Screen
 
         $balance =   $income->sum('amount') - $expenses->sum('amount');
 
+        $chart_income =  $this->toCharts($income, __('Income'));
+        $chart_expense =  $this->toCharts($expenses, __('Expenses'));
 
 
-        $start = Carbon::now()->subDay(6);
-        $end = Carbon::now()->subDay(0);
         return [
             'metrics' => [
                 "total" => [
@@ -67,8 +67,8 @@ class DashboardScreen extends Screen
             ],
             'charts'  => [
                 'transactions' =>[
-                    $this->toCharts($income),
-                    $this->toCharts($expenses)
+                    $chart_income,
+                    $chart_expense
                 ],
                 'categories' =>[
                     'expenses' => $this->getCategoriesChart(1),
