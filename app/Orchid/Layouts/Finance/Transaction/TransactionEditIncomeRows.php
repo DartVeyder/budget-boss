@@ -51,6 +51,7 @@ class TransactionEditIncomeRows extends Rows
             Relation::make('transaction.finance_bill_id')
                 ->title('Bills')
                 ->required()
+                ->displayAppend('billCurrency')
                 ->fromModel(FinanceBill::class, 'name')
                 ->applyScope('user'),
             Input::make("transaction.amount")

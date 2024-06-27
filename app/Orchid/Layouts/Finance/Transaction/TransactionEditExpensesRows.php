@@ -48,6 +48,7 @@ class TransactionEditExpensesRows extends Rows
                 ->title('Bills')
                 ->required()
                 ->fromModel(FinanceBill::class, 'name')
+                ->displayAppend('billCurrency')
                 ->applyScope('user'),
             Input::make("transaction.amount")
                 ->title('Money spent')

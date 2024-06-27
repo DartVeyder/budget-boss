@@ -3,6 +3,7 @@
 namespace App\Orchid\Screens\Finance\Transaction;
 
 use App\Models\FinanceBill;
+use App\Models\FinanceCurrency;
 use App\Models\FinanceInvoice;
 use App\Models\FinanceTransaction;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditExpensesRows;
@@ -121,7 +122,7 @@ class TransactionListScreen extends Screen
         $bill = FinanceBill::find($bill_id);
         $transaction['finance_currency_id'] = $bill->finance_currency_id;
         $transaction['currency_code'] =  $bill->currency->code;
-
+        $transaction['currency_value'] = FinanceCurrency::find($bill->finance_currency_id)->value;
         return $transaction;
     }
 

@@ -22,6 +22,11 @@ class FinanceBill extends Model
         return $query->where('user_id',Auth::user()->id);
     }
 
+    public  function  getBillCurrencyAttribute() : string
+    {
+        return $this->name . ' ( ' . $this->currency->symbol . ' )'   ;
+    }
+
     public function transactions(){
         return $this->hasMany(FinanceTransaction::class,'finance_bill_id');
     }

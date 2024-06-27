@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Orchid\Filters\Filterable;
 use Orchid\Filters\Types\Where;
 use Orchid\Filters\Types\WhereDateStartEnd;
@@ -42,6 +44,23 @@ class FinanceTransaction extends Model
         'created_at'
     ];
 
+
+    public function scopeTotalAmount($query)
+    {
+        return $query->sum(DB::raw('currency_value * amount'));
+    }
+
+    public function getAdditionalAttribute(): Collection
+    {
+        return collect([
+            'some_option' => true,
+        ]);
+    }
+
+    public function getAmountCurrencyAttribute(): float{
+        return $this->amount * 2;
+    }
+
     public function bill(){
         return $this->belongsTo(FinanceBill::class , 'finance_bill_id');
     }
@@ -60,4 +79,5 @@ class FinanceTransaction extends Model
     public function type(){
         return $this->belongsTo(FinanceTransactionType::class);
     }
+
 }
