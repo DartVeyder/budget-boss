@@ -24,9 +24,17 @@ class Currency
         }
     }
 
-    public static function convert(string $toCurrency) :float|null{
-        //$currency = FinanceCurrency::where('code',$toCurrency)->first();
+    public static function getExchangeRate(string $toCurrency) :float|null{
+        $currency = FinanceCurrency::where('code',$toCurrency)->first();
+        if($toCurrency == 'UAH'){
+            return 1;
+        }
         $exchangeRates = self::parseExchangeRates();
+        FinanceCurrency::where('code',$toCurrency)->update(['value'=>'44']);
+        dd($currency);
+
+
+
         $data = array_column($exchangeRates, 'buy','ccy');
         if(!array_key_exists( $toCurrency,$data)){
             return 1;

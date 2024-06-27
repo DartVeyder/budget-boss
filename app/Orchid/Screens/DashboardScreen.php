@@ -39,7 +39,7 @@ class DashboardScreen extends Screen
      */
     public function query(FinanceTransaction $transactions ): iterable
     {
-        $exchangeRate = Currency::convert(env('CURRENCY')) ;
+        $exchangeRate = Currency::getExchangeRate(env('CURRENCY')) ;
         $currencySymbol = Currency::getSymbol(env('CURRENCY'));
 
         $currentMonth = Carbon::now()->month;
@@ -94,8 +94,8 @@ class DashboardScreen extends Screen
         return number_format($value , 0,'.',' ' ) . " " . $currencySymbol;
     }
 
-    private function calculateAmountToCurrency($amount, $exchange_rate = 1){
-        return $amount  / $exchange_rate ;
+    private function calculateAmountToCurrency(float $amount,float $exchange_rate = 1):float{
+        return $amount / $exchange_rate ;
     }
 
     private function  calculateBalance(float $income_balance,float $expenses_balance, $exchange_rate = 1) :float{

@@ -99,7 +99,7 @@ class TransactionListScreen extends Screen
             $transaction['accrual_date'] = $invoice->created_at;
         }
 
-        $transaction = array_merge($transaction, $this->getCurrencyTransaction($transaction['finance_bill_id']));
+        $transaction = array_merge($transaction, $this->getCurrencyTransaction($transaction['finance_bill_id'], $transaction['amount']));
 
         $financeTransaction->fill($transaction)->save();
         $this->updateStatusInvoice($transaction['finance_invoice_id']);
@@ -111,18 +111,20 @@ class TransactionListScreen extends Screen
     public function saveExpenses(Request $request, FinanceTransaction $financeTransaction): void{
         $transaction = $request->input('transaction');
 
-        $transaction = array_merge($transaction, $this->getCurrencyTransaction($transaction['finance_bill_id']));
+        $transaction = array_merge($transaction, $this->getCurrencyTransaction($transaction['finance_bill_id'], $transaction['amount']));
 
         $financeTransaction->fill($transaction)->save();
 
         Toast::info(__('You have successfully created.'));
     }
 
-    private function getCurrencyTransaction($bill_id){
+    private function getCurrencyTransaction($bill_id, $amount){
         $bill = FinanceBill::find($bill_id);
+        $currency = FinanceCurrency::find($bill->finance_currency_id);
         $transaction['finance_currency_id'] = $bill->finance_currency_id;
         $transaction['currency_code'] =  $bill->currency->code;
-        $transaction['currency_value'] = FinanceCurrency::find($bill->finance_currency_id)->value;
+        $transaction['currency_value'] = $currency->value;
+        $transaction['currency_amount'] = $amount * $currency->value;
         return $transaction;
     }
 
