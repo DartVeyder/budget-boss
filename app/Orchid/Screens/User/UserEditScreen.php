@@ -178,6 +178,10 @@ class UserEditScreen extends Screen
         if($user->wasRecentlyCreated) {
             $this->dataInsert($user->id);
         }
+
+
+
+
         Toast::info(__('User was saved.'));
 
         return redirect()->route('platform.systems.users');
@@ -210,6 +214,11 @@ class UserEditScreen extends Screen
     }
 
     private function  dataInsert($user_id): void{
+
+        DB::table('user_settings')->insert([
+            ['currency' => 'UAH', 'user_id' => $user_id ],
+        ]);
+
         DB::table('finance_bills')->insert([
             ['name' => 'Готівка', 'user_id' => $user_id ],
             ['name' => 'Монобанк', 'user_id' => $user_id ],

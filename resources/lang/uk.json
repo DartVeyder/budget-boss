@@ -222,5 +222,8 @@
     "September": "Вересень",
     "October": "Жовтень",
     "November": "Листопад",
-    "December": "Грудень"
+    "December": "Грудень",
+    "Settings": "Налаштування",
+    "Changed currency to ": "Змінено валюту на ",
+    "Currency: ": "Валюта: "
 }

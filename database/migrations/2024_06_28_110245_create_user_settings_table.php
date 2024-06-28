@@ -11,8 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('finance_currencies', function (Blueprint $table) {
-            $table->timestamp('scanned_at')->after('amount')->default(DB::raw('CURRENT_TIMESTAMP'))->nullable();
+        Schema::create('user_settings', function (Blueprint $table) {
+            $table->unsignedBigInteger('user_id')->primary();
+            $table->string('currency')->default('UAH');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 
@@ -21,8 +23,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('finance_currencies', function (Blueprint $table) {
-            //
-        });
+        Schema::dropIfExists('user_settings');
     }
 };

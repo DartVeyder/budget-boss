@@ -19,11 +19,16 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Orchid\Screen\Actions\Button;
+use Orchid\Screen\Actions\DropDown;
 use Orchid\Screen\Actions\Link;
 use App\Orchid\Screens\Components\Cells\DateTimeSplit;
+use Orchid\Screen\Actions\ModalToggle;
+use Orchid\Screen\Fields\Select;
 use Orchid\Screen\Screen;
 use Orchid\Screen\TD;
 use Orchid\Support\Facades\Layout;
+use Orchid\Support\Facades\Toast;
 use SaKanjo\EasyMetrics\Metrics\Trend;
 use SaKanjo\EasyMetrics\Metrics\Value;
 
@@ -32,6 +37,7 @@ class DashboardScreen extends Screen
     use BillService;
     use Chartable;
 
+    private  string $currency;
     /**
      * Fetch data to be displayed on the screen.
      *
@@ -39,8 +45,9 @@ class DashboardScreen extends Screen
      */
     public function query(FinanceTransaction $transactions ): iterable
     {
-        $exchangeRate = Currency::getExchangeRate(env('CURRENCY')) ;
-        $currencySymbol = Currency::getSymbol(env('CURRENCY'));
+        $this->currency = Auth::user()->setting->currency;
+        $exchangeRate = Currency::getExchangeRate(  $this->currency ) ;
+        $currencySymbol = Currency::getSymbol(  $this->currency );
 
         $currentMonth = Carbon::now()->month;
         $userId = Auth::user()->id;
@@ -82,13 +89,6 @@ class DashboardScreen extends Screen
         ];
     }
 
-    private function getCurrencySymbol():string{
-        return $this->currencySymbol;
-    }
-
-    private  function setCurrencySymbol(string $currencySymbol) :void{
-        $this->currencySymbol = $currencySymbol;
-    }
 
     private  function getFormatMoney(float $value, string $currencySymbol): string{
         return number_format($value , 0,'.',' ' ) . " " . $currencySymbol;
@@ -118,6 +118,12 @@ class DashboardScreen extends Screen
         ]];
     }
 
+    public function buttonChangeCurrency($code){
+        Auth::user()->setting()->update(["currency" => $code]);
+        Currency::getExchangeRate($code);
+        Toast::warning(__('Changed currency to ') . $code);
+    }
+
     /*
      * The name of the screen displayed in the header.
      *
@@ -135,7 +141,15 @@ class DashboardScreen extends Screen
      */
     public function commandBar(): iterable
     {
-        return [];
+        return [
+            DropDown::make(__("Currency: ") . $this->currency)
+                ->list(
+                    [
+                    Button::make('UAH')->method('buttonChangeCurrency',['code' => 'UAH']),
+                    Button::make('USD')->method('buttonChangeCurrency',['code' => 'USD']),
+                    Button::make('EUR')->method('buttonChangeCurrency',['code' => 'EUR']),
+                ]),
+        ];
     }
 
     /**
@@ -161,7 +175,16 @@ class DashboardScreen extends Screen
                 DashboardChartTransactionCategoryLayout::make('charts.categories.expenses'),
             ]),
             DashboardChartTransactionLayout::make('charts.transactions', __('Statistics for the year')),
-            TransactionListLayout::class
+            TransactionListLayout::class,
+            Layout::modal('settings', [
+                Layout::rows([
+                    Select::make("currency_code")
+                        ->required()
+                        ->empty('Долар', "USD")
+                        ->fromModel(FinanceCurrency::class, 'name', 'code')
+                        ->title("Currency"),
+                ])
+            ])->title(__('Settings')),
 
 
         ];
