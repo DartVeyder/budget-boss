@@ -6,6 +6,7 @@ use App\Models\FinanceBill;
 use App\Models\FinanceCurrency;
 use App\Models\FinanceInvoice;
 use App\Models\FinanceTransaction;
+use App\Orchid\Layouts\Finance\Transaction\TransactionEditAuditRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditExpensesRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditIncomeRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditTransferRows;
@@ -65,7 +66,10 @@ class TransactionListScreen extends Screen
                 ->method('saveExpenses'),
             ModalToggle::make(__('Transfer'))
                 ->modal('transfer')
-                ->method('saveTransfer')
+                ->method('saveTransfer'),
+            ModalToggle::make(__('Audit'))
+                ->modal('audit')
+                ->method('saveAudit')
         ];
     }
 
@@ -88,6 +92,9 @@ class TransactionListScreen extends Screen
             Layout::modal('transfer', [
                 TransactionEditTransferRows::class
             ])->title(__('Transfer')),
+            Layout::modal('audit', [
+                TransactionEditAuditRows::class
+            ])->title(__('Audit')),
         ];
     }
 
@@ -166,6 +173,15 @@ class TransactionListScreen extends Screen
         $expenses['transaction_type_id'] = 3;
         $expenses['finance_bill_id']  = $bills['to_bill_id'];
         FinanceTransaction::create($expenses);
+
+    }
+
+    public function  saveAudit(Request $request){
+        $transaction = Auth::user()->transactions();
+        $total =  $transaction->where('transaction_type_id',2)->totalAmount() - $transaction->where('transaction_type_id',1)->totalAmount() ;
+        $data = $request->input('transaction');
+        $diff_total = $data['current_balance'] - $total;
+
 
     }
     public function remove(Request $request): object

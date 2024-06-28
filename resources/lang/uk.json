@@ -225,5 +225,7 @@
     "December": "Грудень",
     "Settings": "Налаштування",
     "Changed currency to ": "Змінено валюту на ",
-    "Currency: ": "Валюта: "
+    "Currency: ": "Валюта: ",
+    "Audit": "Ревізія",
+    "Current balance" : "Поточний баланс"
 }

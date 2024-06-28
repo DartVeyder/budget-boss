@@ -168,25 +168,12 @@ class DashboardScreen extends Screen
                 'Income for this month' => 'metrics.currentMonth.income',
                 'Expenses for this month' => 'metrics.currentMonth.expenses',
             ])->title( 'Data for the current month'),
-
-
             Layout::columns([
                 DashboardChartTransactionCategoryLayout::make('charts.categories.income'),
                 DashboardChartTransactionCategoryLayout::make('charts.categories.expenses'),
             ]),
             DashboardChartTransactionLayout::make('charts.transactions', __('Statistics for the year')),
             TransactionListLayout::class,
-            Layout::modal('settings', [
-                Layout::rows([
-                    Select::make("currency_code")
-                        ->required()
-                        ->empty('Долар', "USD")
-                        ->fromModel(FinanceCurrency::class, 'name', 'code')
-                        ->title("Currency"),
-                ])
-            ])->title(__('Settings')),
-
-
         ];
     }
 
