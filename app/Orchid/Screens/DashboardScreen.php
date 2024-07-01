@@ -37,7 +37,10 @@ class DashboardScreen extends Screen
     use BillService;
     use Chartable;
 
-    private  string $currency;
+    private string $currency = 'UAH';
+    private string $currencySymbol;
+    private float $exchangeRate = 1;
+    private int $userId;
     /**
      * Fetch data to be displayed on the screen.
      *
@@ -45,71 +48,57 @@ class DashboardScreen extends Screen
      */
     public function query(FinanceTransaction $transactions ): iterable
     {
-        $this->currency = Auth::user()->setting->currency;
-        $exchangeRate = Currency::getExchangeRate(  $this->currency ) ;
-        $currencySymbol = Currency::getSymbol(  $this->currency );
+        $user = Auth::user();
+        $this->userId = $user->id;
+        $this->currency = $user->setting->currency;
 
+        $this->exchangeRate = Currency::getExchangeRate(  $this->currency ) ;
+        $this->currencySymbol = Currency::getSymbol(  $this->currency );
         $currentMonth = Carbon::now()->month;
-        $userId = Auth::user()->id;
-        $income = $transactions->where('transaction_type_id',2)->where('user_id', $userId) ;
-        $expenses = $transactions->where('transaction_type_id',1)->where('user_id', $userId) ;
+
+        $data = [];
+
+        $data['metrics']['total']['balance']  =  $this->getFormatMoney($this->calculateAmountToCurrency($user->transactions()->sum('currency_amount')) );
+        $income = $transactions->where('type','income')->where('user_id', $user->id) ;
+        $expenses = $transactions->where('type','expenses')->where('user_id', $user->id) ;
 
 
-        $chart_income =  $this->toCharts($income, __('Income'));
-        $chart_expense =  $this->toCharts($expenses, __('Expenses'));
+        $data['metrics']['currentMonth']['income'] =  $this->getFormatMoney($this->calculateAmountToCurrency($income->whereMonth('created_at', $currentMonth )->sum('currency_amount')));
+        $data['metrics']['currentMonth']['expenses'] =  $this->getFormatMoney($this->calculateAmountToCurrency($expenses->whereMonth('created_at', $currentMonth )->sum('currency_amount')));
+        $data['metrics']['bills'] =  $this->generateMetricsToBill();
+        $data['charts']['transactions'][] = $this->toCharts($income, __('Income'));
+        $data['charts']['transactions'][] =$this->toCharts($expenses, __('Expenses'));
+        $data['charts']['categories']['expenses'] = $this->getCategoriesChart('expenses');
+        $data['charts']['categories']['income'] = $this->getCategoriesChart('income');
+        $data['transactions'] = $this-> getTransactions($transactions);
 
-        return [
-            'metrics' => [
-                "total" => [
-                    'balance'   => ['value' => $this->getFormatMoney($this->calculateBalance($income->totalAmount(), $expenses->totalAmount(), $exchangeRate),$currencySymbol )],
-                ],
-                "currentMonth"=>[
-                    'income' => ['value' => $this->getFormatMoney($this->calculateAmountToCurrency($income->whereMonth('created_at', $currentMonth )->totalAmount(),$exchangeRate) ,$currencySymbol)  ],
-                    'expenses'   => ['value' =>   $this->getFormatMoney($this->calculateAmountToCurrency($expenses->whereMonth('created_at', $currentMonth )->totalAmount(),$exchangeRate) ,$currencySymbol) ],
-                ],
-                "bills" =>  $this->generateMetricsToBill()
-            ],
-            'charts'  => [
-                'transactions' =>[
-                    $chart_income,
-                    $chart_expense
-                ],
-                'categories' =>[
-                    'expenses' => $this->getCategoriesChart(1),
-                    'income' => $this->getCategoriesChart(2)
-                ]
-            ],
-            'transactions' => $transactions
-                ->where('transaction_type_id', "!=" , 3)
-                ->where('user_id', $userId)
-                ->orderBy('id' , 'DESC')
-                ->take(10)
-                ->get()
-
-        ];
+        return  $data;
     }
 
-
-    private  function getFormatMoney(float $value, string $currencySymbol): string{
-        return number_format($value , 0,'.',' ' ) . " " . $currencySymbol;
+    private  function  getTransactions($transactions){
+       return $transactions
+            ->where('user_id', $this->userId)
+            ->orderBy('id' , 'DESC')
+            ->take(10)
+            ->get();
     }
 
-    private function calculateAmountToCurrency(float $amount,float $exchange_rate = 1):float{
-        return $amount / $exchange_rate ;
+    private  function getFormatMoney(float $value): string{
+        return number_format($value , 0,'.',' ' ) . " " . $this->currencySymbol;
     }
 
-    private function  calculateBalance(float $income_balance,float $expenses_balance, $exchange_rate = 1) :float{
-        return ($income_balance - $expenses_balance) / $exchange_rate ;
+    private function calculateAmountToCurrency(float $amount):float{
+        return  $amount / $this->exchangeRate  ;
     }
 
-    private function getCategoriesChart(int $type): array{
+    private function getCategoriesChart(string $type): array{
         $collection = DB::table('finance_transactions')
             ->whereMonth('finance_transactions.created_at', Carbon::now()->month)
             ->where('finance_transactions.user_id', Auth::user()->id)
             ->whereNull('finance_transactions.deleted_at')
-            ->where('finance_transactions.transaction_type_id', $type)
+            ->where('finance_transactions.type', $type)
             ->join('finance_transaction_categories', 'finance_transactions.transaction_category_id', '=', 'finance_transaction_categories.id')
-            ->select('finance_transaction_categories.id', 'finance_transaction_categories.name', DB::raw('SUM(finance_transactions.amount * finance_transactions.currency_value) as total_amount'))
+            ->select('finance_transaction_categories.id', 'finance_transaction_categories.name', DB::raw('ABS(SUM(finance_transactions.amount * finance_transactions.currency_value)) as total_amount'))
             ->groupBy('finance_transaction_categories.id', 'finance_transaction_categories.name')
             ->get();
         return [[

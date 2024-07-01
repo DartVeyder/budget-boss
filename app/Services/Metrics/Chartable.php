@@ -13,10 +13,11 @@ trait Chartable
             ->ranges([ 12 ])
             ->sumByMonths('currency_amount');
 
+
         return [
             'name' => $name,
             'labels' => $data->getLabels(),
-            'values' =>  $data->getData() ,
+            'values' =>  array_map('abs',$data->getData()) ,
         ];
     }
 }

@@ -12,6 +12,7 @@ use App\Orchid\Layouts\Finance\Transaction\TransactionEditIncomeRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditTransferRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionListLayout;
 use App\Orchid\Layouts\Finance\Transaction\TransactionSelection;
+use App\Services\Finance\Transaction\TransactionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Orchid\Screen\Actions\Link;
@@ -22,6 +23,7 @@ use Orchid\Support\Facades\Toast;
 
 class TransactionListScreen extends Screen
 {
+    use TransactionService;
     /**
      * Fetch data to be displayed on the screen.
      *
@@ -98,60 +100,6 @@ class TransactionListScreen extends Screen
         ];
     }
 
-    public function saveIncome(Request $request, FinanceTransaction $financeTransaction): void{
-        $transaction = $request->input('transaction');
-
-        if($transaction['finance_invoice_id']){
-            $invoice = FinanceInvoice::find($transaction['finance_invoice_id']);
-            $transaction['accrual_date'] = $invoice->created_at;
-        }
-
-        $transaction = array_merge($transaction, $this->getCurrencyTransaction($transaction['finance_bill_id'], $transaction['amount']));
-
-        $financeTransaction->fill($transaction)->save();
-        $this->updateStatusInvoice($transaction['finance_invoice_id']);
-
-
-        Toast::info(__('You have successfully created.'));
-    }
-
-    public function saveExpenses(Request $request, FinanceTransaction $financeTransaction): void{
-        $transaction = $request->input('transaction');
-
-        $transaction = array_merge($transaction, $this->getCurrencyTransaction($transaction['finance_bill_id'], $transaction['amount']));
-
-        $financeTransaction->fill($transaction)->save();
-
-        Toast::info(__('You have successfully created.'));
-    }
-
-    private function getCurrencyTransaction($bill_id, $amount){
-        $bill = FinanceBill::find($bill_id);
-        $currency = FinanceCurrency::find($bill->finance_currency_id);
-        $transaction['finance_currency_id'] = $bill->finance_currency_id;
-        $transaction['currency_code'] =  $bill->currency->code;
-        $transaction['currency_value'] = $currency->value;
-        $transaction['currency_amount'] = $amount * $currency->value;
-        return $transaction;
-    }
-
-    private function updateStatusInvoice($invoice_id):void
-    {
-        if($invoice_id){
-            $data = [];
-            $invoice = FinanceInvoice::find($invoice_id);
-            $amount_paid = FinanceTransaction::where('finance_invoice_id', $invoice_id)->get()->sum('amount');
-            $data['amount_paid'] =  $amount_paid;
-            if($amount_paid >= $invoice->total){
-                $data['status'] = 'paid';
-            }else{
-                $data['status'] = 'not_paid';
-            }
-
-            FinanceInvoice::where('id', $invoice_id)->update($data);
-        }
-
-    }
 
     public function  saveTransfer(Request $request): void{
         $data = $request->input('transaction');
@@ -181,8 +129,6 @@ class TransactionListScreen extends Screen
         $total =  $transaction->where('transaction_type_id',2)->totalAmount() - $transaction->where('transaction_type_id',1)->totalAmount() ;
         $data = $request->input('transaction');
         $diff_total = $data['current_balance'] - $total;
-
-
     }
     public function remove(Request $request): object
     {

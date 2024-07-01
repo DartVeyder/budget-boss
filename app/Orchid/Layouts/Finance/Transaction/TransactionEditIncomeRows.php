@@ -67,10 +67,7 @@ class TransactionEditIncomeRows extends Rows
                 ->hidden(),
             Input::make('transaction.type')
                 ->value('income')
-                ->hidden(),
-            Input::make('transaction.user_id')
-                ->value(Auth::user()->id)
-                ->hidden(),
+                ->hidden()
         ];
     }
 }

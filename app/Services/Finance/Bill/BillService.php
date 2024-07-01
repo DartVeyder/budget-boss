@@ -12,14 +12,10 @@ trait BillService
 
         $bills = FinanceBill::with('currency')->where('user_id', Auth::user()->id)->get();
         foreach ($bills as $bill){
-            $totalIcome =   $bill->transactions->where('type','income')->sum('amount');
-            $totalExpense =  $bill->transactions->where('type','expenses')->sum('amount') ;
-            $data[  $bill->id ] =
+             $data[  $bill->id ] =
                 [
                     'name' => $bill->name,
-                    'income' => ["value" => number_format($totalIcome  , 0,'.',' ' ) . " " . $bill->currency->symbol],
-                    'expenses' =>   ["value"=>  number_format($totalExpense  , 0,'.',' ' ) . " ₴"],
-                    'total' => ["value" => number_format($totalIcome - $totalExpense  , 0,'.',' ' ). " " . $bill->currency->symbol]
+                    'total' => ["value" => number_format( $bill->transactions->sum('currency_amount')  , 0,'.',' ' ). " " . $bill->currency->symbol]
                 ];
         }
         return $data;

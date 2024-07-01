@@ -64,9 +64,6 @@ class TransactionEditExpensesRows extends Rows
             Input::make('transaction.type')
                 ->value('expenses')
                 ->hidden(),
-            Input::make('transaction.user_id')
-                ->value(Auth::user()->id)
-                ->hidden(),
         ];
     }
 }
