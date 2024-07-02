@@ -37,9 +37,6 @@ class DashboardScreen extends Screen
     use BillService;
     use Chartable;
 
-    private string $currency = 'UAH';
-    private string $currencySymbol;
-    private float $exchangeRate = 1;
     private int $userId;
     /**
      * Fetch data to be displayed on the screen.
@@ -48,23 +45,20 @@ class DashboardScreen extends Screen
      */
     public function query(FinanceTransaction $transactions ): iterable
     {
+
         $user = Auth::user();
         $this->userId = $user->id;
-        $this->currency = $user->setting->currency;
-
-        $this->exchangeRate = Currency::getExchangeRate(  $this->currency ) ;
-        $this->currencySymbol = Currency::getSymbol(  $this->currency );
         $currentMonth = Carbon::now()->month;
 
         $data = [];
 
-        $data['metrics']['total']['balance']  =  $this->getFormatMoney($this->calculateAmountToCurrency($user->transactions()->sum('currency_amount')) );
+        $data['metrics']['total']['balance']  =  Currency::convertValueToCurrency($user->transactions()->sum('currency_amount'));
         $income = $transactions->where('type','income')->where('user_id', $user->id) ;
         $expenses = $transactions->where('type','expenses')->where('user_id', $user->id) ;
 
 
-        $data['metrics']['currentMonth']['income'] =  $this->getFormatMoney($this->calculateAmountToCurrency($income->whereMonth('created_at', $currentMonth )->sum('currency_amount')));
-        $data['metrics']['currentMonth']['expenses'] =  $this->getFormatMoney($this->calculateAmountToCurrency($expenses->whereMonth('created_at', $currentMonth )->sum('currency_amount')));
+        $data['metrics']['currentMonth']['income'] =  Currency::convertValueToCurrency($income->whereMonth('created_at', $currentMonth )->sum('currency_amount'));
+        $data['metrics']['currentMonth']['expenses'] =  Currency::convertValueToCurrency($expenses->whereMonth('created_at', $currentMonth )->sum('currency_amount'));
         $data['metrics']['bills'] =  $this->generateMetricsToBill();
         $data['charts']['transactions'][] = $this->toCharts($income, __('Income'));
         $data['charts']['transactions'][] =$this->toCharts($expenses, __('Expenses'));
@@ -81,14 +75,6 @@ class DashboardScreen extends Screen
             ->orderBy('id' , 'DESC')
             ->take(10)
             ->get();
-    }
-
-    private  function getFormatMoney(float $value): string{
-        return number_format($value , 0,'.',' ' ) . " " . $this->currencySymbol;
-    }
-
-    private function calculateAmountToCurrency(float $amount):float{
-        return  $amount / $this->exchangeRate  ;
     }
 
     private function getCategoriesChart(string $type): array{
@@ -131,7 +117,7 @@ class DashboardScreen extends Screen
     public function commandBar(): iterable
     {
         return [
-            DropDown::make(__("Currency: ") . $this->currency)
+            DropDown::make(__("Currency: ") . Currency::getCurrencyCodeUser())
                 ->list(
                     [
                     Button::make('UAH')->method('buttonChangeCurrency',['code' => 'UAH']),

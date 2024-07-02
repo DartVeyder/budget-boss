@@ -6,10 +6,13 @@ use Carbon\Carbon;
 use Exception;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use function Laravel\Prompts\select;
 
 class Currency
 {
+    private  static string $symbol;
+
     private static string $urlApi = 'https://api.privatbank.ua/p24api/pubinfo?exchange&coursid=5';
     public static  function  parseExchangeRates(){
         $client = new Client();
@@ -27,6 +30,9 @@ class Currency
 
     public static function getExchangeRate(string $toCurrency) :float|null{
         $currency = FinanceCurrency::where('code',$toCurrency)->first();
+
+        self::$symbol =  $currency->symbol;
+
         if($toCurrency == 'UAH'){
             return 1;
         }
@@ -49,6 +55,25 @@ class Currency
 
         return $value;
     }
+    private  static function getFormatMoney( $value): string{
+        return number_format($value  , 0,'.',' ' ) . ' '.self::$symbol;
+    }
+
+    public static  function  convertValueToCurrency(float $value, $isFormatMoney = true) :float|string{
+        $exchangeRate = self::getExchangeRate(self::getCurrencyCodeUser());
+        $value =  $value / $exchangeRate;
+
+        if($isFormatMoney){
+            $value =  self::getFormatMoney( $value);
+        }
+
+        return $value;
+    }
+
+    public  static  function  getCurrencyCodeUser():string{
+       $userSetting = Auth::user()->setting;
+       return $userSetting->currency;
+    }
 
     private  static function isSameAsCurrentDate(string $date):bool{
         $date = Carbon::parse($date);
@@ -60,9 +85,5 @@ class Currency
         }
     }
 
-    public static function getSymbol(string $toCurrency) :string{
-         $currency = FinanceCurrency::where('code',$toCurrency)->first();
-         return $currency->symbol;
-    }
 
 }
