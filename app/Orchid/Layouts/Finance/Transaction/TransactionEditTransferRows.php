@@ -35,7 +35,8 @@ class TransactionEditTransferRows extends Rows
                 ->title('Bills')
                 ->required()
                 ->fromModel(FinanceBill::class, 'name')
-                ->applyScope('user'),
+                ->applyScope('user')
+                ->applyScope('isTransfer'),
             Relation::make('bills.to_bill_id')
                 ->title('Bills')
                 ->required()
@@ -48,9 +49,6 @@ class TransactionEditTransferRows extends Rows
             TextArea::make("transaction.comment")
                 ->title('Comment')
                 ->value(''),
-            Input::make('transaction.user_id')
-                ->value(Auth::user()->id)
-                ->hidden(),
 
         ];
     }

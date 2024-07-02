@@ -38,6 +38,56 @@ trait TransactionService
         Toast::info(__('You have successfully created.'));
     }
 
+    public function  saveTransfer(Request $request): void{
+        $transaction = $request->input('transaction');
+        $bills =  $request->input('bills');
+
+        if( $bills['with_bill_id'] ==  $bills['to_bill_id']){
+            Toast::info(__('It is not possible to transfer to the same account'));
+            return ;
+        }
+
+        $income =  $transaction;
+        $income['type'] = 'income';
+        $income['transaction_type_id'] = 3;
+        $income['transaction_category_id'] = 4;
+        $income['finance_bill_id']  =  $bills['to_bill_id'];
+
+        $income = array_merge(  $income,$this->getCurrency($bills['to_bill_id'], $transaction['amount']));
+
+        $expenses =  $transaction;
+        $expenses['type'] = 'expenses';
+        $expenses['transaction_type_id'] = 3;
+        $expenses['transaction_category_id'] = 12;
+        $expenses['finance_bill_id']  = $bills['with_bill_id'];
+
+        $expenses = array_merge(  $expenses,$this->getCurrency($bills['with_bill_id'],  $income['currency_amount']));
+        $expenses['amount'] = $this->getAmountNegative( $expenses['amount']);
+        $expenses['currency_amount'] = $this->getAmountNegative( $expenses['currency_amount']);
+
+
+        Auth::user()->transactions()->create($expenses);
+        Auth::user()->transactions()->create($income);
+
+    }
+
+    public function  saveAudit(Request $request){
+        $data = [];
+        $transaction = $request->input('transaction');
+        $total =  Auth::user()->transactions()->where('finance_bill_id',  $transaction['bill_id'])->sum('amount') ;
+
+        $diffTotal = $transaction['current_balance'] - $total;
+        $data['amount'] =  $diffTotal ;
+        $data['type'] =  ( $diffTotal > 0) ? 'income': 'expenses';
+        $data['transaction_type_id'] = 4;
+        $data['transaction_category_id'] =  ( $diffTotal > 0) ? '13': '14';
+        $data['finance_bill_id'] = $transaction['bill_id'];
+        $data = array_merge(  $data,$this->getCurrency( $transaction['bill_id'],  $diffTotal));
+
+        Auth::user()->transactions()->create($data);
+        Toast::info(__('You have successfully created.'));
+    }
+
     private function updateStatusInvoice(int|null $invoice_id):void
     {
         if($invoice_id){
@@ -62,13 +112,12 @@ trait TransactionService
         $transaction['finance_currency_id'] = $bill->finance_currency_id;
         $transaction['currency_code'] =  $bill->currency->code;
         $transaction['currency_value'] = $currency->value;
-        $transaction['currency_amount'] = $amount * $currency->value;
+        $transaction['currency_amount'] = $amount * $currency->value  ;
         return $transaction;
     }
 
     private function getAmountNegative(float $amount): float{
          return  -abs($amount);
     }
-
 
 }

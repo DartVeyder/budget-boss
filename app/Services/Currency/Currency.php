@@ -55,8 +55,11 @@ class Currency
 
         return $value;
     }
-    private  static function getFormatMoney( $value): string{
-        return number_format($value  , 0,'.',' ' ) . ' '.self::$symbol;
+    public  static function getFormatMoney( $value , $symbol = ''): string{
+        if(!$symbol){
+            $symbol  = self::$symbol;
+        }
+        return number_format($value  , 0,'.',' ' ) . ' '.$symbol;
     }
 
     public static  function  convertValueToCurrency(float $value, $isFormatMoney = true) :float|string{

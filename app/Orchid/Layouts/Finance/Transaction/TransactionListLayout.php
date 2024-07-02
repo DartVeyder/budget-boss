@@ -69,6 +69,7 @@ class TransactionListLayout extends Table
                         ]
                     );
                 }),
+            TD::make('comment', __('Comment')),
 
             TD::make('created_at', __('Created'))
                 ->sort()

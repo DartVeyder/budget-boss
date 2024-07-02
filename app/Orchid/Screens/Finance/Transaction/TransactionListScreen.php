@@ -35,7 +35,6 @@ class TransactionListScreen extends Screen
         return [
             "transactions" =>
                 FinanceTransaction::filters(TransactionSelection::class)
-                    ->where('transaction_type_id', "!=" , 3)
                     ->where('user_id' , Auth::user()->id)
                     ->defaultSort('id', 'desc')
                     ->paginate()
@@ -101,35 +100,7 @@ class TransactionListScreen extends Screen
     }
 
 
-    public function  saveTransfer(Request $request): void{
-        $data = $request->input('transaction');
-        $bills =  $request->input('bills');
 
-        if( $bills['with_bill_id'] ==  $bills['to_bill_id']){
-            Toast::info(__('It is not possible to transfer to the same account'));
-            return ;
-        }
-
-        $income =  $data;
-        $income['type'] = 'expenses';
-        $income['transaction_type_id'] = 3;
-        $income['finance_bill_id']  =   $bills['with_bill_id'];
-        FinanceTransaction::create($income);
-
-        $expenses =  $data;
-        $expenses['type'] = 'income';
-        $expenses['transaction_type_id'] = 3;
-        $expenses['finance_bill_id']  = $bills['to_bill_id'];
-        FinanceTransaction::create($expenses);
-
-    }
-
-    public function  saveAudit(Request $request){
-        $transaction = Auth::user()->transactions();
-        $total =  $transaction->where('transaction_type_id',2)->totalAmount() - $transaction->where('transaction_type_id',1)->totalAmount() ;
-        $data = $request->input('transaction');
-        $diff_total = $data['current_balance'] - $total;
-    }
     public function remove(Request $request): object
     {
         $transaction = FinanceTransaction::findOrFail($request->get('id'));

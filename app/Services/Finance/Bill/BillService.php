@@ -3,6 +3,7 @@
 namespace App\Services\Finance\Bill;
 
 use App\Models\FinanceBill;
+use App\Services\Currency\Currency;
 use Illuminate\Support\Facades\Auth;
 
 trait BillService
@@ -15,7 +16,7 @@ trait BillService
              $data[  $bill->id ] =
                 [
                     'name' => $bill->name,
-                    'total' => ["value" => number_format( $bill->transactions->sum('currency_amount')  , 0,'.',' ' ). " " . $bill->currency->symbol]
+                    'total' => ["value" => Currency::getFormatMoney($bill->transactions->sum('amount') ,$bill->currency->symbol ) ]
                 ];
         }
         return $data;

@@ -64,6 +64,7 @@ class DashboardScreen extends Screen
         $data['charts']['transactions'][] =$this->toCharts($expenses, __('Expenses'));
         $data['charts']['categories']['expenses'] = $this->getCategoriesChart('expenses');
         $data['charts']['categories']['income'] = $this->getCategoriesChart('income');
+
         $data['transactions'] = $this-> getTransactions($transactions);
 
         return  $data;
@@ -84,10 +85,11 @@ class DashboardScreen extends Screen
             ->whereNull('finance_transactions.deleted_at')
             ->where('finance_transactions.type', $type)
             ->join('finance_transaction_categories', 'finance_transactions.transaction_category_id', '=', 'finance_transaction_categories.id')
-            ->select('finance_transaction_categories.id', 'finance_transaction_categories.name', DB::raw('ABS(SUM(finance_transactions.amount * finance_transactions.currency_value)) as total_amount'))
+            ->select('finance_transaction_categories.id', 'finance_transaction_categories.name', DB::raw('ABS(SUM(finance_transactions.currency_amount)) as total_amount'))
             ->groupBy('finance_transaction_categories.id', 'finance_transaction_categories.name')
             ->get();
         return [[
+            'name' => '',
             'labels' => $collection->pluck('name')->toArray(),
             'values' => $collection->pluck('total_amount')->toArray()
         ]];

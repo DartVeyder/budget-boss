@@ -22,6 +22,10 @@ class FinanceBill extends Model
         return $query->where('user_id',Auth::user()->id);
     }
 
+    public  function scopeIsTransfer(Builder $query){
+        return $query->where('is_transfer', 1);
+    }
+
     public  function  getBillCurrencyAttribute() : string
     {
         return $this->name . ' ( ' . $this->currency->symbol . ' )'   ;
