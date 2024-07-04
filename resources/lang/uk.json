@@ -227,5 +227,6 @@
     "Changed currency to ": "Змінено валюту на ",
     "Currency: ": "Валюта: ",
     "Audit": "Ревізія",
-    "Current balance" : "Поточний баланс"
+    "Current balance" : "Поточний баланс",
+    "Date created": "Дата створення"
 }

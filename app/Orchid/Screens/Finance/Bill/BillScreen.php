@@ -7,6 +7,7 @@ use App\Models\FinanceCurrency;
 use App\Models\FinanceTransactionCategory;
 use App\Orchid\Layouts\Finance\Bill\BillListLayout;
 use App\Orchid\Layouts\Finance\Transaction\Category\CategoryRows;
+use App\Services\Currency\Currency;
 use App\Services\Finance\Bill\BillService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -85,7 +86,10 @@ class BillScreen extends Screen
     }
 
     public function save(Request $request, FinanceBill $bill){
-        $bill->fill($request->all())->save();
+        $data = $request->all();
+        $data['currency_code'] = Currency::getCurrencyCodeWithId($data['finance_currency_id']);
+
+        $bill->fill( $data)->save();
         Toast::info(__('You have successfully created.'));
     }
 

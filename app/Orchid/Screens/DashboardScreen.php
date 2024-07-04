@@ -56,12 +56,14 @@ class DashboardScreen extends Screen
         $income = $transactions->where('type','income')->where('user_id', $user->id) ;
         $expenses = $transactions->where('type','expenses')->where('user_id', $user->id) ;
 
+        $chart_income =  $this->toCharts($income, __('Income'));
+        $chart_expenses = $this->toCharts($expenses, __('Expenses'));
 
         $data['metrics']['currentMonth']['income'] =  Currency::convertValueToCurrency($income->whereMonth('created_at', $currentMonth )->sum('currency_amount'));
         $data['metrics']['currentMonth']['expenses'] =  Currency::convertValueToCurrency($expenses->whereMonth('created_at', $currentMonth )->sum('currency_amount'));
         $data['metrics']['bills'] =  $this->generateMetricsToBill();
-        $data['charts']['transactions'][] = $this->toCharts($income, __('Income'));
-        $data['charts']['transactions'][] =$this->toCharts($expenses, __('Expenses'));
+        $data['charts']['transactions'][] = $chart_income ;
+        $data['charts']['transactions'][] = $chart_expenses ;
         $data['charts']['categories']['expenses'] = $this->getCategoriesChart('expenses');
         $data['charts']['categories']['income'] = $this->getCategoriesChart('income');
 

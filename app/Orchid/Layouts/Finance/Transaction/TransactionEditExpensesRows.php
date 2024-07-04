@@ -9,6 +9,7 @@ use App\Models\FinanceSource;
 use App\Models\FinanceTransaction;
 use App\Models\FinanceTransactionCategory;
 use App\Models\FinanceTransactionType;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Orchid\Screen\Field;
 use Orchid\Screen\Fields\DateTimer;
@@ -58,6 +59,9 @@ class TransactionEditExpensesRows extends Rows
             TextArea::make("transaction.comment")
                 ->title('Comment')
                 ->value(''),
+            DateTimer::make('transaction.accrual_date')
+                ->title('Date created')
+                ->value(Carbon::now()),
             Input::make('transaction.transaction_type_id')
                 ->value(1)
                 ->hidden(),

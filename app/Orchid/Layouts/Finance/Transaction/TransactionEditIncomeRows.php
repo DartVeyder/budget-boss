@@ -10,6 +10,8 @@ use App\Models\FinanceSource;
 use App\Models\FinanceTransaction;
 use App\Models\FinanceTransactionCategory;
 use App\Models\FinanceTransactionType;
+use App\Orchid\Screens\Components\Cells\DateTime;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Orchid\Screen\Field;
 use Orchid\Screen\Fields\DateTimer;
@@ -58,7 +60,9 @@ class TransactionEditIncomeRows extends Rows
                 ->title('Top-up amount')
                 ->required()
                 ->type('number') ,
-
+            DateTimer::make('transaction.accrual_date')
+                ->title('Date created')
+                ->value(Carbon::now()),
             TextArea::make("transaction.comment")
                 ->title('Comment')
                 ->value(''),

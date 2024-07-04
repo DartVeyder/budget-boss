@@ -73,6 +73,14 @@ class Currency
         return $value;
     }
 
+    public static  function getCurrencyCodeWithId(int $id): string|null{
+        $currency = FinanceCurrency::find($id);
+        if( !$currency){
+            return  null;
+        }
+        return $currency->code;
+    }
+
     public  static  function  getCurrencyCodeUser():string{
        $userSetting = Auth::user()->setting;
        return $userSetting->currency;

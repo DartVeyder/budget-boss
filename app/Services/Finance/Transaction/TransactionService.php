@@ -80,7 +80,7 @@ trait TransactionService
         $data['amount'] =  $diffTotal ;
         $data['type'] =  ( $diffTotal > 0) ? 'income': 'expenses';
         $data['transaction_type_id'] = 4;
-        $data['transaction_category_id'] =  ( $diffTotal > 0) ? '13': '14';
+        $data['transaction_category_id'] =  14;
         $data['finance_bill_id'] = $transaction['bill_id'];
         $data = array_merge(  $data,$this->getCurrency( $transaction['bill_id'],  $diffTotal));
 

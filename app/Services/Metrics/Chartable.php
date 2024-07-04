@@ -11,8 +11,8 @@ trait Chartable
 
         $data = Trend::make( $model)
             ->ranges([ 12 ])
+            ->dateColumn('accrual_date')
             ->sumByMonths('currency_amount');
-
 
         return [
             'name' => $name,
