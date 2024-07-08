@@ -26,19 +26,6 @@ return new class extends Migration
         DB::table('finance_transaction_categories')->insert([
             ['name' => 'Переказ'],
             ['name' => 'Ревізія'],
-            ['name' => 'Зарплата', 'transaction_type_id' => 2, 'user_id'=> 1],
-            ['name' => 'Фріланс', 'transaction_type_id' =>2, 'user_id'=> 1],
-            ['name' => 'Інше', 'transaction_type_id' => 2, 'user_id'=> 1],
-            ['name' => 'Переказ', 'transaction_type_id' => 2, 'user_id'=> 1],
-            ['name' => 'Їжа', 'transaction_type_id' => 1, 'user_id'=> 1],
-            ['name' => 'Житло', 'transaction_type_id' => 1, 'user_id'=> 1],
-            ['name' => 'Транспорт', 'transaction_type_id' => 1, 'user_id'=> 1],
-            ['name' => 'Розваги', 'transaction_type_id' => 1, 'user_id'=> 1],
-            ['name' => 'Комунальні послуги', 'transaction_type_id' => 1, 'user_id'=> 1],
-            ['name' => 'Подарунки', 'transaction_type_id' => 1, 'user_id'=> 1],
-            ['name' => 'Інше', 'transaction_type_id' => 1, 'user_id'=> 1],
-            ['name' => 'Переказ', 'transaction_type_id' => 1, 'user_id'=> 1],
-
         ]);
     }
 
