@@ -14,7 +14,7 @@ return new class extends Migration
     {
         Schema::create('finance_transaction_categories', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('user_id')->nullable();
             $table->unsignedBigInteger('transaction_type_id')->nullable();
             $table->string('name');
             $table->string('slug')->nullable();
