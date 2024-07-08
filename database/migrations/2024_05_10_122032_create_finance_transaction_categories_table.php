@@ -24,6 +24,8 @@ return new class extends Migration
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
         DB::table('finance_transaction_categories')->insert([
+            ['name' => 'Переказ'],
+            ['name' => 'Ревізія'],
             ['name' => 'Зарплата', 'transaction_type_id' => 2, 'user_id'=> 1],
             ['name' => 'Фріланс', 'transaction_type_id' =>2, 'user_id'=> 1],
             ['name' => 'Інше', 'transaction_type_id' => 2, 'user_id'=> 1],

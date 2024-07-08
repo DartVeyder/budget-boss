@@ -25,7 +25,8 @@ class FinanceInvoice extends Model
     public function getTranslatedStatusAttribute()
     {
         $status = [
-            'not_paid' => 'не оплачено',
+            'not paid' => 'не оплачено',
+            'part paid' => 'оплачено частково',
             'paid' => 'оплачено',
             'cancelled' => 'скасовано'
         ];

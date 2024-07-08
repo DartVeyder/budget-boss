@@ -23,6 +23,7 @@ return new class extends Migration
             ['name' => 'Витрати', 'slug' => 'vitrati' ],
             ['name' => 'Дохід', 'slug' => 'dohid' ],
             ['name' => 'Переказ', 'slug' => 'perekaz'  ],
+            ['name' => 'Ревізія', 'slug' => 'reviziya'  ],
         ]);
     }
 

@@ -46,6 +46,14 @@ class TransactionEditTransferRows extends Rows
                 ->title('Amount')
                 ->required()
                 ->type('number') ,
+            Input::make("transaction.transaction_category_id")
+                ->value(1)
+                ->hidden()
+                ->type('number') ,
+            Input::make("transaction.transaction_type_id")
+                ->value(3)
+                ->hidden()
+                ->type('number') ,
             TextArea::make("transaction.comment")
                 ->title('Comment')
                 ->value(''),

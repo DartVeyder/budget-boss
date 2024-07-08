@@ -2,15 +2,13 @@
 
 namespace App\Orchid\Screens\Finance\Invoice;
 
-use App\Models\FinanceCurrency;
 use App\Models\FinanceInvoice;
+use App\Orchid\Layouts\Customer\CustomerSaveRows;
 use App\Orchid\Layouts\Finance\Invoice\InvoiceListLayout;
 use App\Orchid\Layouts\Finance\Invoice\InvoiceSaveRows;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Orchid\Screen\Actions\ModalToggle;
-use Orchid\Screen\Fields\Input;
-use Orchid\Screen\Fields\Select;
 use Orchid\Screen\Screen;
 use Orchid\Support\Facades\Layout;
 use Orchid\Support\Facades\Toast;
@@ -54,6 +52,10 @@ class InvoiceListScreen extends Screen
             ModalToggle::make(__('Add'))
                 ->modal('createInvoice')
                 ->method('save'),
+
+            ModalToggle::make(__('Create customer'))
+                ->modal('createCustomer')
+                ->method('saveCustomer'),
         ];
     }
 
@@ -69,7 +71,14 @@ class InvoiceListScreen extends Screen
             Layout::modal('createInvoice', [
                 InvoiceSaveRows::class
             ])->applyButton(__('Save'))->title(__('New invoice')),
+            Layout::modal('createCustomer', [
+                CustomerSaveRows::class
+            ])->applyButton(__('Save'))->title(__('New customer')),
         ];
+    }
+    public function  saveCustomer(Request $request){
+        Auth::user()->customers()->create($request->all());
+        Toast::info(__('You have successfully created.'));
     }
 
     public function save(Request $request, FinanceInvoice $financeInvoice)

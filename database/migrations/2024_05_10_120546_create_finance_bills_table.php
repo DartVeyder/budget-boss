@@ -21,11 +21,11 @@ return new class extends Migration
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
 
-        DB::table('finance_bills')->insert([
-            ['name' => 'Готівка', 'user_id' => 1 ],
-            ['name' => 'Монобанк', 'user_id' => 1 ],
-            ['name' => 'Приватбанк' , 'user_id' => 1],
-        ]);
+//        DB::table('finance_bills')->insert([
+//            ['name' => 'Готівка', 'user_id' => 1 ],
+//            ['name' => 'Монобанк', 'user_id' => 1 ],
+//            ['name' => 'Приватбанк' , 'user_id' => 1],
+//        ]);
     }
 
     /**

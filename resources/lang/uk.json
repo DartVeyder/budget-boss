@@ -228,5 +228,7 @@
     "Currency: ": "Валюта: ",
     "Audit": "Ревізія",
     "Current balance" : "Поточний баланс",
-    "Date created": "Дата створення"
+    "Date created": "Дата створення",
+    "Create customer": "Створити замовника",
+    "New customer": "Новий замовник"
 }

@@ -49,16 +49,12 @@ trait TransactionService
 
         $income =  $transaction;
         $income['type'] = 'income';
-        $income['transaction_type_id'] = 3;
-        $income['transaction_category_id'] = 4;
         $income['finance_bill_id']  =  $bills['to_bill_id'];
 
         $income = array_merge(  $income,$this->getCurrency($bills['to_bill_id'], $transaction['amount']));
 
         $expenses =  $transaction;
         $expenses['type'] = 'expenses';
-        $expenses['transaction_type_id'] = 3;
-        $expenses['transaction_category_id'] = 12;
         $expenses['finance_bill_id']  = $bills['with_bill_id'];
 
         $expenses = array_merge(  $expenses,$this->getCurrency($bills['with_bill_id'],  $income['currency_amount']));
@@ -80,7 +76,7 @@ trait TransactionService
         $data['amount'] =  $diffTotal ;
         $data['type'] =  ( $diffTotal > 0) ? 'income': 'expenses';
         $data['transaction_type_id'] = 4;
-        $data['transaction_category_id'] =  14;
+        $data['transaction_category_id'] =  2;
         $data['finance_bill_id'] = $transaction['bill_id'];
         $data = array_merge(  $data,$this->getCurrency( $transaction['bill_id'],  $diffTotal));
 
@@ -97,8 +93,10 @@ trait TransactionService
             $data['amount_paid'] =  $amount_paid;
             if($amount_paid >= $invoice->total){
                 $data['status'] = 'paid';
+            }else if($amount_paid < $invoice->total){
+                $data['status'] = 'part paid';
             }else{
-                $data['status'] = 'not_paid';
+                $data['status'] = 'not paid';
             }
 
             FinanceInvoice::where('id', $invoice_id)->update($data);
