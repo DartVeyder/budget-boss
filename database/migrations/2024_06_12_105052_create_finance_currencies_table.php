@@ -25,9 +25,9 @@ return new class extends Migration
         });
 
         DB::table('finance_currencies')->insert(array(
-            array('id' => '1','name' => 'Гривня','code' => 'UAH','symbol' => '₴','value' => '1.0000','active' => '1','created_at' => '2024-06-27 17:42:07','updated_at' => '2024-06-28 17:44:38'),
-            array('id' => '2','name' => 'Долар','code' => 'USD','symbol' => '$','value' => '40.3500','active' => '1','created_at' => '2024-06-27 10:55:38','updated_at' => '2024-07-04 11:50:28'),
-            array('id' => '3','name' => 'Євро','code' => 'EUR','symbol' => '€','value' => '43.1000','active' => '1','created_at' => '2024-06-28 10:55:27','updated_at' => '2024-07-02 10:52:39')
+            array('id' => '1','name' => 'Гривня','code' => 'UAH','symbol' => '₴','active' => '1','created_at' => '2024-06-27 17:42:07','updated_at' => '2024-06-28 17:44:38'),
+            array('id' => '2','name' => 'Долар','code' => 'USD','symbol' => '$','active' => '1','created_at' => '2024-06-27 10:55:38','updated_at' => '2024-07-04 11:50:28'),
+            array('id' => '3','name' => 'Євро','code' => 'EUR','symbol' => '€','active' => '1','created_at' => '2024-06-28 10:55:27','updated_at' => '2024-07-02 10:52:39')
         ));
     }
 
