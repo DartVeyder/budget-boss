@@ -230,5 +230,7 @@
     "Current balance" : "Поточний баланс",
     "Date created": "Дата створення",
     "Create customer": "Створити замовника",
-    "New customer": "Новий замовник"
+    "New customer": "Новий замовник",
+    "Tax rates": "Податкові ставки",
+    "Tax status": "Податковий статус"
 }

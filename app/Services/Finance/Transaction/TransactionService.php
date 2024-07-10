@@ -15,17 +15,45 @@ trait TransactionService
     public function saveIncome(Request $request ): void{
         $transaction = $request->input('transaction');
 
+
         if($transaction['finance_invoice_id']){
             $invoice = FinanceInvoice::find($transaction['finance_invoice_id']);
             $transaction['accrual_date'] = $invoice->created_at;
         }
 
         $transaction = array_merge($transaction, $this->getCurrency($transaction['finance_bill_id'], $transaction['amount']));
+
+        $transaction['tax_amount'] =  $this->calculateTaxAmount($transaction['currency_amount'], $request->input('tax_status'), (int)$request->input('tax_rates') );
+
         Auth::user()->transactions()->create($transaction );
 
         $this->updateStatusInvoice($transaction['finance_invoice_id']);
 
         Toast::info(__('You have successfully created.'));
+    }
+
+    private function calculateTaxAmount(float $amount,string|null  $status = 'without_taxes', int|null $rate = 0 ): float|int{
+        $listRates = [
+            0 => 0,
+            1 => 5,
+            2  => 19.5
+        ];
+
+
+        if( $status == 'without_taxes'){
+            return  0;
+        }
+        if( $rate == 0){
+            return  0;
+        }
+
+        if($status  == 'after_taxes'){
+            return ($amount / (1 - $listRates[$rate] / 100)) - $amount;
+        }
+
+        if($status  == 'before_taxes'){
+            return $amount * ($listRates[$rate] / 100);
+        }
     }
 
     public function saveExpenses(Request $request): void{

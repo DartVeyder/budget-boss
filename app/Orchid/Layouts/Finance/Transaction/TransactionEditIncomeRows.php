@@ -59,7 +59,25 @@ class TransactionEditIncomeRows extends Rows
             Input::make("transaction.amount")
                 ->title('Top-up amount')
                 ->required()
+                ->step(0.01)
                 ->type('number') ,
+            Select::make("tax_status")
+            ->options([
+                'without_taxes' => 'без податків',
+                'after_taxes' => 'після сплати податків',
+                'before_taxes'=> 'до сплати податків'
+            ])
+                ->empty('без податків','without_taxes')
+                ->title('Tax status'),
+            Select::make("tax_rates")
+                ->options([
+                    '0' => '0%',
+                    '1' => '5%',
+                    '2'=> '19.5%'
+                ])
+                ->empty('0','0%')
+
+                ->title('Tax rates'),
             DateTimer::make('transaction.accrual_date')
                 ->title('Date created')
                 ->value(Carbon::now()),
