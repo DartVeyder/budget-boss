@@ -48,7 +48,7 @@ class TransactionEditIncomeRows extends Rows
                 ->fromModel(FinanceTransactionCategory::class, 'name')
                 ->applyScope('income'),
             Relation::make('transaction.finance_invoice_id')
-                ->title('Invoice')
+                ->title('№ Invoice')
                 ->fromModel(FinanceInvoice::class, 'invoice_number'),
             Relation::make('transaction.finance_bill_id')
                 ->title('Bills')
@@ -75,7 +75,7 @@ class TransactionEditIncomeRows extends Rows
                     '1' => '5%',
                     '2'=> '19.5%'
                 ])
-                ->empty('0','0%')
+                ->empty('0%','0')
 
                 ->title('Tax rates'),
             DateTimer::make('transaction.accrual_date')

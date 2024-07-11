@@ -60,7 +60,6 @@ class TransactionListLayout extends Table
                     TD::FILTER_NUMBER_RANGE
                 )
                 ->render(function ($transaction){
-
                     return view('finance.transaction.partials.amount',
                         [
                             'type' => $transaction['type'],
@@ -69,7 +68,12 @@ class TransactionListLayout extends Table
                         ]
                     );
                 }),
-            TD::make('comment', __('Comment')),
+            TD::make('tax_amount', __('Tax amount'))
+                ->render(
+                fn(FinanceTransaction $transaction) => $transaction->tax_amount . ' '. $transaction->currency->symbol
+            ),
+            TD::make('comment', __('Comment'))
+                ,
 
             TD::make('created_at', __('Created'))
                 ->sort()
