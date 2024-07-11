@@ -35,8 +35,7 @@ class TransactionEditTransferRows extends Rows
                 ->title('Bills')
                 ->required()
                 ->fromModel(FinanceBill::class, 'name')
-                ->applyScope('user')
-                ->applyScope('isTransfer'),
+                ->applyScope('user'),
             Relation::make('bills.to_bill_id')
                 ->title('Bills')
                 ->required()

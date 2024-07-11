@@ -70,6 +70,11 @@ trait TransactionService
         $transaction = $request->input('transaction');
         $bills =  $request->input('bills');
 
+        if(FinanceBill::find($bills['with_bill_id'])->finance_currency_id  != FinanceBill::find($bills['to_bill_id'])->finance_currency_id ){
+            Toast::info(__('Transfers between accounts with different currencies are prohibited'));
+            return ;
+        }
+
         if( $bills['with_bill_id'] ==  $bills['to_bill_id']){
             Toast::info(__('It is not possible to transfer to the same account'));
             return ;

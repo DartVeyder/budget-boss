@@ -233,5 +233,6 @@
     "New customer": "Новий замовник",
     "Tax rates": "Податкові ставки",
     "Tax status": "Податковий статус",
-    "Tax amount": "Податок"
+    "Tax amount": "Податок",
+    "Transfers between accounts with different currencies are prohibited": "Заборонена робити переказ між рахунками з різною валютою"
 }
