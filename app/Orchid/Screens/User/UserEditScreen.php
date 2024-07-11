@@ -220,9 +220,7 @@ class UserEditScreen extends Screen
         ]);
 
         DB::table('finance_bills')->insert([
-            ['name' => 'Готівка', 'user_id' => $user_id ],
-            ['name' => 'Монобанк', 'user_id' => $user_id ],
-            ['name' => 'Приватбанк' , 'user_id' => $user_id],
+            ['name' => 'Готівка', 'user_id' => $user_id, 'finance_currency_id' => 1 , 'currency_code' => 'UAH' ],
         ]);
 
         DB::table('finance_transaction_categories')->insert([
