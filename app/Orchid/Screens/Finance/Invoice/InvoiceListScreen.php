@@ -93,7 +93,7 @@ class InvoiceListScreen extends Screen
     public function generateInvoiceNumber(): string
     {
         $date = now()->format('Ymd');
-        $latestInvoice = FinanceInvoice::whereDate('created_at', now()->toDateString())
+        $latestInvoice = Auth::user()->invoices()->whereDate('created_at', now()->toDateString())
             ->orderBy('id', 'desc')
             ->first();
 

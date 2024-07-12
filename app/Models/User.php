@@ -73,6 +73,9 @@ class User extends Authenticatable
     public function customers(): object{
         return $this->hasMany(Customer::class);
     }
+    public function invoices(): object{
+        return $this->hasMany(FinanceInvoice::class);
+    }
     public  function  setting(): object{
         return $this->hasOne(UserSetting::class);
     }
