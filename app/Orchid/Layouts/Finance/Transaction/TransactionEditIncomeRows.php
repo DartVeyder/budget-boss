@@ -2,6 +2,7 @@
 
 namespace App\Orchid\Layouts\Finance\Transaction;
 
+use App\Models\Customer;
 use App\Models\FinanceBill;
 use App\Models\FinanceCurrency;
 use App\Models\FinanceInvoice;
@@ -51,6 +52,11 @@ class TransactionEditIncomeRows extends Rows
                 ->title('№ Invoice')
                 ->applyScope('user')
                 ->fromModel(FinanceInvoice::class, 'invoice_number'),
+            Relation::make('transaction.customer_id')
+                ->title('From whom')
+                ->required()
+                ->fromModel(Customer::class, 'name')
+                ->applyScope('user'),
             Relation::make('transaction.finance_bill_id')
                 ->title('Bills')
                 ->required()
