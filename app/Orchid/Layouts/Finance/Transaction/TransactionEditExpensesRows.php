@@ -59,9 +59,8 @@ class TransactionEditExpensesRows extends Rows
             TextArea::make("transaction.comment")
                 ->title('Comment')
                 ->value(''),
-            DateTimer::make('transaction.accrual_date')
-                ->title('Date created')
-                ->value(Carbon::now()),
+            DateTimer::make('transaction.created_at')
+                ->title('Date created') ,
             Input::make('transaction.transaction_type_id')
                 ->value(1)
                 ->hidden(),

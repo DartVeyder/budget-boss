@@ -15,6 +15,9 @@ trait TransactionService
     public function saveIncome(Request $request ): void{
         $transaction = $request->input('transaction');
 
+        if(!$transaction['created_at']){
+            unset($transaction['created_at']);
+        }
 
         if($transaction['finance_invoice_id']){
             $invoice = FinanceInvoice::find($transaction['finance_invoice_id']);
@@ -58,6 +61,10 @@ trait TransactionService
 
     public function saveExpenses(Request $request): void{
         $transaction = $request->input('transaction');
+        if(!$transaction['created_at']){
+            unset($transaction['created_at']);
+        }
+
         $transaction['amount'] = $this->getAmountNegative($transaction['amount']);
         $transaction = array_merge($transaction, $this->getCurrency($transaction['finance_bill_id'], $transaction['amount']));
 

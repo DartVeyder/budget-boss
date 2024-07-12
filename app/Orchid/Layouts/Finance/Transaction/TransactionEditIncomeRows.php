@@ -79,8 +79,11 @@ class TransactionEditIncomeRows extends Rows
 
                 ->title('Tax rates'),
             DateTimer::make('transaction.accrual_date')
-                ->title('Date created')
+                ->title('Date accrual')
                 ->value(Carbon::now()),
+            DateTimer::make('transaction.created_at')
+                ->title('Date created')
+                ->enableTime() ,
             TextArea::make("transaction.comment")
                 ->title('Comment')
                 ->value(''),
