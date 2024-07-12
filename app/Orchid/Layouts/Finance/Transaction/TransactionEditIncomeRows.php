@@ -49,6 +49,7 @@ class TransactionEditIncomeRows extends Rows
                 ->applyScope('income'),
             Relation::make('transaction.finance_invoice_id')
                 ->title('№ Invoice')
+                ->applyScope('user')
                 ->fromModel(FinanceInvoice::class, 'invoice_number'),
             Relation::make('transaction.finance_bill_id')
                 ->title('Bills')
