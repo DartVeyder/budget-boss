@@ -31,4 +31,5 @@ class DashboardChartTransactionCategoryLayout extends Chart
      * @var string
      */
     protected $target = 'charts';
+
 }

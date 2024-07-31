@@ -22,12 +22,15 @@ trait BillService
         return $data;
     }
 
-    private function generateMetricsLayoutToBill():array{
+    private function generateMetricsLayoutToBill($max = 0):array{
         $data = [];
         $bills = FinanceBill::where('user_id', Auth::user()->id)->get();
 
-        foreach ($bills as $bill){
+        foreach ($bills as $key => $bill){
             $data[$bill->name] =  "metrics.bills.". $bill->id.".total";
+            if($max   == $key && $max != 0 ){
+                break;
+            }
         }
         return $data ;
     }

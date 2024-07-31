@@ -52,7 +52,7 @@ class DashboardScreen extends Screen
 
         $data = [];
 
-        $data['metrics']['total']['balance']  =  Currency::convertValueToCurrency($user->transactions()->sum('currency_amount'));
+        $data['metrics']['total']['balance']  =  Currency::convertValueToCurrency($this->getTotalAmountInUsd());
         $income = $transactions->where('type','income')->where('user_id', $user->id) ;
         $expenses = $transactions->where('type','expenses')->where('user_id', $user->id) ;
 
@@ -70,6 +70,12 @@ class DashboardScreen extends Screen
         $data['transactions'] = $this-> getTransactions($transactions);
 
         return  $data;
+    }
+        private function getTotalAmountInUsd() {
+            return FinanceTransaction::leftJoin('finance_currencies', 'finance_transactions.finance_currency_id', '=', 'finance_currencies.id')
+            ->select(DB::raw('SUM(finance_transactions.amount * finance_currencies.value) as total_amount'))
+            ->value('total_amount'); // Отримання значення суми
+
     }
 
     private  function  getTransactions($transactions){
@@ -138,11 +144,12 @@ class DashboardScreen extends Screen
      */
     public function layout(): iterable
     {
-        $bills = $this->generateMetricsLayoutToBill();
+        $bills = $this->generateMetricsLayoutToBill(4);
         return [
             Layout::metrics(
                 array_merge([ 'Total balance'    => 'metrics.total.balance'] ,$bills  )
             )->title('Bills'),
+
             Layout::metrics([
                 'Income for this month' => 'metrics.currentMonth.income',
                 'Expenses for this month' => 'metrics.currentMonth.expenses',

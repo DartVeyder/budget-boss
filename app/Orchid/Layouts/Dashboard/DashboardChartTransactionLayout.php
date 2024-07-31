@@ -31,4 +31,13 @@ class DashboardChartTransactionLayout extends Chart
      * @var string
      */
     protected $target = 'charts';
+    /**
+     * Colors used.
+     *
+     * @var array
+     */
+    protected $colors = [
+        '#28a745',
+        '#dc3545',
+    ];
 }

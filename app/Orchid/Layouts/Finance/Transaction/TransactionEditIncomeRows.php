@@ -54,7 +54,6 @@ class TransactionEditIncomeRows extends Rows
                 ->fromModel(FinanceInvoice::class, 'invoice_number'),
             Relation::make('transaction.customer_id')
                 ->title('From whom')
-                ->required()
                 ->fromModel(Customer::class, 'name')
                 ->applyScope('user'),
             Relation::make('transaction.finance_bill_id')

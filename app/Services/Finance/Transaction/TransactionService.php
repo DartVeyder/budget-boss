@@ -115,8 +115,13 @@ trait TransactionService
         $diffTotal = $transaction['current_balance'] - $total;
         $data['amount'] =  $diffTotal ;
         $data['type'] =  ( $diffTotal > 0) ? 'income': 'expenses';
+
         $data['transaction_type_id'] = 4;
         $data['transaction_category_id'] =  2;
+        if($transaction['created_at']){
+            $data['accrual_date'] = $transaction['created_at'];
+            $data['created_at'] = $transaction['created_at'];
+        }
         $data['finance_bill_id'] = $transaction['bill_id'];
         $data = array_merge(  $data,$this->getCurrency( $transaction['bill_id'],  $diffTotal));
 

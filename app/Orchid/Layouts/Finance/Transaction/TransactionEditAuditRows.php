@@ -5,6 +5,7 @@ namespace App\Orchid\Layouts\Finance\Transaction;
 use App\Models\FinanceBill;
 use Illuminate\Support\Facades\Auth;
 use Orchid\Screen\Field;
+use Orchid\Screen\Fields\DateTimer;
 use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Fields\Relation;
 use Orchid\Screen\Fields\TextArea;
@@ -46,6 +47,9 @@ class TransactionEditAuditRows extends Rows
             Input::make('transaction.user_id')
                 ->value(Auth::user()->id)
                 ->hidden(),
+            DateTimer::make('transaction.created_at')
+                ->title('Date created')
+                ->enableTime() ,
 
         ];
     }
