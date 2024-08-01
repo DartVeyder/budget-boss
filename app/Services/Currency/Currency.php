@@ -62,7 +62,7 @@ class Currency
         return number_format($value  , 0,'.',' ' ) . ' '.$symbol;
     }
 
-    public static  function  convertValueToCurrency(float $value, $isFormatMoney = true) :float|string{
+    public static  function  convertValueToCurrency(float|int|null $value = 0, $isFormatMoney = true) :float|string{
         $exchangeRate = self::getExchangeRate(self::getCurrencyCodeUser());
         $value =  $value / $exchangeRate;
 
