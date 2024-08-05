@@ -235,5 +235,6 @@
     "Tax status": "Податковий статус",
     "Tax amount": "Податок",
     "Transfers between accounts with different currencies are prohibited": "Заборонена робити переказ між рахунками з різною валютою",
-    "Date accrual": "Дата нарахування"
+    "Date accrual": "Дата нарахування",
+    "Customer": "Замовник"
 }

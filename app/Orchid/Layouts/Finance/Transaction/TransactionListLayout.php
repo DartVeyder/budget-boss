@@ -2,6 +2,7 @@
 namespace App\Orchid\Layouts\Finance\Transaction;
 
 
+use App\Models\Customer;
 use App\Models\FinanceBill;
 use App\Models\FinanceTransaction;
 use App\Models\FinanceTransactionCategory;
@@ -49,6 +50,15 @@ class TransactionListLayout extends Table
                 ->render(
                 fn(FinanceTransaction $transaction) => $transaction->bill->name
             ),
+            TD::make('customer_id', __('Customer'))
+                ->sort()
+                ->filter(
+                    TD::FILTER_SELECT,
+                    Customer::where('user_id', Auth::user()->id)
+                        ->pluck('name', 'id'))
+                ->render(
+                    fn(FinanceTransaction $transaction) => ($transaction->customer)?  $transaction->customer->name: ''
+                ),
             TD::make('finance_invoice_id', __('№ Invoice'))
                 ->render(
 

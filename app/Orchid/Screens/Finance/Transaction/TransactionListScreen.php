@@ -36,7 +36,7 @@ class TransactionListScreen extends Screen
             "transactions" =>
                 FinanceTransaction::filters(TransactionSelection::class)
                     ->where('user_id' , Auth::user()->id)
-                    ->defaultSort('id', 'desc')
+                    ->defaultSort('created_at', 'desc')
                     ->paginate()
         ];
     }

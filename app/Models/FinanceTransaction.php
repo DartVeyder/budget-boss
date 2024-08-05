@@ -27,6 +27,7 @@ class FinanceTransaction extends Model
      */
     protected $allowedFilters = [
         'transaction_type_id'  => Where::class,
+        'customer_id'  => Where::class,
         'transaction_category_id'=> Where::class,
         'finance_bill_id' => Where::class,
         'created_at' => WhereDateStartEnd::class,
@@ -40,7 +41,8 @@ class FinanceTransaction extends Model
         'transaction_category_id',
         'amount',
         'finance_bill_id',
-        'created_at'
+        'created_at',
+        'customer_id'
     ];
 
 
@@ -72,5 +74,7 @@ class FinanceTransaction extends Model
     public function user(){
         return $this->belongsTo(User::class);
     }
-
+    public function customer(){
+        return $this->belongsTo(Customer::class);
+    }
 }
