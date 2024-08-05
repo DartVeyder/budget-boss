@@ -83,13 +83,14 @@ class TransactionEditIncomeRows extends Rows
                 ])
                 ->empty('0%','0')
 
-                ->title('Tax rates'),
+                ->title('Tax rate'),
             DateTimer::make('transaction.accrual_date')
-                ->title('Date accrual')
-                ->value(Carbon::now()),
+                ->format24hr()
+                ->title('Date accrual') ,
             DateTimer::make('transaction.created_at')
                 ->title('Date created')
-                ->enableTime() ,
+                ->enableTime()
+                ->format24hr() ,
             TextArea::make("transaction.comment")
                 ->title('Comment')
                 ->value(''),

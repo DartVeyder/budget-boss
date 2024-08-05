@@ -19,6 +19,11 @@ trait TransactionService
             unset($transaction['created_at']);
         }
 
+
+        if(!$transaction['accrual_date']){
+            unset($transaction['accrual_date']);
+        }
+
         if($transaction['finance_invoice_id']){
             $invoice = FinanceInvoice::find($transaction['finance_invoice_id']);
             $transaction['accrual_date'] = $invoice->created_at;

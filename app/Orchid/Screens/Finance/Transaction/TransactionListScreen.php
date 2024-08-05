@@ -113,6 +113,6 @@ class TransactionListScreen extends Screen
 
 
         Toast::info(__('You have successfully remove'));
-        return redirect()->route('platform.transactions');
+        return redirect()->back();
     }
 }

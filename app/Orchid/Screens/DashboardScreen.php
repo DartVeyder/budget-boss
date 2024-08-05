@@ -59,8 +59,8 @@ class DashboardScreen extends Screen
         $chart_income =  $this->toCharts($income, __('Income'));
         $chart_expenses = $this->toCharts($expenses, __('Expenses'));
 
-        $data['metrics']['currentMonth']['income'] =  Currency::convertValueToCurrency($income->whereMonth('created_at', $currentMonth )->sum('currency_amount'));
-        $data['metrics']['currentMonth']['expenses'] =  Currency::convertValueToCurrency($expenses->whereMonth('created_at', $currentMonth )->sum('currency_amount'));
+        $data['metrics']['currentMonth']['income'] =  Currency::convertValueToCurrency($income->whereMonth('created_at', $currentMonth )->whereYear('finance_transactions.created_at', Carbon::now()->year)->sum('currency_amount'));
+        $data['metrics']['currentMonth']['expenses'] =  Currency::convertValueToCurrency($expenses->whereMonth('created_at', $currentMonth )->whereYear('finance_transactions.created_at', Carbon::now()->year)->sum('currency_amount'));
         $data['metrics']['bills'] =  $this->generateMetricsToBill();
         $data['charts']['transactions'][] = $chart_income ;
         $data['charts']['transactions'][] = $chart_expenses ;
@@ -89,6 +89,7 @@ class DashboardScreen extends Screen
     private function getCategoriesChart(string $type): array{
         $collection = DB::table('finance_transactions')
             ->whereMonth('finance_transactions.created_at', Carbon::now()->month)
+            ->whereYear('finance_transactions.created_at', Carbon::now()->year)
             ->where('finance_transactions.user_id', Auth::user()->id)
             ->whereNull('finance_transactions.deleted_at')
             ->where('finance_transactions.type', $type)

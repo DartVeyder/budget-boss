@@ -49,6 +49,7 @@ class FinanceTransaction extends Model
         return $query->sum(DB::raw('currency_value * amount'));
     }
 
+
     public function bill(){
         return $this->belongsTo(FinanceBill::class , 'finance_bill_id');
     }
