@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Orchid\Screens\Analytic\AnalyticScreen;
 use App\Orchid\Screens\DashboardScreen;
 use App\Orchid\Screens\Examples\ExampleActionsScreen;
 use App\Orchid\Screens\Examples\ExampleCardsScreen;
@@ -96,6 +97,12 @@ Route::screen('/invoices', InvoiceListScreen::class)
         ->push(__('Invoices'), route('platform.invoices')));
 
 
+//Platform > Analytic
+Route::screen('/analytic', AnalyticScreen::class)
+    ->name('platform.analytic')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.index')
+        ->push(__('Analytic'), route('platform.analytic')));
 
 
 

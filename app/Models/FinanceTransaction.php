@@ -31,7 +31,8 @@ class FinanceTransaction extends Model
         'transaction_category_id'=> Where::class,
         'finance_bill_id' => Where::class,
         'created_at' => WhereDateStartEnd::class,
-        'amount' => WhereMaxMin::class
+        'amount' => WhereMaxMin::class,
+        'accrual_date'=>WhereDateStartEnd::class,
     ];
 
 
@@ -42,7 +43,8 @@ class FinanceTransaction extends Model
         'amount',
         'finance_bill_id',
         'created_at',
-        'customer_id'
+        'customer_id',
+        'accrual_date'
     ];
 
 

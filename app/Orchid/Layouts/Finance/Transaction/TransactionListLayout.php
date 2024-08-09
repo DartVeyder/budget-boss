@@ -84,12 +84,19 @@ class TransactionListLayout extends Table
             ),
             TD::make('comment', __('Comment'))
                 ,
-
             TD::make('created_at', __('Created'))
                 ->sort()
                 ->filter(TD::FILTER_DATE_RANGE)
                 ->render(
                     fn (FinanceTransaction $transaction) => $transaction->created_at
+                )
+                ->align(TD::ALIGN_RIGHT)
+                ->sort(),
+            TD::make('accrual_date', __('Date accrual'))
+                ->sort()
+                ->filter(TD::FILTER_DATE_RANGE)
+                ->render(
+                    fn (FinanceTransaction $transaction) => $transaction->accrual_date
                 )
                 ->align(TD::ALIGN_RIGHT)
                 ->sort(),
