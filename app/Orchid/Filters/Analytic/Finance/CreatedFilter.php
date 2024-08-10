@@ -38,7 +38,8 @@ class CreatedFilter extends Filter
      */
     public function run(Builder $builder): Builder
     {
-        return $builder;
+       // return $builder->where('created_at', '>=', $this->request->get('created_at')['start'])->where('created_at', '<=', $this->request->get('created_at')['end']);
+        return $builder->whereBetween('created_at', [$this->request->get('created_at')['start'], $this->request->get('created_at')['end']]);
     }
 
     /**
@@ -49,7 +50,8 @@ class CreatedFilter extends Filter
     public function display(): iterable
     {
         return [
-            DateRange::make('created_at'),
+            DateRange::make('created_at')
+            ->title('Date'),
         ];
     }
 }

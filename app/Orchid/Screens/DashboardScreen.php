@@ -2,35 +2,24 @@
 
 namespace App\Orchid\Screens;
 
-use App\Models\FinanceBill;
-use App\Models\FinanceCurrency;
 use App\Models\FinanceTransaction;
-use App\Models\FinanceTransactionCategory;
 use App\Orchid\Layouts\Dashboard\DashboardChartTransactionCategoryLayout;
 use App\Orchid\Layouts\Dashboard\DashboardChartTransactionLayout;
-use App\Orchid\Layouts\Examples\ChartBarExample;
-use App\Orchid\Layouts\Examples\ChartLineExample;
 use App\Orchid\Layouts\Finance\Transaction\TransactionListLayout;
-use App\Orchid\Screens\Components\Cells\DateTime;
 use App\Services\Currency\Currency;
 use App\Services\Finance\Bill\BillService;
+use App\Services\Finance\Transaction\TransactionExpensesService;
+use App\Services\Finance\Transaction\TransactionIncomeService;
 use App\Services\Metrics\Chartable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Actions\DropDown;
-use Orchid\Screen\Actions\Link;
 use App\Orchid\Screens\Components\Cells\DateTimeSplit;
-use Orchid\Screen\Actions\ModalToggle;
-use Orchid\Screen\Fields\Select;
 use Orchid\Screen\Screen;
-use Orchid\Screen\TD;
 use Orchid\Support\Facades\Layout;
 use Orchid\Support\Facades\Toast;
-use SaKanjo\EasyMetrics\Metrics\Trend;
-use SaKanjo\EasyMetrics\Metrics\Value;
 
 class DashboardScreen extends Screen
 {
@@ -56,14 +45,14 @@ class DashboardScreen extends Screen
         $income = $transactions->where('type','income')->where('user_id', $user->id) ;
         $expenses = $transactions->where('type','expenses')->where('user_id', $user->id) ;
 
-        $chart_income =  $this->toCharts($income, __('Income'));
-        $chart_expenses = $this->toCharts($expenses, __('Expenses'));
+        $transactionIncome = new TransactionIncomeService($user->id);
+        $transactionExpenses = new TransactionExpensesService($user->id);
 
         $data['metrics']['currentMonth']['income'] =  Currency::convertValueToCurrency($income->whereMonth('created_at', $currentMonth )->whereYear('finance_transactions.created_at', Carbon::now()->year)->sum('currency_amount'));
         $data['metrics']['currentMonth']['expenses'] =  Currency::convertValueToCurrency($expenses->whereMonth('created_at', $currentMonth )->whereYear('finance_transactions.created_at', Carbon::now()->year)->sum('currency_amount'));
         $data['metrics']['bills'] =  $this->generateMetricsToBill();
-        $data['charts']['transactions'][] = $chart_income ;
-        $data['charts']['transactions'][] = $chart_expenses ;
+        $data['charts']['transactions'][] = $transactionIncome->query()->SumByMonths('currency_amount',  null, null, 'accrual_date')->toChart(__("Income"));
+        $data['charts']['transactions'][] = $transactionExpenses->query()->SumByMonths('currency_amount',   null, null, 'accrual_date')->toChart(__("Expenses"));
         $data['charts']['categories']['expenses'] = $this->getCategoriesChart('expenses');
         $data['charts']['categories']['income'] = $this->getCategoriesChart('income');
 

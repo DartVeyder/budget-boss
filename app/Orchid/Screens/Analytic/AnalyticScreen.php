@@ -2,7 +2,7 @@
 
 namespace App\Orchid\Screens\Analytic;
 
-use App\Orchid\Layouts\Analytic\Finance\AnalyticFinanceSelection;
+
 use Orchid\Screen\Screen;
 
 class AnalyticScreen extends Screen
@@ -45,7 +45,7 @@ class AnalyticScreen extends Screen
     public function layout(): iterable
     {
         return [
-            AnalyticFinanceSelection::class
+
         ];
     }
 }

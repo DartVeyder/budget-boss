@@ -4,7 +4,7 @@ namespace App\Services\Finance\Transaction;
 
 use App\Models\FinanceTransaction;
 
-class TransactionIncomeService
+class TransactionExpensesService
 {
     private int $userId;
     public function __construct(int $userId)
@@ -14,7 +14,7 @@ class TransactionIncomeService
     }
     public function query( )
     {
-        return FinanceTransaction::where('type','income')->where('user_id', $this->getUserId()) ;
+        return FinanceTransaction::where('type','expenses')->where('user_id', $this->getUserId()) ;
     }
 
     public function getUserId(): int

@@ -237,5 +237,6 @@
     "Transfers between accounts with different currencies are prohibited": "Заборонена робити переказ між рахунками з різною валютою",
     "Date accrual": "Дата угоди / нарахування",
     "Customer": "Замовник",
-    "Analytic": "Аналітика"
+    "Analytic": "Аналітика",
+    "Analytic finance": "Фінансова аналітика"
 }

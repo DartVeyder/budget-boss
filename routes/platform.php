@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Orchid\Screens\Analytic\AnalyticScreen;
+use App\Orchid\Screens\Analytic\Finance\AnalyticFinanceScreen;
 use App\Orchid\Screens\DashboardScreen;
 use App\Orchid\Screens\Examples\ExampleActionsScreen;
 use App\Orchid\Screens\Examples\ExampleCardsScreen;
@@ -104,7 +105,11 @@ Route::screen('/analytic', AnalyticScreen::class)
         ->parent('platform.index')
         ->push(__('Analytic'), route('platform.analytic')));
 
-
+Route::screen('analytic/finance', AnalyticFinanceScreen::class)
+    ->name('platform.analytic.finance')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.analytic')
+        ->push(__('Finance'), route('platform.analytic')));
 
 
 

@@ -10,7 +10,7 @@ use Orchid\Filters\Filterable;
 use Orchid\Filters\Types\Where;
 use Orchid\Filters\Types\WhereDateStartEnd;
 use Orchid\Filters\Types\WhereMaxMin;
-use Orchid\Metrics\Chartable;
+use App\Custom\Metrics\Chartable;
 use Orchid\Screen\AsSource;
 
 class FinanceTransaction extends Model
@@ -48,6 +48,10 @@ class FinanceTransaction extends Model
     ];
 
 
+    public function getCurrencyAmountAttribute($value)
+    {
+        $this->attributes['currency_amount'] = abs($value);
+    }
     public function scopeTotalAmount($query)
     {
         return $query->sum(DB::raw('currency_value * amount'));

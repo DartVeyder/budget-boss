@@ -37,16 +37,26 @@ class PlatformProvider extends OrchidServiceProvider
             Menu::make('Information panel')
                 ->route('platform.main'),
             Menu::make('Transactions')
+                ->list([
+                    Menu::make('Categories')
+                        ->route('platform.transactions.categories.income'),
+                ])
                 ->title('Finance')
                 ->route('platform.transactions'),
-            Menu::make('Categories')
-                ->route('platform.transactions.categories.income'),
+
             Menu::make('Bills')
                 ->route('platform.bills'),
             Menu::make('Invoices')
                 ->route('platform.invoices'),
+
             Menu::make('Analytic')
-                ->route('platform.analytic'),
+                ->list([
+                    Menu::make('Finance')
+                        ->route('platform.analytic.finance'),
+                ]),
+
+
+
 
             Menu::make(__('Users'))
                 ->icon('bs.people')

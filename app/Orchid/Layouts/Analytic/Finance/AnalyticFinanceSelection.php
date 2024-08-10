@@ -13,6 +13,8 @@ class AnalyticFinanceSelection extends Selection
      */
     public function filters(): iterable
     {
-        return [CreatedFilter::class];
+        return [
+            CreatedFilter::class
+        ];
     }
 }
