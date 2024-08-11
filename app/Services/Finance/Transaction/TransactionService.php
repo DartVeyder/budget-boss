@@ -62,6 +62,8 @@ trait TransactionService
         if($status  == 'before_taxes'){
             return $amount * ($listRates[$rate] / 100);
         }
+
+        return 0;
     }
 
     public function saveExpenses(Request $request): void{
@@ -161,6 +163,7 @@ trait TransactionService
         $transaction['currency_code'] =  $bill->currency->code;
         $transaction['currency_value'] = $currency->value;
         $transaction['currency_amount'] = $amount * $currency->value  ;
+        $transaction['absolute_currency_amount'] = abs($amount * $currency->value);
         return $transaction;
     }
 

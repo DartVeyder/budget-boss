@@ -84,7 +84,7 @@ trait Chartable
             : Carbon::parse($stopDate)->endOfMonth();
 
         $query = $builder
-            ->select(DB::raw("ABS($value) as value, DATE_FORMAT($dateColumn, '%Y-%m') as label"))
+            ->select(DB::raw("$value as value, DATE_FORMAT($dateColumn, '%Y-%m') as label"))
             ->whereBetween($dateColumn, [$startDate, $stopDate])
             ->groupBy('label')
             ->orderBy('label')

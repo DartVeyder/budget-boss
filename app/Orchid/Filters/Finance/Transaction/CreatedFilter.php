@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Orchid\Filters\Analytic\Finance;
+namespace App\Orchid\Filters\Finance\Transaction;
 
 use Illuminate\Database\Eloquent\Builder;
 use Orchid\Filters\Filter;

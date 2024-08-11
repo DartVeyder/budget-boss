@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Orchid\Filters\Analytic\Finance;
+namespace App\Orchid\Filters\Finance\Transaction;
 
 use Illuminate\Database\Eloquent\Builder;
 use Orchid\Filters\Filter;
 use Orchid\Screen\Field;
 use Orchid\Screen\Fields\DateRange;
 
-class CreatedFilter extends Filter
+class AccrualDateFilter extends Filter
 {
     /**
      * The displayable name of the filter.
@@ -26,7 +26,7 @@ class CreatedFilter extends Filter
      */
     public function parameters(): ?array
     {
-        return ['created_at'];
+        return ['accrual_date'];
     }
 
     /**
@@ -38,7 +38,7 @@ class CreatedFilter extends Filter
      */
     public function run(Builder $builder): Builder
     {
-       return $builder->whereBetween('created_at', [$this->request->get('created_at')['start'], $this->request->get('created_at')['end']]);
+       return $builder->whereBetween('accrual_date', [$this->request->get('accrual_date')['start'], $this->request->get('accrual_date')['end']]);
     }
 
     /**
@@ -49,7 +49,7 @@ class CreatedFilter extends Filter
     public function display(): iterable
     {
         return [
-            DateRange::make('created_at')
+            DateRange::make('accrual_date')
             ->title('Date'),
         ];
     }

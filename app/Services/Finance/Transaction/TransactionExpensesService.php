@@ -4,26 +4,11 @@ namespace App\Services\Finance\Transaction;
 
 use App\Models\FinanceTransaction;
 
-class TransactionExpensesService
+class TransactionExpensesService extends  TransactionsService
 {
-    private int $userId;
-    public function __construct(int $userId)
-    {
-
-         $this->setUserId($userId);
-    }
-    public function query( )
-    {
-        return FinanceTransaction::where('type','expenses')->where('user_id', $this->getUserId()) ;
-    }
-
-    public function getUserId(): int
-    {
-        return $this->userId;
-    }
-
-    public function setUserId(int $userId): void
-    {
-        $this->userId = $userId;
+    protected string $type = 'expenses';
+    public function __construct() {
+        $this->setType($this->type);
+        parent::__construct();
     }
 }

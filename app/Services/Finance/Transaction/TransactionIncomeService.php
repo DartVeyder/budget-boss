@@ -4,26 +4,13 @@ namespace App\Services\Finance\Transaction;
 
 use App\Models\FinanceTransaction;
 
-class TransactionIncomeService
+class TransactionIncomeService extends  TransactionsService
 {
-    private int $userId;
-    public function __construct(int $userId)
-    {
+    protected string $type = 'income';
 
-         $this->setUserId($userId);
-    }
-    public function query( )
-    {
-        return FinanceTransaction::where('type','income')->where('user_id', $this->getUserId()) ;
+    public function __construct() {
+        $this->setType($this->type);
+        parent::__construct();
     }
 
-    public function getUserId(): int
-    {
-        return $this->userId;
-    }
-
-    public function setUserId(int $userId): void
-    {
-        $this->userId = $userId;
-    }
 }
