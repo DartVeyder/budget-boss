@@ -2,6 +2,9 @@
 
 namespace App\Services\Finance\Transaction;
 
+use App\Models\FinanceBill;
+use App\Models\FinanceCurrency;
+use App\Models\FinanceInvoice;
 use App\Models\FinanceTransaction;
 use App\Services\Currency\Currency;
 use Carbon\Carbon;
@@ -122,6 +125,39 @@ class TransactionsService
     public function query(): object
     {
         return FinanceTransaction::where('type',$this->getType())->where('user_id', $this->getUserId()) ;
+    }
+
+    public function getCurrency(int $bill_id, float $amount): array{
+        $bill = FinanceBill::find($bill_id);
+        $currency = FinanceCurrency::find($bill->finance_currency_id);
+        $transaction['finance_currency_id'] = $bill->finance_currency_id;
+        $transaction['currency_code'] =  $bill->currency->code;
+        $transaction['currency_value'] = $currency->value;
+        $transaction['currency_amount'] = $amount * $currency->value  ;
+        $transaction['absolute_currency_amount'] = abs($amount * $currency->value);
+        return $transaction;
+    }
+
+    public function updateStatusInvoice(int|null $invoice_id):void
+    {
+        if($invoice_id){
+            $data = [];
+            $invoice = FinanceInvoice::find($invoice_id);
+            $amount_paid = FinanceTransaction::where('finance_invoice_id', $invoice_id)->sum('amount');
+            $data['amount_paid'] =  $amount_paid;
+            if($amount_paid >= $invoice->total){
+                $data['status'] = 'paid';
+            }else if($amount_paid < $invoice->total){
+                $data['status'] = 'part paid';
+            }else{
+                $data['status'] = 'not paid';
+            }
+            FinanceInvoice::where('id', $invoice_id)->update($data);
+        }
+
+    }
+    public function getAmountNegative(float $amount): float{
+        return  -abs($amount);
     }
     public function getUserId(): int
     {

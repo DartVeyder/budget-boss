@@ -8,6 +8,8 @@ use App\Orchid\Layouts\Finance\Transaction\TransactionEditExpensesRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditIncomeRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditTransferRows;
+use App\Services\Finance\Transaction\TransactionExpensesService;
+use App\Services\Finance\Transaction\TransactionIncomeService;
 use App\Services\Finance\Transaction\TransactionService;
 use Illuminate\Http\Request;
 use Orchid\Screen\Actions\Button;
@@ -52,9 +54,9 @@ class TransactionEditScreen extends Screen
     public function commandBar(): iterable
     {
         return [
-//            Button::make(__('Save'))
-//                ->icon('bs.check-circle')
-//                ->method($this->getMethod($this->transaction->transaction_type_id)),
+            Button::make(__('Save'))
+                ->icon('bs.check-circle')
+                ->method($this->getMethod($this->transaction->transaction_type_id)),
         ];
     }
 
@@ -100,12 +102,22 @@ class TransactionEditScreen extends Screen
         }
     }
 
- /*   public function save(Request $request, FinanceTransaction $transaction){
-
-        $transaction->fill($request->input('transaction'))->save();
+    public function  saveIncome(Request $request, FinanceTransaction $transaction):void
+    {
+        $transactionIncome = new TransactionIncomeService();
+        $data = $transactionIncome->createInsertData($request);
+        $transaction->fill($data)->save();
+        $transactionIncome->updateStatusInvoice($data['finance_invoice_id']);
         Toast::info(__('You have successfully created.'));
-        return redirect()->route('platform.transactions');
+    }
 
-    }*/
+    public function  saveExpenses(Request $request, FinanceTransaction $transaction):void
+    {
+        $transactionExpenses = new TransactionExpensesService();
+        $data = $transactionExpenses->createInsertData($request);
+        $transaction->fill($data)->save($data);
+
+        Toast::info(__('You have successfully created.'));
+    }
 
 }

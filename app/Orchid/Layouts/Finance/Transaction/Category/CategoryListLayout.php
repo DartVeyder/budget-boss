@@ -29,7 +29,8 @@ class CategoryListLayout extends Table
     {
         return [
             TD::make('name', __('Name'))
-            ->render(fn (FinanceTransactionCategory $category) => ModalToggle::make($category->name)
+            ->render(fn (FinanceTransactionCategory $category) =>
+            ModalToggle::make($category->name)
                 ->modal('asyncEditCategoryModal')
                 ->modalTitle( __('Edit category '). '"'.$category->name.'"')
                 ->method('save')

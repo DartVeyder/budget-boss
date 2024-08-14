@@ -14,6 +14,7 @@ use Orchid\Screen\Actions\DropDown;
 use Orchid\Screen\Actions\Link;
 use App\Orchid\Screens\Components\Cells\DateTime;
 use App\Orchid\Screens\Components\Cells\DateTimeSplit;
+use Orchid\Screen\Actions\ModalToggle;
 use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Fields\Select;
 use Orchid\Screen\Layouts\Table;
@@ -32,6 +33,7 @@ class TransactionListLayout extends Table
     public function columns(): array
     {
         return [
+            TD::make('id', __('ID')),
             TD::make('transaction_category_id', __('Category'))
                 ->sort()
                 ->filter(
@@ -82,8 +84,7 @@ class TransactionListLayout extends Table
                 ->render(
                 fn(FinanceTransaction $transaction) => $transaction->tax_amount . ' '. $transaction->currency->symbol
             ),
-            TD::make('comment', __('Comment'))
-                ,
+            TD::make('comment', __('Comment')) ,
             TD::make('created_at', __('Created'))
                 ->sort()
                 ->filter(TD::FILTER_DATE_RANGE)
