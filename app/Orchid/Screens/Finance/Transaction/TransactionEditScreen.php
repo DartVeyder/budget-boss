@@ -54,6 +54,8 @@ class TransactionEditScreen extends Screen
     public function commandBar(): iterable
     {
         return [
+            Button::make(__('Back'))
+                ->method('back'),
             Button::make(__('Save'))
                 ->icon('bs.check-circle')
                 ->method($this->getMethod($this->transaction->transaction_type_id)),
@@ -118,6 +120,10 @@ class TransactionEditScreen extends Screen
         $transaction->fill($data)->save($data);
 
         Toast::info(__('You have successfully created.'));
+    }
+
+    public function  back(){
+        return redirect()->route('platform.transactions');
     }
 
 }
