@@ -12,12 +12,15 @@ use App\Orchid\Layouts\Finance\Transaction\TransactionEditIncomeRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditTransferRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionListLayout;
 use App\Orchid\Layouts\Finance\Transaction\TransactionSelection;
+use App\Services\Api\Monobank\Monobank;
 use App\Services\Finance\Transaction\TransactionExpensesService;
 use App\Services\Finance\Transaction\TransactionIncomeService;
 use App\Services\Finance\Transaction\TransactionService;
 use App\Services\Finance\Transaction\TransactionsService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Actions\Link;
 use Orchid\Screen\Actions\ModalToggle;
 use Orchid\Screen\Screen;
@@ -73,7 +76,9 @@ class TransactionListScreen extends Screen
                 ->method('saveTransfer'),
             ModalToggle::make(__('Audit'))
                 ->modal('audit')
-                ->method('saveAudit')
+                ->method('saveAudit'),
+            Button::make("Mono")
+                ->method("saveMono")
         ];
     }
 
@@ -99,8 +104,7 @@ class TransactionListScreen extends Screen
             Layout::modal('audit', [
                 TransactionEditAuditRows::class
             ])->title(__('Audit')),
-            Layout::modal('asyncEditTransactionModal',  TransactionEditIncomeRows::class)
-                ->async('asyncGetTransaction'),
+
         ];
     }
 
@@ -189,5 +193,22 @@ class TransactionListScreen extends Screen
 
         Toast::info(__('You have successfully remove'));
         return redirect()->back();
+    }
+
+    public function saveMono()
+    {
+        $transactions = FinanceTransaction::whereNotNull('mono_id')->first();
+        if( is_null($transactions)){
+            $from = Carbon::now()->startOfMonth();
+        }else{
+            $from = $transactions->created_at;
+        }
+
+        $to = Carbon::now();
+
+        dd( $from , $to);
+
+       // $list = Monobank::getStatement($from,  $to);
+       // dd($list);
     }
 }
