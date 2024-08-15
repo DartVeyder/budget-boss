@@ -25,4 +25,9 @@ class FinanceTransactionCategory extends Model
     {
         return $query->where('transaction_type_id', 1)->where('user_id',Auth::user()->id);
     }
+
+    public function mccs()
+    {
+        return $this->belongsToMany(FinanceTransactionMcc::class, 'finance_transaction_category_mcc', 'transaction_category_id', 'transaction_mcc_id');
+    }
 }

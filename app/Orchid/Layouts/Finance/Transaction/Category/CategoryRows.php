@@ -2,9 +2,11 @@
 
 namespace App\Orchid\Layouts\Finance\Transaction\Category;
 
+use App\Models\FinanceTransactionMcc;
 use Illuminate\Support\Facades\Auth;
 use Orchid\Screen\Field;
 use Orchid\Screen\Fields\Input;
+use Orchid\Screen\Fields\Relation;
 use Orchid\Screen\Layouts\Rows;
 
 class CategoryRows extends Rows
@@ -31,6 +33,10 @@ class CategoryRows extends Rows
             Input::make('category.name')
                 ->title('Name')
                 ->required(),
+            Relation::make('category.mccs')
+                    ->fromModel(FinanceTransactionMcc::class, 'code')
+                    ->multiple()
+                    ->title('MCC') ,
             Input::make('category.transaction_type_id')
                 ->value( $this->type_id)
                 ->hidden(),

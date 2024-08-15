@@ -197,6 +197,7 @@
     "It is not possible to transfer to the same account" : "Не можна переказувати на той самий рахунок",
     "Categories": "Категорії",
     "New category income": "Нова категорія доходу",
+    "New category expenses": "Нова категорія витрат",
     "You have successfully created." : "Ви успішно створили.",
     "Edit category ": "Редагувати категорію ",
     "Income for this month" : "Дохід за цей місяць",
@@ -239,5 +240,8 @@
     "Customer": "Замовник",
     "Analytic": "Аналітика",
     "Analytic finance": "Фінансова аналітика",
-    "Back": "Назад"
+    "Back": "Назад",
+    "Add mcc": "Добавити MCC",
+    "Code": "Код",
+    "New mcc code": "Новий mcc код"
 }

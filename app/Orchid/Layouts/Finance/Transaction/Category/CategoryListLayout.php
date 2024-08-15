@@ -37,6 +37,8 @@ class CategoryListLayout extends Table
                 ->asyncParameters([
                     'category' => $category->id,
                 ])),
+            TD::make('mcc', 'Mcc code')
+                ->render(fn(FinanceTransactionCategory $category) =>  implode(", ",$category->mccs->pluck('code')->toArray())),
             TD::make('created_at', __('Created'))
                 ->usingComponent(DateTime::class)
                 ->align(TD::ALIGN_RIGHT)
