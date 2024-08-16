@@ -36,7 +36,7 @@ class TransactionExpensesService extends  TransactionsService
             if($item['amount'] > 0){
                 continue;
             }
-            $source_name = mb_strtolower ($item['description']);
+            $source_name = str_replace("\n", " ",mb_strtolower ($item['description']));
             $transaction_source = FinanceTransactionSource::firstOrCreate(['name' => $source_name], ['name' => $source_name]);
 
             $date = $this->getDate($item['time']);
@@ -45,7 +45,7 @@ class TransactionExpensesService extends  TransactionsService
                 'created_at' =>  $date,
                 'accrual_date' =>   $date,
                 'transaction_category_id' => $this->getCategoryWithMcc($item['mcc']),
-                'finance_bill_id' => 8,
+                'finance_bill_id' => 3,
                 'source_name' =>$source_name ,
                 'transaction_source_id' => $transaction_source->id,
                 'mcc_code'=>$item['mcc'],
@@ -61,7 +61,6 @@ class TransactionExpensesService extends  TransactionsService
             $transactions[] = $transaction;
 
         }
-
         return  $transactions;
     }
 

@@ -212,6 +212,7 @@ class TransactionListScreen extends Screen
         $statement = Monobank::getStatement($from,  $to);
         if($statement){
             $data = $transactionExpensesService->createInsertDataMono($statement);
+
             if(FinanceTransaction::insert($data)){
                 Toast::info(__('Успішно імпортовано '. count($data) .' транзакцій з Моно'));
             }
