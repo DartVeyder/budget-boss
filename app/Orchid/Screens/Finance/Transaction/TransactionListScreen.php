@@ -195,9 +195,11 @@ class TransactionListScreen extends Screen
         return redirect()->back();
     }
 
-    public function saveMono()
+    public function saveMono( TransactionExpensesService $transactionExpensesService )
     {
-        $transactions = FinanceTransaction::whereNotNull('mono_id')->first();
+        $transactions = FinanceTransaction::whereNotNull('mono_id')->orderBy('id','DESC')->first();
+
+
         if( is_null($transactions)){
             $from = Carbon::now()->startOfMonth();
         }else{
@@ -206,9 +208,19 @@ class TransactionListScreen extends Screen
 
         $to = Carbon::now();
 
-        dd( $from , $to);
 
-       // $list = Monobank::getStatement($from,  $to);
-       // dd($list);
+        $statement = Monobank::getStatement($from,  $to);
+        if($statement){
+            $data = $transactionExpensesService->createInsertDataMono($statement);
+            if(FinanceTransaction::insert($data)){
+                Toast::info(__('Успішно імпортовано '. count($data) .' транзакцій з Моно'));
+            }
+        }else{
+            Toast::info(__('Нема нових транзакцій з Моно'));
+        }
+
+
+
+
     }
 }

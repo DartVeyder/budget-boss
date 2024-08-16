@@ -41,7 +41,11 @@ class TransactionListLayout extends Table
                     FinanceTransactionCategory::where('user_id', Auth::user()->id)
                         ->pluck('name', 'id'))
                 ->render(
-                    fn(FinanceTransaction $transaction) => ($transaction->category)? $transaction->category->name : ''
+                     function(FinanceTransaction $transaction){
+                        $str = ($transaction->category)? $transaction->category->name : '';
+                        $str .=  ($transaction->source_name) ? "/</br> " . $transaction->source_name  :'';
+                        return $str;
+                    }
                 ),
             TD::make('finance_bill_id', __('Bill'))
                 ->sort()

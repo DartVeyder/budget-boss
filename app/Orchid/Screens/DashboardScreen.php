@@ -10,6 +10,7 @@ use App\Services\Currency\Currency;
 use App\Services\Finance\Bill\BillService;
 use App\Services\Finance\Transaction\TransactionExpensesService;
 use App\Services\Finance\Transaction\TransactionIncomeService;
+use App\Services\Finance\Transaction\TransactionsService;
 use App\Services\Metrics\Chartable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -35,6 +36,9 @@ class DashboardScreen extends Screen
     public function query(FinanceTransaction $transactions ): iterable
     {
 
+        $start =   Carbon::now()->subYear();;
+        $end =    Carbon::now();
+
         $user = Auth::user();
         $this->userId = $user->id;
         $currentMonth = Carbon::now()->month;
@@ -45,14 +49,16 @@ class DashboardScreen extends Screen
         $income = $transactions->where('type','income')->where('user_id', $user->id) ;
         $expenses = $transactions->where('type','expenses')->where('user_id', $user->id) ;
 
+        $transaction = new TransactionsService();
         $transactionIncome = new TransactionIncomeService($user->id);
         $transactionExpenses = new TransactionExpensesService($user->id);
 
         $data['metrics']['currentMonth']['income'] =  Currency::convertValueToCurrency($income->whereMonth('created_at', $currentMonth )->whereYear('finance_transactions.created_at', Carbon::now()->year)->sum('currency_amount'));
         $data['metrics']['currentMonth']['expenses'] =  Currency::convertValueToCurrency($expenses->whereMonth('created_at', $currentMonth )->whereYear('finance_transactions.created_at', Carbon::now()->year)->sum('currency_amount'));
         $data['metrics']['bills'] =  $this->generateMetricsToBill();
-        $data['charts']['transactions'][] = $transactionIncome->query()->SumByMonths('currency_amount',  null, null, 'accrual_date')->toChart(__("Income"));
-        $data['charts']['transactions'][] = $transactionExpenses->query()->SumByMonths('currency_amount',   null, null, 'accrual_date')->toChart(__("Expenses"));
+        $data['charts']['transactions'][] = $transactionIncome->chartBar(__("Income"),$start, $end,'accrual_date','currency_amount');
+        $data['charts']['transactions'][] = $transactionExpenses->chartBar(__("Expenses"),$start, $end,'accrual_date','absolute_currency_amount');
+        $data['charts']['transactions'][] = $transaction->chartBarBalance(__("Balance"),$start, $end,'accrual_date','currency_amount');
         $data['charts']['categories']['expenses'] = $this->getCategoriesChart('expenses');
         $data['charts']['categories']['income'] = $this->getCategoriesChart('income');
 
