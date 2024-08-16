@@ -3,6 +3,7 @@
 namespace App\Services\Finance\Transaction;
 
 use App\Models\FinanceTransactionMcc;
+use App\Models\FinanceTransactionSource;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -35,7 +36,8 @@ class TransactionExpensesService extends  TransactionsService
             if($item['amount'] > 0){
                 continue;
             }
-
+            $source_name = mb_strtolower ($item['description']);
+            $transaction_source = FinanceTransactionSource::firstOrCreate(['name' => $source_name], ['name' => $source_name]);
 
             $date = $this->getDate($item['time']);
 
@@ -44,7 +46,9 @@ class TransactionExpensesService extends  TransactionsService
                 'accrual_date' =>   $date,
                 'transaction_category_id' => $this->getCategoryWithMcc($item['mcc']),
                 'finance_bill_id' => 8,
-                'source_name' => mb_strtolower ($item['description']),
+                'source_name' =>$source_name ,
+                'transaction_source_id' => $transaction_source->id,
+                'mcc_code'=>$item['mcc'],
                 'amount' => $this->getAmount($item['amount']),
                 'mono_id' => $item['id'],
                 'transaction_type_id' => 1,
