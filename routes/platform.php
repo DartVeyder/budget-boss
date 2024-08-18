@@ -15,6 +15,7 @@ use App\Orchid\Screens\Examples\ExampleLayoutsScreen;
 use App\Orchid\Screens\Examples\ExampleScreen;
 use App\Orchid\Screens\Examples\ExampleTextEditorsScreen;
 use App\Orchid\Screens\Finance\Bill\BillScreen;
+use App\Orchid\Screens\Finance\Crypto\Binance\CryptoBinanceScreen;
 use App\Orchid\Screens\Finance\Invoice\InvoiceListScreen;
 use App\Orchid\Screens\Finance\Transaction\Category\CategoryExpensesScreen;
 use App\Orchid\Screens\Finance\Transaction\Category\CategoryIncomeScreen;
@@ -110,6 +111,20 @@ Route::screen('analytic/finance', AnalyticFinanceScreen::class)
     ->breadcrumbs(fn (Trail $trail) => $trail
         ->parent('platform.analytic')
         ->push(__('Finance'), route('platform.analytic')));
+
+//Platform > Crypto
+Route::screen('/crypto', AnalyticFinanceScreen::class)
+    ->name('platform.crypto')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.index')
+        ->push(__('Cryptocurrency'), route('platform.crypto')));
+
+//Platform > Crypto > Binance
+Route::screen('/crypto/binance', CryptoBinanceScreen::class)
+    ->name('platform.crypto.binance')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.crypto')
+        ->push(__('Binance'), route('platform.crypto')));
 
 
 

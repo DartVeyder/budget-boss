@@ -4,6 +4,7 @@ namespace App\Services\Finance\Bill;
 
 use App\Models\FinanceBill;
 use App\Services\Currency\Currency;
+use App\Services\Finance\Crypto\Binance\BinanceService;
 use Illuminate\Support\Facades\Auth;
 
 trait BillService
@@ -19,6 +20,7 @@ trait BillService
                     'total' => ["value" => Currency::getFormatMoney($bill->transactions->sum('amount') ,$bill->currency->symbol ) ]
                 ];
         }
+        $data['binance'] = BinanceService::getBill();
         return $data;
     }
 

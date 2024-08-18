@@ -8,6 +8,7 @@ use App\Orchid\Layouts\Dashboard\DashboardChartTransactionLayout;
 use App\Orchid\Layouts\Finance\Transaction\TransactionListLayout;
 use App\Services\Currency\Currency;
 use App\Services\Finance\Bill\BillService;
+use App\Services\Finance\Crypto\Binance\BinanceService;
 use App\Services\Finance\Transaction\TransactionExpensesService;
 use App\Services\Finance\Transaction\TransactionIncomeService;
 use App\Services\Finance\Transaction\TransactionsService;
@@ -45,7 +46,7 @@ class DashboardScreen extends Screen
 
         $data = [];
 
-        $data['metrics']['total']['balance']  =  Currency::convertValueToCurrency($this->getTotalAmountInUsd());
+        $data['metrics']['total']['balance']  =  Currency::convertValueToCurrency( $this->getTotalBalance());
         $income = $transactions->where('type','income')->where('user_id', $user->id) ;
         $expenses = $transactions->where('type','expenses')->where('user_id', $user->id) ;
 
@@ -66,10 +67,13 @@ class DashboardScreen extends Screen
 
         return  $data;
     }
-        private function getTotalAmountInUsd() {
-            return FinanceTransaction::leftJoin('finance_currencies', 'finance_transactions.finance_currency_id', '=', 'finance_currencies.id')
-            ->select(DB::raw('SUM(finance_transactions.amount * finance_currencies.value) as total_amount'))
-            ->value('total_amount'); // Отримання значення суми
+    private function getTotalBalance(){
+        return $this->getTotalAmountInUsd() + BinanceService::getBalanceUAH();
+    }
+    private function getTotalAmountInUsd() {
+        return FinanceTransaction::leftJoin('finance_currencies', 'finance_transactions.finance_currency_id', '=', 'finance_currencies.id')
+        ->select(DB::raw('SUM(finance_transactions.amount * finance_currencies.value) as total_amount'))
+        ->value('total_amount'); // Отримання значення суми
 
     }
 

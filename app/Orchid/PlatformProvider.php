@@ -48,7 +48,11 @@ class PlatformProvider extends OrchidServiceProvider
                 ->route('platform.bills'),
             Menu::make('Invoices')
                 ->route('platform.invoices'),
-
+            Menu::make('Cryptocurrency')
+                ->list([
+                    Menu::make('Binance')
+                        ->route('platform.crypto.binance'),
+                ]),
             Menu::make('Analytic')
                 ->list([
                     Menu::make('Finance')

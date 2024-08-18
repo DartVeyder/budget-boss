@@ -243,5 +243,9 @@
     "Back": "Назад",
     "Add mcc": "Добавити MCC",
     "Code": "Код",
-    "New mcc code": "Новий mcc код"
+    "New mcc code": "Новий mcc код",
+    "Cryptocurrency": "Криптовалюта",
+    "Price": "Ціна",
+    "Quantity": "Кількість",
+    "Import": "Імпорт"
 }
