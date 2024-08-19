@@ -32,7 +32,7 @@ class TransactionsService
 
     public function getTotalAmount(  string $value, bool $isCurrency = false, $filter = null, $start = null,$end = null ):float|string
     {
-        $query = FinanceTransaction::where('user_id', $this->getUserId()) ;;
+        $query = FinanceTransaction::where('user_id', $this->getUserId())->where('is_balance' ,1) ;
         if($filter &&  isset($_GET['created_at'])  ){
             $query =  $query->filters( $filter);
         }else{
@@ -69,6 +69,7 @@ class TransactionsService
         $collection = DB::table('finance_transactions')
             ->whereBetween('finance_transactions.created_at', [$start, $end])
             ->where('finance_transactions.user_id', $this->getUserId())
+            ->where('is_balance' ,1)
             ->whereNull('finance_transactions.deleted_at')
             ->where('finance_transactions.type', $this->getType())
             ->join('finance_transaction_categories', 'finance_transactions.transaction_category_id', '=', 'finance_transaction_categories.id')
@@ -86,6 +87,7 @@ class TransactionsService
         $collection = DB::table('finance_transactions')
             ->whereBetween('finance_transactions.created_at', [$start, $end])
             ->where('finance_transactions.user_id', $this->getUserId())
+            ->where('is_balance' ,1)
             ->whereNull('finance_transactions.deleted_at')
             ->join('finance_bills', 'finance_transactions.finance_bill_id', '=', 'finance_bills.id')
             ->select('finance_bills.id', 'finance_bills.name',DB::raw('ABS(SUM(finance_transactions.currency_amount))  as total_amount'))
@@ -103,6 +105,7 @@ class TransactionsService
             ->whereBetween('finance_transactions.created_at', [$start, $end])
             ->where('finance_transactions.user_id', $this->getUserId())
             ->whereNull('finance_transactions.deleted_at')
+            ->where('is_balance' ,1)
             ->join('customers', 'finance_transactions.customer_id', '=', 'customers.id')
             ->select('customers.id', 'customers.name',DB::raw('ABS(SUM(finance_transactions.currency_amount))  as total_amount'))
             ->groupBy('customers.id', 'customers.name')
@@ -115,16 +118,16 @@ class TransactionsService
     }
     public function chartBarBalance( string $name = null, string $start = null, string $end = null, string $dateColumn = null, string $value) :array
     {
-        return FinanceTransaction::where('user_id', $this->getUserId())->SumByMonths($value,  $start, $end, $dateColumn)->toChart($name);
+        return FinanceTransaction::where('user_id', $this->getUserId())->where('is_balance' ,1)->SumByMonths($value,  $start, $end, $dateColumn)->toChart($name);
     }
 
     public function chartBar( string $name = null, string $start = null, string $end = null, string $dateColumn = null, string $value) :array
     {
-        return $this->query()->SumByMonths($value,  $start, $end, $dateColumn)->toChart($name);
+        return $this->query()->where('is_balance' ,1)->SumByMonths($value,  $start, $end, $dateColumn)->toChart($name);
     }
     public function query(): object
     {
-        return FinanceTransaction::where('type',$this->getType())->where('user_id', $this->getUserId()) ;
+        return FinanceTransaction::where('type',$this->getType())->where('user_id', $this->getUserId())->where('is_balance' ,1) ;
     }
 
     public function getCurrency(int $bill_id, float $amount): array{

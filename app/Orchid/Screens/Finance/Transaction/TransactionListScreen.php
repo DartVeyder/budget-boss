@@ -128,6 +128,7 @@ class TransactionListScreen extends Screen
 
     public function  saveTransfer(Request $request,  TransactionsService  $transactionsService): void{
         $transaction = $request->input('transaction');
+        $transaction['is_balance'] = 0;
         $bills =  $request->input('bills');
 
         if(FinanceBill::find($bills['with_bill_id'])->finance_currency_id  != FinanceBill::find($bills['to_bill_id'])->finance_currency_id ){

@@ -47,8 +47,8 @@ class DashboardScreen extends Screen
         $data = [];
 
         $data['metrics']['total']['balance']  =  Currency::convertValueToCurrency( $this->getTotalBalance());
-        $income = $transactions->where('type','income')->where('user_id', $user->id) ;
-        $expenses = $transactions->where('type','expenses')->where('user_id', $user->id) ;
+        $income = $transactions->where('is_balance' ,1)->where('type','income')->where('user_id', $user->id) ;
+        $expenses = $transactions->where('is_balance' ,1)->where('type','expenses')->where('user_id', $user->id) ;
 
         $transaction = new TransactionsService();
         $transactionIncome = new TransactionIncomeService($user->id);
@@ -60,8 +60,8 @@ class DashboardScreen extends Screen
         $data['charts']['transactions'][] = $transactionIncome->chartBar(__("Income"),$start, $end,'accrual_date','currency_amount');
         $data['charts']['transactions'][] = $transactionExpenses->chartBar(__("Expenses"),$start, $end,'accrual_date','absolute_currency_amount');
         $data['charts']['transactions'][] = $transaction->chartBarBalance(__("Balance"),$start, $end,'accrual_date','currency_amount');
-        $data['charts']['categories']['expenses'] = $this->getCategoriesChart('expenses');
-        $data['charts']['categories']['income'] = $this->getCategoriesChart('income');
+        $data['charts']['categories']['income'] = $transactionIncome->chartPieCategory($start, $end);
+        $data['charts']['categories']['expenses'] = $transactionExpenses->chartPieCategory($start, $end);
 
         $data['transactions'] = $this-> getTransactions($transactions);
 
@@ -73,6 +73,7 @@ class DashboardScreen extends Screen
     private function getTotalAmountInUsd() {
         return FinanceTransaction::leftJoin('finance_currencies', 'finance_transactions.finance_currency_id', '=', 'finance_currencies.id')
         ->select(DB::raw('SUM(finance_transactions.amount * finance_currencies.value) as total_amount'))
+            ->where('is_balance' ,1)
         ->value('total_amount'); // Отримання значення суми
 
     }
