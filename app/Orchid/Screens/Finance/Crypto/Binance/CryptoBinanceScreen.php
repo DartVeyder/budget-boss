@@ -4,9 +4,12 @@ namespace App\Orchid\Screens\Finance\Crypto\Binance;
 
 use App\Models\FinanceBinanceCoin;
 use App\Orchid\Layouts\Finance\Crypto\Binance\CryptoBinanceListLayout;
+use App\Services\Currency\Currency;
 use App\Services\Finance\Crypto\Binance\BinanceService;
 use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Screen;
+use Orchid\Support\Facades\Layout;
+use Orchid\Support\Facades\Toast;
 
 class CryptoBinanceScreen extends Screen
 {
@@ -20,6 +23,7 @@ class CryptoBinanceScreen extends Screen
 
 
         return [
+            "balance" =>  Currency::getFormatMoney(BinanceService::getBalanceUSDT(), "$"),
             "binanceCoins" => FinanceBinanceCoin::
                  defaultSort('amount', 'desc')
                 ->paginate()
@@ -57,13 +61,21 @@ class CryptoBinanceScreen extends Screen
     public function layout(): iterable
     {
         return [
+            Layout::metrics([
+                'Balance' => 'balance'
+                ]),
             CryptoBinanceListLayout::class
         ];
     }
 
     public function import(FinanceBinanceCoin $binanceCoin)
     {
+
         $coins = BinanceService::getCoins();
+        if(!is_array( $coins)){
+            Toast::info(__('Помилка оновленя даних з Binance'));
+            return;
+        }
         foreach ($coins as $coin){
             $binanceCoin->updateOrCreate(
                 [
@@ -73,6 +85,6 @@ class CryptoBinanceScreen extends Screen
             );
         }
 
-
+        Toast::info(__('Успішно оновлено дані з Binance'));
     }
 }

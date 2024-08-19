@@ -10,21 +10,28 @@ use Illuminate\Support\Facades\Log;
 
 class BinanceService
 {
-    static public function getCoins():array
+    static public function getCoins():array|string
     {
         $data = [];
-        $client = new  Spot(['key' => env('API_KEY_BINANCE'), 'secret' => env('API_SECRET_KEY_BINANCE')]);
-        $coins = $client->userAsset( );
-        foreach($coins as $coin){
-            $price = self::getCoinPrice($client, $coin['asset']) ;
-            $quantity = (float) $coin['free'];
-            $data[] = [
-                'ticker_symbol' =>  $coin['asset'],
-                'quantity' =>  $quantity,
-                'price' =>  number_format($price,6,'.',''),
-                 'amount'=> round($price * $quantity,7)
-            ];
+        try {
+            $client = new  Spot(['key' => env('API_KEY_BINANCE'), 'secret' => env('API_SECRET_KEY_BINANCE')]);
+            $coins = $client->userAsset( );
+            foreach($coins as $coin){
+                $price = self::getCoinPrice($client, $coin['asset']) ;
+                $quantity = (float) $coin['free'];
+                $data[] = [
+                    'ticker_symbol' =>  $coin['asset'],
+                    'quantity' =>  $quantity,
+                    'price' =>  number_format($price,6,'.',''),
+                    'amount'=> round($price * $quantity,7)
+                ];
+            }
+
+        }catch(\Exception $e){
+            return  'Error';
         }
+
+
         return $data;
     }
 
