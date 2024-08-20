@@ -70,6 +70,7 @@ class CryptoBinanceScreen extends Screen
 
     public function import(FinanceBinanceCoin $binanceCoin)
     {
+        BinanceService::getCoinsHistory();
 
         $coins = BinanceService::getCoins();
         if(!is_array( $coins)){
