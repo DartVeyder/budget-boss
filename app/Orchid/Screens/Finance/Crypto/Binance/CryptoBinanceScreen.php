@@ -3,6 +3,7 @@
 namespace App\Orchid\Screens\Finance\Crypto\Binance;
 
 use App\Models\FinanceBinanceCoin;
+use App\Models\FinanceBinanceCoinHistory;
 use App\Orchid\Layouts\Finance\Crypto\Binance\CryptoBinanceListLayout;
 use App\Services\Currency\Currency;
 use App\Services\Finance\Crypto\Binance\BinanceService;
@@ -70,22 +71,37 @@ class CryptoBinanceScreen extends Screen
 
     public function import(FinanceBinanceCoin $binanceCoin)
     {
-        BinanceService::getCoinsHistory();
+        $msg = [];
 
         $coins = BinanceService::getCoins();
         if(!is_array( $coins)){
-            Toast::info(__('Помилка оновленя даних з Binance'));
-            return;
-        }
-        foreach ($coins as $coin){
-            $binanceCoin->updateOrCreate(
-                [
-                    'ticker_symbol' => $coin['ticker_symbol']
-                ],
-                $coin
-            );
+            $msg[] = __('Помилка оновленя даних з Binance');
         }
 
-        Toast::info(__('Успішно оновлено дані з Binance'));
+        foreach ($coins as $coin){
+             $binanceCoin = $binanceCoin->updateOrCreate( [    'ticker_symbol' => $coin['ticker_symbol']  ], $coin );
+        }
+        if( $binanceCoin ){
+            $msg[] = __('Успішно оновлено дані з Binance');
+        }
+
+        if(!is_array( $coins)){
+            $msg[] = __('Помилка оновленя даних з Binance');
+        }
+
+        $historyCoins = BinanceService::getHistoryCoin();
+        if( empty($historyCoins)){
+            $msg[] = __('Відсутні нові дані з Binance');
+        }
+
+        foreach ($historyCoins as $coin){
+             FinanceBinanceCoinHistory::insert($coin);
+        }
+
+
+
+
+        Toast::info(implode(", ",  $msg) );
+        return;
     }
 }

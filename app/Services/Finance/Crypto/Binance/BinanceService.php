@@ -12,24 +12,119 @@ use Illuminate\Support\Facades\Log;
 
 class BinanceService
 {
+    private  static array $klines = [];
     static public function client() : Spot
     {
         return new  Spot(['key' => env('API_KEY_BINANCE'), 'secret' => env('API_SECRET_KEY_BINANCE')]);
     }
+
+
+    static public  function getHistoryCoin(){
+        $data = [];
+        $accountSnapshot  = self::accountSnapshot();
+        foreach ($accountSnapshot as $key => $item){
+            $row = [];
+            $date = Carbon::createFromTimestampMs($item['updateTime'] );
+            foreach ($item['data']['balances'] as $balance){
+
+                if(!array_key_exists($balance['asset'], self::$klines )){
+                    $klines = self::klines($balance['asset']);
+
+
+                    self::$klines[$balance['asset']] =  $klines;
+                }
+                if( count(self::$klines[$balance['asset']]) == 0){
+                    continue;
+                }
+
+                $price = self::$klines[$balance['asset']][$date->format('Y-m-d')];
+
+
+                $row[] = [
+                    'created_at' => $date->format('Y-m-d H:i:s'),
+                    'updated_at' => $date->format('Y-m-d H:i:s'),
+                    'ticker_symbol' =>  $balance['asset'],
+                    'quantity' =>  $balance['free'],
+                    'price' =>  number_format($price,6,'.',''),
+                    'amount'=> round($price *  $balance['free'],7)
+                ];
+            }
+
+            $data[] = $row;
+
+        }
+
+      return $data;
+    }
+
+    static private  function  klines($symbol   ){
+         $rangeDate = self::getRangeDate();
+        try {
+            $klines = self::client()->klines( $symbol . 'USDT' ,'1d',$rangeDate  );
+            return  collect($klines)->mapWithKeys(function ($item) {
+                return [
+                    Carbon::createFromTimestampMs($item[0])->format('Y-m-d') => $item[2],
+                ];
+            })->toArray();
+
+        }catch(\Exception $e){
+            return  [];
+        }
+    }
+
+    /**
+     * @return array
+     */
+    public static function getKlines(): array
+    {
+        return self::$klines;
+    }
+
+    /**
+     * @param array $klines
+     */
+    public static function setKlines(array $klines): void
+    {
+        self::$klines = $klines;
+    }
+
+    static private  function  userAssets(){
+        try {
+            $userAsset =  self::client()->userAsset([  'needBtcValuation' => true, 'recvWindow'=> 60000]);
+            return   array_column($userAsset, 'free', 'asset');
+        }catch(\Exception $e){
+
+            return  [];
+        }
+    }
+
+    static  private  function  accountSnapshot()
+    {
+        $rangeDate = self::getRangeDate();
+        try {
+            $accountSnapshot =  self::client()->accountSnapshot("SPOT",[ 'recvWindow'=> 60000, 'startTime' =>  $rangeDate['startTime'],'endTime' =>$rangeDate['endTime'] ] );
+           return   $accountSnapshot['snapshotVos'];
+        }catch(\Exception $e){
+
+            return  $e->getMessage();
+        }
+    }
+
+
     static public function getCoins():array|string
     {
         $data = [];
         $client= self::client();
 
-            $coins = $client->userAsset(['timestamp' => time() * 1000]);
+        $userAssets = self::userAssets();
 
-            foreach($coins as $coin){
-                $quantity = (float) $coin['free'];
+            foreach($userAssets as $key => $asset){
+                $quantity = (float) $asset ;
 
-                $price = self::getCoinPrice($client, $coin['asset']) ;
+                $price = self::getCoinPrice($client,$key) ;
 
                 $data[] = [
-                    'ticker_symbol' =>  $coin['asset'],
+                    'ticker_symbol' =>  $key,
                     'quantity' =>  $quantity,
                     'price' =>  number_format($price,6,'.',''),
                     'amount'=> round($price * $quantity,7)
@@ -42,7 +137,23 @@ class BinanceService
         return $data;
     }
 
+    static private function getRangeDate($coin_id = null)
+    {
+        if($coin_id){
+            $binanceCoinHistories  = FinanceBinanceCoinHistory::where('id',$coin_id)->latest()->first();
+        }else{
+            $binanceCoinHistories  = FinanceBinanceCoinHistory::latest()->first();
+        }
 
+        $to = Carbon::now()->timestamp * 1000;
+        if(!$binanceCoinHistories){
+            $from = Carbon::now()->startOfMonth()->timestamp * 1000;
+        }else{
+            $from = (strtotime( $binanceCoinHistories->created_at) + 1) * 1000  ;
+        }
+
+        return [ 'startTime' => $from,'endTime' =>$to  ];
+    }
 
     static public function getCoinsHistory()
     {
@@ -57,7 +168,7 @@ class BinanceService
             if(!$binanceCoinHistories){
                 $from = Carbon::now()->startOfYear()->timestamp * 1000;
             }else{
-                $from = strtotime( $binanceCoinHistories->created_at) *1000 + 1;
+                $from = strtotime( $binanceCoinHistories->created_at) * 1000 + 1;
             }
             $data = [];
             try {
