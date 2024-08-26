@@ -31,7 +31,8 @@ class TransactionIncomeService extends  TransactionsService
         }
 
         $transaction = array_merge($transaction, $this->getCurrency($transaction['finance_bill_id'], $transaction['amount']));
-
+        $transaction['balance'] = $this->getTotalBalance() +  $transaction['amount'];
+        $transaction['balance_bill'] = $this->getBalanceToBill($transaction['finance_bill_id']) +  $transaction['amount'];
         $transaction['tax_amount'] =  $this->calculateTaxAmount($transaction['currency_amount'], $request->input('tax_status'), (int)$request->input('tax_rates') );
         $transaction['user_id'] = $this->getUserId();
         return $transaction;

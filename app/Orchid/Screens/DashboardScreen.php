@@ -36,7 +36,7 @@ class DashboardScreen extends Screen
      */
     public function query(FinanceTransaction $transactions ): iterable
     {
-
+        Currency::updateExchangeRates(["USD","EUR"]);
         $start =   Carbon::now()->subYear();;
         $end =    Carbon::now();
 
@@ -46,7 +46,7 @@ class DashboardScreen extends Screen
 
         $data = [];
 
-        $data['metrics']['total']['balance']  =  Currency::convertValueToCurrency( $this->getTotalBalance());
+
         $income = $transactions->where('is_balance' ,1)->where('type','income')->where('user_id', $user->id) ;
         $expenses = $transactions->where('is_balance' ,1)->where('type','expenses')->where('user_id', $user->id) ;
 
@@ -54,29 +54,22 @@ class DashboardScreen extends Screen
         $transactionIncome = new TransactionIncomeService($user->id);
         $transactionExpenses = new TransactionExpensesService($user->id);
 
+        $data['metrics']['total']['balance']  =  Currency::convertValueToCurrency($transaction->getTotalBalance());
         $data['metrics']['currentMonth']['income'] =  Currency::convertValueToCurrency($income->whereMonth('created_at', $currentMonth )->whereYear('finance_transactions.created_at', Carbon::now()->year)->sum('currency_amount'));
         $data['metrics']['currentMonth']['expenses'] =  Currency::convertValueToCurrency($expenses->whereMonth('created_at', $currentMonth )->whereYear('finance_transactions.created_at', Carbon::now()->year)->sum('currency_amount'));
         $data['metrics']['bills'] =  $this->generateMetricsToBill();
         $data['charts']['transactions'][] = $transactionIncome->chartBar(__("Income"),$start, $end,'accrual_date','currency_amount');
         $data['charts']['transactions'][] = $transactionExpenses->chartBar(__("Expenses"),$start, $end,'accrual_date','absolute_currency_amount');
         $data['charts']['transactions'][] = $transaction->chartBarBalance(__("Balance"),$start, $end,'accrual_date','currency_amount');
-        $data['charts']['categories']['income'] = $transactionIncome->chartPieCategory($start, $end);
-        $data['charts']['categories']['expenses'] = $transactionExpenses->chartPieCategory($start, $end);
+        $data['charts']['categories']['income'] = $transactionIncome->chartPieCategory(Carbon::now()->startOfMonth(), $end);
+        $data['charts']['categories']['expenses'] = $transactionExpenses->chartPieCategory(Carbon::now()->startOfMonth(), $end);
 
         $data['transactions'] = $this-> getTransactions($transactions);
 
         return  $data;
     }
-    private function getTotalBalance(){
-        return $this->getTotalAmountInUsd() + BinanceService::getBalanceUAH();
-    }
-    private function getTotalAmountInUsd() {
-        return FinanceTransaction::leftJoin('finance_currencies', 'finance_transactions.finance_currency_id', '=', 'finance_currencies.id')
-        ->select(DB::raw('SUM(finance_transactions.amount * finance_currencies.value) as total_amount'))
-            ->where('is_balance' ,1)
-        ->value('total_amount'); // Отримання значення суми
 
-    }
+
 
     private  function  getTransactions($transactions){
        return $transactions
@@ -86,23 +79,6 @@ class DashboardScreen extends Screen
             ->get();
     }
 
-    private function getCategoriesChart(string $type): array{
-        $collection = DB::table('finance_transactions')
-            ->whereMonth('finance_transactions.created_at', Carbon::now()->month)
-            ->whereYear('finance_transactions.created_at', Carbon::now()->year)
-            ->where('finance_transactions.user_id', Auth::user()->id)
-            ->whereNull('finance_transactions.deleted_at')
-            ->where('finance_transactions.type', $type)
-            ->join('finance_transaction_categories', 'finance_transactions.transaction_category_id', '=', 'finance_transaction_categories.id')
-            ->select('finance_transaction_categories.id', 'finance_transaction_categories.name', DB::raw('ABS(SUM(finance_transactions.currency_amount)) as total_amount'))
-            ->groupBy('finance_transaction_categories.id', 'finance_transaction_categories.name')
-            ->get();
-        return [[
-            'name' => '',
-            'labels' => $collection->pluck('name')->toArray(),
-            'values' => $collection->pluck('total_amount')->toArray()
-        ]];
-    }
 
     public function buttonChangeCurrency($code){
         Auth::user()->setting()->update(["currency" => $code]);

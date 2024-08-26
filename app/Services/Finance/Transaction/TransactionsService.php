@@ -7,6 +7,7 @@ use App\Models\FinanceCurrency;
 use App\Models\FinanceInvoice;
 use App\Models\FinanceTransaction;
 use App\Services\Currency\Currency;
+use App\Services\Finance\Crypto\Binance\BinanceService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -47,6 +48,16 @@ class TransactionsService
         return $query;
 
     }
+    public function getTotalBalance():float{
+        return (float)$this->getTotalAmountInUsd() + BinanceService::getBalanceUAH();
+    }
+    public function getTotalAmountInUsd() :float{
+        return (float) FinanceTransaction::leftJoin('finance_currencies', 'finance_transactions.finance_currency_id', '=', 'finance_currencies.id')
+            ->select(DB::raw('SUM(finance_transactions.amount * finance_currencies.value) as total_amount'))
+            ->where('is_balance' ,1)
+            ->value('total_amount'); // Отримання значення суми
+
+    }
     public function getSum(  string $value, bool $isCurrency = false, $filter = null, $start = null,$end = null ):float|string
     {
         $query = '';
@@ -63,6 +74,11 @@ class TransactionsService
 
        return $query;
 
+    }
+
+    public function getBalanceToBill($billId) :float
+    {
+        return FinanceTransaction::where('user_id', $this->getUserId())->where('finance_bill_id', $billId)->sum('amount');
     }
 
     public function chartPieCategory($start, $end){

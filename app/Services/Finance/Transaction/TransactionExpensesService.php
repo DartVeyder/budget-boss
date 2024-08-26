@@ -20,9 +20,11 @@ class TransactionExpensesService extends  TransactionsService
         if(!$transaction['created_at']){
             unset($transaction['created_at']);
         }
-
+        $transaction['balance'] = $this->getTotalBalance() -  $transaction['amount'];
+        $transaction['balance_bill'] = $this->getBalanceToBill($transaction['finance_bill_id']) -  $transaction['amount'];
         $transaction['amount'] = $this->getAmountNegative($transaction['amount']);
-        $transaction['user_id'] = $this->getUserId();
+        $transaction['user_id'] = $this->getUserId() ;
+
         $transaction = array_merge($transaction, $this->getCurrency($transaction['finance_bill_id'], $transaction['amount']));
 
         return   $transaction;

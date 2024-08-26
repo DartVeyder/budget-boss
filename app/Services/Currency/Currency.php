@@ -28,6 +28,11 @@ class Currency
         }
     }
 
+    public static function updateExchangeRates(array $toCurrencies = []) :void{
+        foreach ($toCurrencies as $currency){
+            self::getExchangeRate($currency);
+        }
+    }
     public static function getExchangeRate(string $toCurrency) :float|null{
         $currency = FinanceCurrency::where('code',$toCurrency)->first();
 
