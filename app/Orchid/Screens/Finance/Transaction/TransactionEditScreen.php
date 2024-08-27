@@ -108,6 +108,7 @@ class TransactionEditScreen extends Screen
     {
         $transactionIncome = new TransactionIncomeService();
         $data = $transactionIncome->createInsertData($request);
+        unset( $data['balance'],$data['balance_bill']);
         $transaction->fill($data)->save();
         $transactionIncome->updateStatusInvoice($data['finance_invoice_id']);
         Toast::info(__('You have successfully created.'));
@@ -117,6 +118,7 @@ class TransactionEditScreen extends Screen
     {
         $transactionExpenses = new TransactionExpensesService();
         $data = $transactionExpenses->createInsertData($request);
+        unset( $data['balance'],$data['balance_bill']);
         $transaction->fill($data)->save($data);
 
         Toast::info(__('You have successfully created.'));

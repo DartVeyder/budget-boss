@@ -39,13 +39,12 @@ class AnalyticFinanceScreen extends Screen
         $data['metrics']['sum']['income'] = $transactionIncome->getSum('currency_amount',true, AnalyticFinanceSelection::class,  $start ,$end );
         $data['metrics']['sum']['expenses'] = $transactionExpenses->getSum('currency_amount',true, AnalyticFinanceSelection::class, $start ,$end );
         $data['metrics']['sum']['total'] = $transaction->getTotalAmount('currency_amount',true, AnalyticFinanceSelection::class, $start ,$end );
-        $data['charts']['categories']['income'] = $transactionIncome->chartPieCategory($start, $end);
+        $data['charts']['categories']['income'] = $transactionIncome->chartPieCategory($start, $end, __('Income'));
         $data['charts']['categories']['expenses'] = $transactionExpenses->chartPieCategory($start, $end);
-        $data['charts']['bill'] = $transactionExpenses->chartPieBill($start, $end);
-        $data['charts']['customer'] = $transactionExpenses->chartPieCustomer($start, $end);
-
+        $data['charts']['income']['bill'] = $transactionIncome->chartPieBill($start, $end);
+        $data['charts']['income']['customer'] = $transactionIncome->chartPieCustomer($start, $end);
+        $data['charts']['expenses']['bill'] = $transactionExpenses->chartPieBill($start, $end);
         $data['transactions'] =   $transaction->list(AnalyticFinanceSelection::class);
-
 
         return $data ;
     }
@@ -85,15 +84,27 @@ class AnalyticFinanceScreen extends Screen
                 'Income' => 'metrics.sum.income',
                 'Expenses' => 'metrics.sum.expenses',
             ]),
-            Layout::columns([
-                ChartPieTransaction::make('charts.categories.income'),
-                ChartPieTransaction::make('charts.categories.expenses'),
+            Layout::accordion([
+                'Категорії' => Layout::columns([
+                    ChartPieTransaction::make('charts.categories.income', __('Income')),
+                    ChartPieTransaction::make('charts.categories.expenses', __('Expenses')),
+                ])]),
+            Layout::accordion([
+                'Доходи' => Layout::columns([
+                    ChartPieTransaction::make('charts.income.bill', __('По рахунках')),
+                    ChartPieTransaction::make('charts.income.customer', __('По замовниках')),
+                ])
             ]),
-            Layout::columns([
-                ChartPieTransaction::make('charts.bill'),
-                ChartPieTransaction::make('charts.customer'),
+            Layout::accordion([
+                'Витрати' => Layout::columns([
+                    ChartPieTransaction::make('charts.expenses.bill', __('По рахунках')),
+                ])
             ]),
-            TransactionListLayout::class,
+            Layout::accordion([
+                'Транзакції' =>  Layout::columns([
+                     TransactionListLayout::class,
+                ])
+            ])
         ];
     }
 }

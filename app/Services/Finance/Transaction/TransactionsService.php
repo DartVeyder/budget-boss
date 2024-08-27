@@ -81,7 +81,7 @@ class TransactionsService
         return FinanceTransaction::where('user_id', $this->getUserId())->where('finance_bill_id', $billId)->sum('amount');
     }
 
-    public function chartPieCategory($start, $end){
+    public function chartPieCategory($start, $end, $name=''){
         $collection = DB::table('finance_transactions')
             ->whereBetween('finance_transactions.created_at', [$start, $end])
             ->where('finance_transactions.user_id', $this->getUserId())
@@ -93,7 +93,7 @@ class TransactionsService
             ->groupBy('finance_transaction_categories.id', 'finance_transaction_categories.name')
             ->get();
         return [[
-            'name' => '',
+            'name' =>  $name,
             'labels' => $collection->pluck('name')->toArray(),
             'values' => $collection->pluck('total_amount')->toArray()
         ]];
@@ -105,6 +105,7 @@ class TransactionsService
             ->where('finance_transactions.user_id', $this->getUserId())
             ->where('is_balance' ,1)
             ->whereNull('finance_transactions.deleted_at')
+            ->where('finance_transactions.type', $this->getType())
             ->join('finance_bills', 'finance_transactions.finance_bill_id', '=', 'finance_bills.id')
             ->select('finance_bills.id', 'finance_bills.name',DB::raw('ABS(SUM(finance_transactions.currency_amount))  as total_amount'))
             ->groupBy('finance_bills.id', 'finance_bills.name')

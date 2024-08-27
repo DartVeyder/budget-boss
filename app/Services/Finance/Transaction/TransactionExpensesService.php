@@ -34,6 +34,8 @@ class TransactionExpensesService extends  TransactionsService
     {
         $transactions  = [];
         $data = array_reverse($data);
+        $balance_bill =  $this->getBalanceToBill(3) ;
+        $balance = $this->getTotalBalance();
         foreach ( $data as $item){
             if($item['amount'] > 0){
                 continue;
@@ -42,9 +44,11 @@ class TransactionExpensesService extends  TransactionsService
             $transaction_source = FinanceTransactionSource::firstOrCreate(['name' => $source_name], ['name' => $source_name]);
 
             $date = $this->getDate($item['time']);
-
+            $balance -=   abs($this->getAmount($item['amount']));
+            $balance_bill  -= abs($this->getAmount($item['amount']));
             $transaction = [
                 'created_at' =>  $date,
+                'updated_at' =>  $date,
                 'accrual_date' =>   $date,
                 'transaction_category_id' => $this->getCategoryWithMcc($item['mcc']),
                 'finance_bill_id' => 3,
@@ -53,12 +57,15 @@ class TransactionExpensesService extends  TransactionsService
                 'mcc_code'=>$item['mcc'],
                 'amount' => $this->getAmount($item['amount']),
                 'mono_id' => $item['id'],
+                'balance' => $balance,
+                'balance_bill' =>  $balance_bill,
                 'transaction_type_id' => 1,
                 'type' => 'expenses',
                 'user_id' => $this->getUserId()
 
             ];
 
+            FinanceTransactionMcc::firstOrCreate(['code' => $item['mcc']], ['code' => $item['mcc']]);
             $transaction = array_merge($transaction, $this->getCurrency($transaction['finance_bill_id'], $transaction['amount']));
             $transactions[] = $transaction;
 
@@ -81,7 +88,7 @@ class TransactionExpensesService extends  TransactionsService
     private function getCategoryWithMcc(int $code):int|null
     {
         $mcc = FinanceTransactionMcc::where('code', $code)->first();
-        return ($mcc)? $mcc->categories->first()->id : null;
+        return  $mcc->categories->first()->id  ?? null;
     }
 
 }
