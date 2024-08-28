@@ -12,6 +12,7 @@ class ChartPieTransaction extends Chart
      * @var string
      */
     protected $title = 'DemoCharts';
+    protected $maxSlices = 6;
 
     /**
      * Available options:
@@ -31,6 +32,6 @@ class ChartPieTransaction extends Chart
      * @var string
      */
     protected $target = 'charts';
-    protected $height = 450;
+    protected $height = '500';
 
 }

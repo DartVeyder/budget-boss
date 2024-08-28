@@ -88,6 +88,9 @@ class TransactionExpensesService extends  TransactionsService
     private function getCategoryWithMcc(int $code):int|null
     {
         $mcc = FinanceTransactionMcc::where('code', $code)->first();
+        if(is_null($mcc)){
+            return null;
+        }
         return  $mcc->categories->first()->id  ?? null;
     }
 

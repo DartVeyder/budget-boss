@@ -32,7 +32,6 @@ class AnalyticFinanceScreen extends Screen
         $transaction = new TransactionsService();
         $transactionIncome = new TransactionIncomeService();
         $transactionExpenses = new TransactionExpensesService();
-
         $data['charts']['transactions'][] = $transactionIncome->chartBar(__("Income"),$start, $end,'accrual_date','currency_amount');
         $data['charts']['transactions'][] = $transactionExpenses->chartBar(__("Expenses"),$start, $end,'accrual_date','absolute_currency_amount');
         $data['charts']['transactions'][] = $transaction->chartBarBalance(__("Balance"),$start, $end,'accrual_date','currency_amount');
@@ -44,6 +43,7 @@ class AnalyticFinanceScreen extends Screen
         $data['charts']['income']['bill'] = $transactionIncome->chartPieBill($start, $end);
         $data['charts']['income']['customer'] = $transactionIncome->chartPieCustomer($start, $end);
         $data['charts']['expenses']['bill'] = $transactionExpenses->chartPieBill($start, $end);
+        $data['charts']['expenses']['source'] = $transactionExpenses->chartPieSource($start, $end);
         $data['transactions'] =   $transaction->list(AnalyticFinanceSelection::class);
 
         return $data ;
@@ -98,6 +98,7 @@ class AnalyticFinanceScreen extends Screen
             Layout::accordion([
                 'Витрати' => Layout::columns([
                     ChartPieTransaction::make('charts.expenses.bill', __('По рахунках')),
+                    ChartPieTransaction::make('charts.expenses.source', __('По джерелах')),
                 ])
             ]),
             Layout::accordion([
