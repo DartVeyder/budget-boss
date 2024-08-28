@@ -126,8 +126,8 @@ return [
      */
 
     'resource' => [
-        'stylesheets' => ['//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.css'],
-        'scripts'     => ['//cdn.jsdelivr.net/jquery/1/jquery.min.js','//cdn.jsdelivr.net/momentjs/latest/moment.min.js','//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js','/resources/js/app.js'],
+        'stylesheets' => ['/vendor/orchid/css/app.css'],
+        'scripts'     => [],
     ],
 
     /*

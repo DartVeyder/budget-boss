@@ -1,3 +1,12 @@
 .m-n1 {
     margin: 0 -28px !important;
 }
+
+
+.chart-legend{
+    transform: translate(50px, 420px) !important;
+}
+
+.pie-chart{
+    transform: translate(50px, 0px) !important;
+}
