@@ -58,7 +58,8 @@ class PlatformProvider extends OrchidServiceProvider
                     Menu::make('Finance')
                         ->route('platform.analytic.finance'),
                 ]),
-
+            Menu::make('Settings')
+                ->route('platform.setting'),
 
 
 

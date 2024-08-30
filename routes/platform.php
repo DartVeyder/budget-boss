@@ -27,6 +27,7 @@ use App\Orchid\Screens\Finance\Transaction\TransactionEditScreen;
 use App\Orchid\Screens\Finance\Transaction\TransactionListScreen;
 use App\Orchid\Screens\Role\RoleEditScreen;
 use App\Orchid\Screens\Role\RoleListScreen;
+use App\Orchid\Screens\Setting\SettingScreen;
 use App\Orchid\Screens\User\UserEditScreen;
 use App\Orchid\Screens\User\UserListScreen;
 use App\Orchid\Screens\User\UserProfileScreen;
@@ -125,6 +126,14 @@ Route::screen('/crypto/binance', CryptoBinanceScreen::class)
     ->breadcrumbs(fn (Trail $trail) => $trail
         ->parent('platform.crypto')
         ->push(__('Binance'), route('platform.crypto')));
+
+
+//Platform > Setting
+Route::screen('/setting', SettingScreen::class)
+    ->name('platform.setting')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.index')
+        ->push(__('Setting'), route('platform.setting')));
 
 
 
