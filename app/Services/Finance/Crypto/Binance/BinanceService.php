@@ -37,7 +37,13 @@ class BinanceService
                     continue;
                 }
 
-                $price = self::$klines[$balance['asset']][$date->format('Y-m-d')];
+                if(!array_key_exists($date->format('Y-m-d'), self::$klines[$balance['asset']])){
+                    $price  = 0;
+                }else{
+                    $price = self::$klines[$balance['asset']][$date->format('Y-m-d')];
+                }
+
+
 
 
                 $row[] = [
@@ -91,6 +97,11 @@ class BinanceService
     static private  function  userAssets(){
         try {
             $userAsset =  self::client()->userAsset([  'needBtcValuation' => true, 'recvWindow'=> 60000]);
+            $userAsset = array_map(function($item) {
+                $item['free'] = $item['locked'] + $item['free'];
+                return $item;
+            }, $userAsset);
+
             return   array_column($userAsset, 'free', 'asset');
         }catch(\Exception $e){
 
@@ -115,13 +126,18 @@ class BinanceService
     {
         $data = [];
         $client= self::client();
-
+        FinanceBinanceCoin::query()->update([
+            'price' => 0,
+            'quantity' => 0,
+            'amount' => 0
+        ]);
         $userAssets = self::userAssets();
 
             foreach($userAssets as $key => $asset){
                 $quantity = (float) $asset ;
 
                 $price = self::getCoinPrice($client,$key) ;
+
 
                 $data[] = [
                     'ticker_symbol' =>  $key,
@@ -130,7 +146,6 @@ class BinanceService
                     'amount'=> round($price * $quantity,7)
                 ];
             }
-
 
 
 
@@ -224,7 +239,11 @@ class BinanceService
     static function getCoinPrice($client, $asset, $to = 'USDT'):float
     {
         try {
+            if( $asset == "USDT" && $to == "USDT"){
+                return 1;
+            }
             $tickerPrice = $client->tickerPrice(['symbol'=> $asset."" . $to ] );
+
             return $tickerPrice['price'];
 
         }catch(\Exception $e){

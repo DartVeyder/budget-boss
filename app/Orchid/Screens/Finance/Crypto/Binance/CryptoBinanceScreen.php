@@ -71,12 +71,16 @@ class CryptoBinanceScreen extends Screen
 
     public function import(FinanceBinanceCoin $binanceCoin)
     {
+
+
         $msg = [];
 
         $coins = BinanceService::getCoins();
+
         if(!is_array( $coins)){
             $msg[] = __('Помилка оновленя даних з Binance');
         }
+
 
         foreach ($coins as $coin){
              $binanceCoin = $binanceCoin->updateOrCreate( [    'ticker_symbol' => $coin['ticker_symbol']  ], $coin );

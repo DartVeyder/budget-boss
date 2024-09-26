@@ -32,6 +32,6 @@ class ChartPieTransaction extends Chart
      * @var string
      */
     protected $target = 'charts';
-    protected $height = '550';
+    protected $height = '350';
 
 }
