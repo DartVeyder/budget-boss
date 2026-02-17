@@ -61,6 +61,15 @@ class PlatformProvider extends OrchidServiceProvider
             Menu::make('Settings')
                 ->route('platform.setting'),
 
+            Menu::make('ФОПи')
+                ->icon('bs.briefcase')
+                ->route('platform.fops')
+                ->title('Керування'),
+
+            Menu::make('Customers')
+                ->icon('bs.people')
+                ->route('platform.customers'),
+
 
 
             Menu::make(__('Users'))

@@ -40,7 +40,7 @@ class BillScreen extends Screen
      */
     public function name(): ?string
     {
-        return 'Bills';
+        return 'Рахунки';
     }
 
     /**
@@ -51,9 +51,9 @@ class BillScreen extends Screen
     public function commandBar(): iterable
     {
         return [
-            ModalToggle::make(__('Add'))
-                ->modal('addBill')
-                ->method('save'),
+            \Orchid\Screen\Actions\Link::make(__('Додати'))
+                ->icon('bs.plus-circle')
+                ->route('platform.bills.create'),
         ];
     }
 
@@ -66,37 +66,13 @@ class BillScreen extends Screen
     {
         return [
             Layout::view('finance.bill.index'),
-            Layout::modal('addBill', [
-                Layout::rows([
-                    Input::make("name")
-                        ->required()
-                        ->title("Name"),
-                    Select::make("finance_currency_id")
-                        ->required()
-                        ->fromModel(FinanceCurrency::class, 'name')
-                        ->title("Currency"),
-                    Input::make('user_id')
-                        ->value(Auth::user()->id)
-                        ->hidden(),
-                ])
-            ])
-                ->applyButton(__('Save'))
-                ->title(__('New bill')),
         ];
-    }
-
-    public function save(Request $request, FinanceBill $bill){
-        $data = $request->all();
-        $data['currency_code'] = Currency::getCurrencyCodeWithId($data['finance_currency_id']);
-
-        $bill->fill( $data)->save();
-        Toast::info(__('You have successfully created.'));
     }
 
     public function remove(Request $request)
     {
         FinanceBill::findOrFail($request->get('id'))->delete();
-        Toast::info(__('You have successfully remove'));
+        Toast::info(__('Успішно видалено'));
         return redirect()->route('platform.bills');
     }
 }

@@ -17,6 +17,8 @@ trait BillService
              $data[  $bill->id ] =
                 [
                     'name' => $bill->name,
+                    'iban' => $bill->iban,
+                    'bank_name' => $bill->bank_name,
                     'total' => ["value" => Currency::getFormatMoney($bill->transactions->sum('amount') ,$bill->currency->symbol ) ]
                 ];
         }

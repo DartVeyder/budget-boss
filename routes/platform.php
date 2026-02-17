@@ -27,6 +27,8 @@ use App\Orchid\Screens\Finance\Transaction\TransactionEditScreen;
 use App\Orchid\Screens\Finance\Transaction\TransactionListScreen;
 use App\Orchid\Screens\Role\RoleEditScreen;
 use App\Orchid\Screens\Role\RoleListScreen;
+use App\Orchid\Screens\Fop\FopEditScreen;
+use App\Orchid\Screens\Fop\FopListScreen;
 use App\Orchid\Screens\Setting\SettingScreen;
 use App\Orchid\Screens\User\UserEditScreen;
 use App\Orchid\Screens\User\UserListScreen;
@@ -91,6 +93,20 @@ Route::screen('/bills',  BillScreen::class)
     ->breadcrumbs(fn (Trail $trail) => $trail
         ->parent('platform.index')
         ->push(__('Bills'), route('platform.bills')));
+
+//Platform > Bills > Create
+Route::screen('/bills/create', \App\Orchid\Screens\Finance\Bill\BillEditScreen::class)
+    ->name('platform.bills.create')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.bills')
+        ->push(__('Створити'), route('platform.bills.create')));
+
+//Platform > Bills > Edit
+Route::screen('/bills/{bill}/edit', \App\Orchid\Screens\Finance\Bill\BillEditScreen::class)
+    ->name('platform.bills.edit')
+    ->breadcrumbs(fn (Trail $trail, $bill) => $trail
+        ->parent('platform.bills')
+        ->push($bill->name, route('platform.bills.edit', $bill)));
 
 //Platform > Invoices
 Route::screen('/invoices', InvoiceListScreen::class)
@@ -202,5 +218,47 @@ Route::screen('/examples/layouts', ExampleLayoutsScreen::class)->name('platform.
 Route::screen('/examples/grid', ExampleGridScreen::class)->name('platform.example.grid');
 Route::screen('/examples/charts', ExampleChartsScreen::class)->name('platform.example.charts');
 Route::screen('/examples/cards', ExampleCardsScreen::class)->name('platform.example.cards');
+
+// Platform > FOPs
+Route::screen('fops', FopListScreen::class)
+    ->name('platform.fops')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.index')
+        ->push(__('ФОПи'), route('platform.fops')));
+
+// Platform > FOPs > Create
+Route::screen('fops/create', FopEditScreen::class)
+    ->name('platform.fops.create')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.fops')
+        ->push(__('Створити'), route('platform.fops.create')));
+
+// Platform > FOPs > Edit
+Route::screen('fops/{fop}/edit', FopEditScreen::class)
+    ->name('platform.fops.edit')
+    ->breadcrumbs(fn (Trail $trail, $fop) => $trail
+        ->parent('platform.fops')
+        ->push($fop->name, route('platform.fops.edit', $fop)));
+
+// Platform > Customers
+Route::screen('customers', \App\Orchid\Screens\Customer\CustomerListScreen::class)
+    ->name('platform.customers')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.index')
+        ->push(__('Customers'), route('platform.customers')));
+
+// Platform > Customers > Create
+Route::screen('customers/create', \App\Orchid\Screens\Customer\CustomerEditScreen::class)
+    ->name('platform.customers.create')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.customers')
+        ->push(__('Create'), route('platform.customers.create')));
+
+// Platform > Customers > Edit
+Route::screen('customers/{customer}/edit', \App\Orchid\Screens\Customer\CustomerEditScreen::class)
+    ->name('platform.customers.edit')
+    ->breadcrumbs(fn (Trail $trail, $customer) => $trail
+        ->parent('platform.customers')
+        ->push($customer->name, route('platform.customers.edit', $customer)));
 
 //Route::screen('idea', Idea::class, 'platform.screens.idea');

@@ -15,7 +15,12 @@ class Customer extends Model
     use AsSource;
     use Filterable;
 
+
     protected $guarded = [];
+
+    protected $casts = [
+        'is_fop' => 'boolean',
+    ];
 
     public function scopeUser(Builder $query)
     {
