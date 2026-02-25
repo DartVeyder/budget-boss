@@ -61,7 +61,7 @@ class PlatformProvider extends OrchidServiceProvider
             Menu::make('Settings')
                 ->route('platform.setting'),
 
-            Menu::make('ФОПи')
+            Menu::make('Мій ФОП')
                 ->icon('bs.briefcase')
                 ->route('platform.fops')
                 ->title('Керування'),

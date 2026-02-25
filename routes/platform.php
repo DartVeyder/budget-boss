@@ -27,8 +27,7 @@ use App\Orchid\Screens\Finance\Transaction\TransactionEditScreen;
 use App\Orchid\Screens\Finance\Transaction\TransactionListScreen;
 use App\Orchid\Screens\Role\RoleEditScreen;
 use App\Orchid\Screens\Role\RoleListScreen;
-use App\Orchid\Screens\Fop\FopEditScreen;
-use App\Orchid\Screens\Fop\FopListScreen;
+use App\Orchid\Screens\Fop\FopScreen;
 use App\Orchid\Screens\Setting\SettingScreen;
 use App\Orchid\Screens\User\UserEditScreen;
 use App\Orchid\Screens\User\UserListScreen;
@@ -219,26 +218,12 @@ Route::screen('/examples/grid', ExampleGridScreen::class)->name('platform.exampl
 Route::screen('/examples/charts', ExampleChartsScreen::class)->name('platform.example.charts');
 Route::screen('/examples/cards', ExampleCardsScreen::class)->name('platform.example.cards');
 
-// Platform > FOPs
-Route::screen('fops', FopListScreen::class)
+// Platform > FOP (one per account)
+Route::screen('fops', FopScreen::class)
     ->name('platform.fops')
     ->breadcrumbs(fn (Trail $trail) => $trail
         ->parent('platform.index')
-        ->push(__('ФОПи'), route('platform.fops')));
-
-// Platform > FOPs > Create
-Route::screen('fops/create', FopEditScreen::class)
-    ->name('platform.fops.create')
-    ->breadcrumbs(fn (Trail $trail) => $trail
-        ->parent('platform.fops')
-        ->push(__('Створити'), route('platform.fops.create')));
-
-// Platform > FOPs > Edit
-Route::screen('fops/{fop}/edit', FopEditScreen::class)
-    ->name('platform.fops.edit')
-    ->breadcrumbs(fn (Trail $trail, $fop) => $trail
-        ->parent('platform.fops')
-        ->push($fop->name, route('platform.fops.edit', $fop)));
+        ->push(__('Мій ФОП'), route('platform.fops')));
 
 // Platform > Customers
 Route::screen('customers', \App\Orchid\Screens\Customer\CustomerListScreen::class)
