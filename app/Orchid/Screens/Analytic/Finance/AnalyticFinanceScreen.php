@@ -35,11 +35,16 @@ class AnalyticFinanceScreen extends Screen
         $data['charts']['transactions'][] = $transactionIncome->chartBar(__("Income"),$start, $end,'accrual_date','currency_amount');
         $data['charts']['transactions'][] = $transactionExpenses->chartBar(__("Expenses"),$start, $end,'accrual_date','absolute_currency_amount');
         $data['charts']['transactions'][] = $transaction->chartBarBalance(__("Balance"),$start, $end,'accrual_date','currency_amount');
+        
+        $data['charts']['income_year'] = $transactionIncome->chartBarComparison(__('Current Year'), __('Previous Year'), $start, $end, 'accrual_date', 'currency_amount');
+
         $data['metrics']['sum']['income'] = $transactionIncome->getSum('currency_amount',true, AnalyticFinanceSelection::class,  $start ,$end );
         $data['metrics']['sum']['expenses'] = $transactionExpenses->getSum('currency_amount',true, AnalyticFinanceSelection::class, $start ,$end );
         $data['metrics']['sum']['total'] = $transaction->getTotalAmount('currency_amount',true, AnalyticFinanceSelection::class, $start ,$end );
+        
         $data['charts']['categories']['income'] = $transactionIncome->chartPieCategory($start, $end, __('Income'));
         $data['charts']['categories']['expenses'] = $transactionExpenses->chartPieCategory($start, $end);
+        
         $data['charts']['income']['bill'] = $transactionIncome->chartPieBill($start, $end);
         $data['charts']['income']['customer'] = $transactionIncome->chartPieCustomer($start, $end);
         $data['charts']['expenses']['bill'] = $transactionExpenses->chartPieBill($start, $end);
@@ -78,29 +83,17 @@ class AnalyticFinanceScreen extends Screen
     {
         return [
             AnalyticFinanceSelection::class,
-            ChartBarTransaction::make('charts.transactions'),
             Layout::metrics([
                 'Balance' => 'metrics.sum.total',
                 'Income' => 'metrics.sum.income',
                 'Expenses' => 'metrics.sum.expenses',
             ]),
-            Layout::accordion([
-                'Категорії' => Layout::columns([
-                    ChartPieTransaction::make('charts.categories.income', __('Income')),
-                    ChartPieTransaction::make('charts.categories.expenses', __('Expenses')),
-                ])]),
-            Layout::accordion([
-                'Доходи' => Layout::columns([
-                    ChartPieTransaction::make('charts.income.bill', __('По рахунках')),
-                    ChartPieTransaction::make('charts.income.customer', __('По замовниках')),
-                ])
-            ]),
-            Layout::accordion([
-                'Витрати' => Layout::columns([
-                    ChartPieTransaction::make('charts.expenses.bill', __('По рахунках')),
-                    ChartPieTransaction::make('charts.expenses.source', __('По джерелах')),
-                ])
-            ]),
+            Layout::view('dashboard.category-list'),
+            \App\Orchid\Layouts\Dashboard\DashboardChartIncomeLayout::make('charts.income_year', __('Income for the year')),
+            ChartBarTransaction::make('charts.transactions', __('Statistics for the year')),
+
+            Layout::view('analytic.income-lists'),
+            Layout::view('analytic.expense-lists'),
             Layout::accordion([
                 'Транзакції' =>  Layout::columns([
                      TransactionListLayout::class,

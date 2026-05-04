@@ -80,34 +80,8 @@ class TransactionsService
     {
         return FinanceTransaction::where('user_id', $this->getUserId())->where('finance_bill_id', $billId)->sum('amount');
     }
-    public function chartPieSource($start, $end, $name=''){
-        $collection = DB::table('finance_transactions')
-            ->whereBetween('finance_transactions.created_at', [$start, $end])
-            ->where('finance_transactions.user_id', $this->getUserId())
-            ->where('is_balance' ,1)
-            ->whereNull('finance_transactions.deleted_at')
-            ->where('finance_transactions.type', $this->getType())
-            ->join('finance_transaction_sources', 'finance_transactions.transaction_source_id', '=', 'finance_transaction_sources.id')
-            ->select('finance_transaction_sources.id', 'finance_transaction_sources.name', DB::raw('ABS(SUM(finance_transactions.currency_amount)) as total_amount'))
-            ->groupBy('finance_transaction_sources.id', 'finance_transaction_sources.name')
-            ->get();
-        return [[
-            'name' =>  $name,
-            'labels' => $collection->pluck('name')->toArray(),
-            'values' => $collection->pluck('total_amount')->toArray()
-        ]];
-    }
-    public function chartPieCategory($start, $end, $name=''){
-        $collection = DB::table('finance_transactions')
-            ->whereBetween('finance_transactions.created_at', [$start, $end])
-            ->where('finance_transactions.user_id', $this->getUserId())
-            ->where('is_balance' ,1)
-            ->whereNull('finance_transactions.deleted_at')
-            ->where('finance_transactions.type', $this->getType())
-            ->join('finance_transaction_categories', 'finance_transactions.transaction_category_id', '=', 'finance_transaction_categories.id')
-            ->select('finance_transaction_categories.id', 'finance_transaction_categories.name', DB::raw('ABS(SUM(finance_transactions.currency_amount)) as total_amount'))
-            ->groupBy('finance_transaction_categories.id', 'finance_transaction_categories.name')
-            ->get();
+    private function formatChartData($collection, $name)
+    {
         $total = $collection->sum('total_amount');
         $total = $total > 0 ? $total : 1;
 
@@ -141,6 +115,35 @@ class TransactionsService
         ]];
     }
 
+    public function chartPieSource($start, $end, $name=''){
+        $collection = DB::table('finance_transactions')
+            ->whereBetween('finance_transactions.created_at', [$start, $end])
+            ->where('finance_transactions.user_id', $this->getUserId())
+            ->where('is_balance' ,1)
+            ->whereNull('finance_transactions.deleted_at')
+            ->where('finance_transactions.type', $this->getType())
+            ->join('finance_transaction_sources', 'finance_transactions.transaction_source_id', '=', 'finance_transaction_sources.id')
+            ->select('finance_transaction_sources.id', 'finance_transaction_sources.name', DB::raw('ABS(SUM(finance_transactions.currency_amount)) as total_amount'))
+            ->groupBy('finance_transaction_sources.id', 'finance_transaction_sources.name')
+            ->orderBy('total_amount', 'desc')
+            ->get();
+        return $this->formatChartData($collection, $name);
+    }
+    public function chartPieCategory($start, $end, $name=''){
+        $collection = DB::table('finance_transactions')
+            ->whereBetween('finance_transactions.created_at', [$start, $end])
+            ->where('finance_transactions.user_id', $this->getUserId())
+            ->where('is_balance' ,1)
+            ->whereNull('finance_transactions.deleted_at')
+            ->where('finance_transactions.type', $this->getType())
+            ->join('finance_transaction_categories', 'finance_transactions.transaction_category_id', '=', 'finance_transaction_categories.id')
+            ->select('finance_transaction_categories.id', 'finance_transaction_categories.name', DB::raw('ABS(SUM(finance_transactions.currency_amount)) as total_amount'))
+            ->groupBy('finance_transaction_categories.id', 'finance_transaction_categories.name')
+            ->orderBy('total_amount', 'desc')
+            ->get();
+        return $this->formatChartData($collection, $name);
+    }
+
     public function chartPieBill($start, $end,$name = ''){
         $collection = DB::table('finance_transactions')
             ->whereBetween('finance_transactions.created_at', [$start, $end])
@@ -151,12 +154,9 @@ class TransactionsService
             ->join('finance_bills', 'finance_transactions.finance_bill_id', '=', 'finance_bills.id')
             ->select('finance_bills.id', 'finance_bills.name',DB::raw('ABS(SUM(finance_transactions.currency_amount))  as total_amount'))
             ->groupBy('finance_bills.id', 'finance_bills.name')
+            ->orderBy('total_amount', 'desc')
             ->get();
-        return [[
-            'name' => $name,
-            'labels' => $collection->pluck('name')->toArray(),
-            'values' => $collection->pluck('total_amount')->toArray()
-        ]];
+        return $this->formatChartData($collection, $name);
     }
 
     public function chartPieCustomer($start, $end, $name = ''){
@@ -168,12 +168,9 @@ class TransactionsService
             ->join('customers', 'finance_transactions.customer_id', '=', 'customers.id')
             ->select('customers.id', 'customers.name',DB::raw('ABS(SUM(finance_transactions.currency_amount))  as total_amount'))
             ->groupBy('customers.id', 'customers.name')
+            ->orderBy('total_amount', 'desc')
             ->get();
-        return [[
-            'name' => $name,
-            'labels' => $collection->pluck('name')->toArray(),
-            'values' => $collection->pluck('total_amount')->toArray()
-        ]];
+        return $this->formatChartData($collection, $name);
     }
     public function chartBarBalance( string $name = null, string $start = null, string $end = null, string $dateColumn = null, string $value) :array
     {
