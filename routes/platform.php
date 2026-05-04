@@ -150,6 +150,27 @@ Route::screen('/setting', SettingScreen::class)
         ->parent('platform.index')
         ->push(__('Setting'), route('platform.setting')));
 
+//Platform > Setting > Tax Rates
+Route::screen('setting/tax-rates', \App\Orchid\Screens\Setting\TaxRate\TaxRateListScreen::class)
+    ->name('platform.setting.tax-rates')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.setting')
+        ->push('Податкові ставки', route('platform.setting.tax-rates')));
+
+//Platform > Setting > Tax Rates > Create
+Route::screen('setting/tax-rates/create', \App\Orchid\Screens\Setting\TaxRate\TaxRateEditScreen::class)
+    ->name('platform.setting.tax-rates.create')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.setting.tax-rates')
+        ->push(__('Create'), route('platform.setting.tax-rates.create')));
+
+//Platform > Setting > Tax Rates > Edit
+Route::screen('setting/tax-rates/{taxRate}/edit', \App\Orchid\Screens\Setting\TaxRate\TaxRateEditScreen::class)
+    ->name('platform.setting.tax-rates.edit')
+    ->breadcrumbs(fn (Trail $trail, $taxRate) => $trail
+        ->parent('platform.setting.tax-rates')
+        ->push($taxRate->name, route('platform.setting.tax-rates.edit', $taxRate)));
+
 
 
 // Platform > Profile

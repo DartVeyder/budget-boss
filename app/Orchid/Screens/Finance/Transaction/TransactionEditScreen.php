@@ -8,6 +8,7 @@ use App\Orchid\Layouts\Finance\Transaction\TransactionEditExpensesRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditIncomeRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditTransferRows;
+use App\Orchid\Layouts\Finance\Transaction\TransactionIncomeListener;
 use App\Services\Finance\Transaction\TransactionExpensesService;
 use App\Services\Finance\Transaction\TransactionIncomeService;
 use App\Services\Finance\Transaction\TransactionService;
@@ -144,6 +145,25 @@ class TransactionEditScreen extends Screen
 
     public function  back(){
         return redirect()->route('platform.transactions');
+    }
+
+    public function asyncGetCustomerDefaults($customerData = null)
+    {
+        // Orchid can pass nested data as an array if the target has dots
+        $customerId = is_array($customerData) ? ($customerData['customer_id'] ?? null) : $customerData;
+        
+        \Illuminate\Support\Facades\Log::info('asyncGetCustomerDefaults called', ['customerId' => $customerId]);
+
+        $customer = \App\Models\Customer::find($customerId);
+
+        return [
+            'transaction' => [
+                'customer_id' => $customerId,
+                'finance_bill_id' => $customer?->finance_bill_id,
+            ],
+            'tax_status' => $customer?->tax_status,
+            'tax_rates' => $customer?->tax_rate_id,
+        ];
     }
 
 }

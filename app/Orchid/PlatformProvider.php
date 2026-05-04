@@ -59,7 +59,12 @@ class PlatformProvider extends OrchidServiceProvider
                         ->route('platform.analytic.finance'),
                 ]),
             Menu::make('Settings')
-                ->route('platform.setting'),
+                ->list([
+                    Menu::make('General')
+                        ->route('platform.setting'),
+                    Menu::make('Tax rates')
+                        ->route('platform.setting.tax-rates'),
+                ]),
 
             Menu::make('Мій ФОП')
                 ->icon('bs.briefcase')

@@ -9,6 +9,7 @@ use Orchid\Screen\Fields\TextArea;
 use Orchid\Screen\Fields\CheckBox;
 use Orchid\Screen\Fields\Group;
 use Orchid\Screen\Actions\Button;
+use Orchid\Screen\Fields\Select;
 use Orchid\Support\Facades\Layout;
 use Orchid\Support\Facades\Toast;
 use Illuminate\Http\Request;
@@ -128,6 +129,29 @@ class CustomerEditScreen extends Screen
                 Input::make('customer.iban')
                     ->title('IBAN')
                     ->placeholder('IBAN'),
+
+                \Orchid\Screen\Fields\Relation::make('customer.transaction_category_id')
+                    ->fromModel(\App\Models\FinanceTransactionCategory::class, 'name')
+                    ->applyScope('income')
+                    ->title('Категорія доходу за замовчуванням'),
+
+                \Orchid\Screen\Fields\Relation::make('customer.finance_bill_id')
+                    ->fromModel(\App\Models\FinanceBill::class, 'name')
+                    ->applyScope('user')
+                    ->title('Рахунок за замовчуванням'),
+
+                Select::make('customer.tax_status')
+                    ->options([
+                        'without_taxes' => 'без податків',
+                        'after_taxes' => 'після сплати податків',
+                        'before_taxes'=> 'до сплати податків'
+                    ])
+                    ->empty('без податків','without_taxes')
+                    ->title('Податковий статус'),
+
+                \Orchid\Screen\Fields\Relation::make('customer.tax_rate_id')
+                    ->fromModel(\App\Models\TaxRate::class, 'name')
+                    ->title('Податкова ставка'),
             ])
         ];
     }

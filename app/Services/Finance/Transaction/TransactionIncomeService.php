@@ -30,37 +30,75 @@ class TransactionIncomeService extends  TransactionsService
             $transaction['accrual_date'] = $invoice->created_at;
         }
 
+        if ($transaction['customer_id']) {
+            $customer = \App\Models\Customer::find($transaction['customer_id']);
+            if ($customer) {
+                if (empty($transaction['finance_bill_id'])) {
+                    $transaction['finance_bill_id'] = $customer->finance_bill_id;
+                }
+
+                if (empty($transaction['transaction_category_id'])) {
+                    $transaction['transaction_category_id'] = $customer->transaction_category_id;
+                }
+                
+                $taxStatus = $request->input('tax_status');
+                if (empty($taxStatus) || $taxStatus == 'without_taxes') {
+                    $taxStatus = $customer->tax_status ?? 'without_taxes';
+                }
+
+                $taxRateId = $request->input('tax_rates');
+                if (empty($taxRateId)) {
+                    $taxRateId = $customer->tax_rate_id;
+                }
+            }
+        } else {
+            $taxStatus = $request->input('tax_status');
+            $taxRateId = $request->input('tax_rates');
+        }
+
+        // Validation: ensure we have a bill and a category before proceeding with calculations
+        if (empty($transaction['finance_bill_id'])) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'transaction.finance_bill_id' => 'Будь ласка, виберіть рахунок (або вкажіть його у налаштуваннях замовника)'
+            ]);
+        }
+
+        if (empty($transaction['transaction_category_id'])) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'transaction.transaction_category_id' => 'Будь ласка, виберіть категорію доходу (або вкажіть її у налаштуваннях замовника)'
+            ]);
+        }
+
         $transaction = array_merge($transaction, $this->getCurrency($transaction['finance_bill_id'], $transaction['amount']));
         $transaction['balance'] = $this->getTotalBalance() +  $transaction['amount'];
         $transaction['balance_bill'] = $this->getBalanceToBill($transaction['finance_bill_id']) +  $transaction['amount'];
-        $transaction['tax_amount'] =  $this->calculateTaxAmount($transaction['currency_amount'], $request->input('tax_status'), (int)$request->input('tax_rates') );
+        $transaction['tax_amount'] =  $this->calculateTaxAmount($transaction['currency_amount'], $taxStatus, (int)$taxRateId );
         $transaction['user_id'] = $this->getUserId();
+
         return $transaction;
 
 
     }
 
-    private function calculateTaxAmount(float $amount,string|null  $status = 'without_taxes', int|null $rate = 0 ): float|int{
-        $listRates = [
-            0 => 0,
-            1 => 5,
-            2  => 19.5
-        ];
-
-
-        if( $status == 'without_taxes'){
-            return  0;
-        }
-        if( $rate == 0){
-            return  0;
+    private function calculateTaxAmount(float $amount, string|null $status = 'without_taxes', int|null $rateId = null): float|int
+    {
+        if ($status == 'without_taxes' || !$rateId) {
+            return 0;
         }
 
-        if($status  == 'after_taxes'){
-            return ($amount / (1 - $listRates[$rate] / 100)) - $amount;
+        $taxRate = \App\Models\TaxRate::find($rateId);
+        $rateValue = $taxRate ? $taxRate->value : 0;
+
+        if ($rateValue == 0) {
+            return 0;
         }
 
-        if($status  == 'before_taxes'){
-            return $amount * ($listRates[$rate] / 100);
+        if ($status == 'after_taxes') {
+            return ($amount / (1 - $rateValue / 100)) - $amount;
+        }
+
+        if ($status == 'before_taxes') {
+            return $amount * ($rateValue / 100);
         }
 
         return 0;
