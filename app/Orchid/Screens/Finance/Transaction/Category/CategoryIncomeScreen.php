@@ -88,7 +88,18 @@ class CategoryIncomeScreen extends Screen
         ];
     }
     public function save(Request $request, FinanceTransactionCategory $category){
-        $category->fill($request->input('category'))->save();
+        $data = $request->input('category');
+        $mccIds = $data['mccs'] ?? [];
+        unset($data['mccs']);
+        $category->fill($data)->save();
+        $category->mccs()->sync($mccIds);
+
+        if (!empty($mccIds)) {
+            $codes = \App\Models\FinanceTransactionMcc::whereIn('id', $mccIds)->pluck('code');
+            \App\Models\FinanceTransaction::where('user_id', Auth::user()->id)
+                ->whereIn('mcc_code', $codes)
+                ->update(['transaction_category_id' => $category->id]);
+        }
         Toast::info(__('You have successfully created.'));
     }
     public function remove(Request $request)

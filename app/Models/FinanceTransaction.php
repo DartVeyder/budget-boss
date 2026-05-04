@@ -45,7 +45,8 @@ class FinanceTransaction extends Model
         'finance_bill_id',
         'created_at',
         'customer_id',
-        'accrual_date'
+        'accrual_date',
+        'mcc_code'
     ];
 
 

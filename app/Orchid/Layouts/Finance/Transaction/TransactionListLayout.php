@@ -84,6 +84,7 @@ class TransactionListLayout extends Table
                         ]
                     );
                 }),
+            TD::make('mcc_code', 'MCC')->sort(),
             TD::make('tax_amount', __('Tax amount'))
                 ->render(
                 fn(FinanceTransaction $transaction) => $transaction->tax_amount . ' '. $transaction->currency->symbol

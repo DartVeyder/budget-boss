@@ -102,6 +102,13 @@ class CategoryExpensesScreen extends Screen
         unset($data['mccs']);
         $category->fill($data)->save();
         $category->mccs()->sync($mccIds);
+
+        if (!empty($mccIds)) {
+            $codes = FinanceTransactionMcc::whereIn('id', $mccIds)->pluck('code');
+            \App\Models\FinanceTransaction::where('user_id', Auth::user()->id)
+                ->whereIn('mcc_code', $codes)
+                ->update(['transaction_category_id' => $category->id]);
+        }
         Toast::info(__('You have successfully created.'));
     }
 
