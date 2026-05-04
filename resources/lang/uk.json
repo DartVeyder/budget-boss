@@ -248,5 +248,11 @@
     "Price": "Ціна",
     "Quantity": "Кількість",
     "Import": "Імпорт",
-    "Monobank": "МоноБанк"
+    "Monobank": "МоноБанк",
+    "Total Balance": "Загальний баланс",
+    "Top Accounts": "Основні рахунки",
+    "Data for the current year": "Дані за поточний рік",
+    "Income Categories": "Категорії доходів",
+    "Expense Categories": "Категорії витрат",
+    "No data": "Немає даних"
 }

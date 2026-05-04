@@ -34,11 +34,12 @@ class DashboardScreen extends Screen
      *
      * @return array
      */
-    public function query(FinanceTransaction $transactions ): iterable
+    public function query(FinanceTransaction $transactions): iterable
     {
-        Currency::updateExchangeRates(["USD","EUR"]);
-        $start =   Carbon::now()->subYear();;
-        $end =    Carbon::now();
+        Currency::updateExchangeRates(["USD", "EUR"]);
+        $start = Carbon::now()->subYear();
+        ;
+        $end = Carbon::now();
 
         $user = Auth::user();
         $this->userId = $user->id;
@@ -47,40 +48,46 @@ class DashboardScreen extends Screen
         $data = [];
 
 
-        $income = $transactions->where('is_balance' ,1)->where('type','income')->where('user_id', $user->id) ;
-        $expenses = $transactions->where('is_balance' ,1)->where('type','expenses')->where('user_id', $user->id) ;
+        $income = FinanceTransaction::where('is_balance', 1)->where('type', 'income')->where('user_id', $user->id);
+        $expenses = FinanceTransaction::where('is_balance', 1)->where('type', 'expenses')->where('user_id', $user->id);
 
         $transaction = new TransactionsService();
         $transactionIncome = new TransactionIncomeService($user->id);
         $transactionExpenses = new TransactionExpensesService($user->id);
 
-        $data['metrics']['total']['balance']  =  Currency::convertValueToCurrency($transaction->getTotalBalance());
-        $data['metrics']['currentMonth']['income'] =  Currency::convertValueToCurrency($income->whereMonth('created_at', $currentMonth )->whereYear('finance_transactions.created_at', Carbon::now()->year)->sum('currency_amount'));
-        $data['metrics']['currentMonth']['expenses'] =  Currency::convertValueToCurrency($expenses->whereMonth('created_at', $currentMonth )->whereYear('finance_transactions.created_at', Carbon::now()->year)->sum('currency_amount'));
-        $data['metrics']['bills'] =  $this->generateMetricsToBill();
-        $data['charts']['transactions'][] = $transactionIncome->chartBar(__("Income"),$start, $end,'accrual_date','currency_amount');
-        $data['charts']['transactions'][] = $transactionExpenses->chartBar(__("Expenses"),$start, $end,'accrual_date','absolute_currency_amount');
-        $data['charts']['transactions'][] = $transaction->chartBarBalance(__("Balance"),$start, $end,'accrual_date','currency_amount');
+        $data['metrics']['total']['balance'] = Currency::convertValueToCurrency($transaction->getTotalBalance());
+        $data['metrics']['currentMonth']['income'] = Currency::convertValueToCurrency((clone $income)->whereMonth('created_at', $currentMonth)->whereYear('created_at', Carbon::now()->year)->sum('currency_amount'));
+        $data['metrics']['currentMonth']['expenses'] = Currency::convertValueToCurrency((clone $expenses)->whereMonth('created_at', $currentMonth)->whereYear('created_at', Carbon::now()->year)->sum('currency_amount'));
+
+        $data['metrics']['currentYear']['income'] = Currency::convertValueToCurrency((clone $income)->whereYear('created_at', Carbon::now()->year)->sum('currency_amount'));
+        $data['metrics']['currentYear']['expenses'] = Currency::convertValueToCurrency((clone $expenses)->whereYear('created_at', Carbon::now()->year)->sum('currency_amount'));
+
+        $data['metrics']['bills'] = $this->generateMetricsToBill();
+        $data['charts']['transactions'][] = $transactionIncome->chartBar(__("Income"), $start, $end, 'accrual_date', 'currency_amount');
+        $data['charts']['transactions'][] = $transactionExpenses->chartBar(__("Expenses"), $start, $end, 'accrual_date', 'absolute_currency_amount');
+        $data['charts']['transactions'][] = $transaction->chartBarBalance(__("Balance"), $start, $end, 'accrual_date', 'currency_amount');
         $data['charts']['categories']['income'] = $transactionIncome->chartPieCategory(Carbon::now()->startOfMonth(), $end);
         $data['charts']['categories']['expenses'] = $transactionExpenses->chartPieCategory(Carbon::now()->startOfMonth(), $end);
 
-        $data['transactions'] = $this-> getTransactions($transactions);
+        $data['transactions'] = $this->getTransactions($transactions);
 
-        return  $data;
+        return $data;
     }
 
 
 
-    private  function  getTransactions($transactions){
-       return $transactions
+    private function getTransactions($transactions)
+    {
+        return $transactions
             ->where('user_id', $this->userId)
-            ->orderBy('id' , 'DESC')
+            ->orderBy('id', 'DESC')
             ->take(10)
             ->get();
     }
 
 
-    public function buttonChangeCurrency($code){
+    public function buttonChangeCurrency($code)
+    {
         Auth::user()->setting()->update(["currency" => $code]);
         Currency::getExchangeRate($code);
         Toast::warning(__('Changed currency to ') . $code);
@@ -103,13 +110,25 @@ class DashboardScreen extends Screen
      */
     public function commandBar(): iterable
     {
+        $userCurrency = Currency::getCurrencyCodeUser();
+        $usdRate = Currency::getExchangeRate('USD');
+        $eurRate = Currency::getExchangeRate('EUR');
+
+        $usdText = 'USD' . ($usdRate && $usdRate != 1 ? ' (' . number_format($usdRate, 2) . ' ₴)' : '');
+        $eurText = 'EUR' . ($eurRate && $eurRate != 1 ? ' (' . number_format($eurRate, 2) . ' ₴)' : '');
+
+        $currentCurrencyText = $userCurrency;
+        if ($userCurrency === 'USD')
+            $currentCurrencyText = $usdText;
+        if ($userCurrency === 'EUR')
+            $currentCurrencyText = $eurText;
+
         return [
-            DropDown::make(__("Currency: ") . Currency::getCurrencyCodeUser())
-                ->list(
-                    [
-                    Button::make('UAH')->method('buttonChangeCurrency',['code' => 'UAH']),
-                    Button::make('USD')->method('buttonChangeCurrency',['code' => 'USD']),
-                    Button::make('EUR')->method('buttonChangeCurrency',['code' => 'EUR']),
+            DropDown::make(__("Currency: ") . $currentCurrencyText)
+                ->list([
+                    Button::make('UAH')->method('buttonChangeCurrency', ['code' => 'UAH']),
+                    Button::make($usdText)->method('buttonChangeCurrency', ['code' => 'USD']),
+                    Button::make($eurText)->method('buttonChangeCurrency', ['code' => 'EUR']),
                 ]),
         ];
     }
@@ -124,17 +143,18 @@ class DashboardScreen extends Screen
         $bills = $this->generateMetricsLayoutToBill(4);
         return [
             Layout::metrics(
-                array_merge([ 'Total balance'    => 'metrics.total.balance'] ,$bills  )
+                array_merge(['Total balance' => 'metrics.total.balance'], $bills)
             )->title('Bills'),
 
             Layout::metrics([
                 'Income for this month' => 'metrics.currentMonth.income',
                 'Expenses for this month' => 'metrics.currentMonth.expenses',
-            ])->title( 'Data for the current month'),
-            Layout::columns([
-                DashboardChartTransactionCategoryLayout::make('charts.categories.income'),
-                DashboardChartTransactionCategoryLayout::make('charts.categories.expenses'),
-            ]),
+            ])->title('Data for the current month'),
+            Layout::metrics([
+                'Income for this year' => 'metrics.currentYear.income',
+                'Expenses for this year' => 'metrics.currentYear.expenses',
+            ])->title('Data for the current year'),
+            Layout::view('dashboard.category-list'),
             DashboardChartTransactionLayout::make('charts.transactions', __('Statistics for the year')),
             TransactionListLayout::class,
         ];

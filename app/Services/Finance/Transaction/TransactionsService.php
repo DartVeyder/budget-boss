@@ -108,10 +108,36 @@ class TransactionsService
             ->select('finance_transaction_categories.id', 'finance_transaction_categories.name', DB::raw('ABS(SUM(finance_transactions.currency_amount)) as total_amount'))
             ->groupBy('finance_transaction_categories.id', 'finance_transaction_categories.name')
             ->get();
+        $total = $collection->sum('total_amount');
+        $total = $total > 0 ? $total : 1;
+
+        $labels = [];
+        $values = [];
+        $items = [];
+        
+        $colors = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316'];
+        $colorIndex = 0;
+
+        foreach ($collection as $item) {
+            $percent = round(($item->total_amount / $total) * 100, 2);
+            $formattedAmount = \App\Services\Currency\Currency::convertValueToCurrency($item->total_amount);
+            $labels[] = $item->name . ' - ' . $percent . '% (' . $formattedAmount . ')';
+            $values[] = $percent;
+            
+            $items[] = [
+                'name' => $item->name,
+                'percent' => $percent,
+                'amount' => $formattedAmount,
+                'color' => $colors[$colorIndex % count($colors)]
+            ];
+            $colorIndex++;
+        }
+
         return [[
             'name' =>  $name,
-            'labels' => $collection->pluck('name')->toArray(),
-            'values' => $collection->pluck('total_amount')->toArray()
+            'labels' => $labels,
+            'values' => $values,
+            'items'  => $items
         ]];
     }
 

@@ -37,7 +37,8 @@ class DashboardChartTransactionLayout extends Chart
      * @var array
      */
     protected $colors = [
-        '#28a745',
-        '#dc3545',
+        '#28a745', // Green for Income
+        '#dc3545', // Red for Expenses
+        '#007bff', // Blue for Balance
     ];
 }

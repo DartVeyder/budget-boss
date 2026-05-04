@@ -20,7 +20,7 @@ class DashboardChartTransactionCategoryLayout extends Chart
      *
      * @var string
      */
-    protected $type = 'pie';
+    protected $type = 'percentage';
 
     /**
      * Data source.
