@@ -2,9 +2,14 @@
 
 namespace App\Orchid\Screens\Setting;
 
+use App\Models\UserSetting;
 use App\Orchid\Layouts\Setting\SettingMonobankRows;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Screen;
 use Orchid\Support\Facades\Layout;
+use Orchid\Support\Facades\Toast;
 
 class SettingScreen extends Screen
 {
@@ -15,7 +20,13 @@ class SettingScreen extends Screen
      */
     public function query(): iterable
     {
-        return [];
+        $setting = Auth::user()->setting;
+        return [
+            'monobank' => [
+                'api_key' => $setting->monobank_api_key ?? '',
+                'active'  => $setting->monobank_active ? 1 : 2,
+            ]
+        ];
     }
 
     /**
@@ -35,7 +46,11 @@ class SettingScreen extends Screen
      */
     public function commandBar(): iterable
     {
-        return [];
+        return [
+            Button::make(__('Save'))
+                ->icon('bs.check-circle')
+                ->method('save'),
+        ];
     }
 
     /**
@@ -54,5 +69,23 @@ class SettingScreen extends Screen
             ]),
 
         ];
+    }
+
+    /**
+     * @param Request $request
+     */
+    public function save(Request $request): void
+    {
+        $data = $request->get('monobank');
+
+        $setting = UserSetting::firstOrCreate(
+            ['user_id' => Auth::user()->id]
+        );
+
+        $setting->monobank_api_key = $data['api_key'] ?? null;
+        $setting->monobank_active = isset($data['active']) && $data['active'] == 1;
+        $setting->save();
+
+        Toast::info(__('Settings saved successfully.'));
     }
 }

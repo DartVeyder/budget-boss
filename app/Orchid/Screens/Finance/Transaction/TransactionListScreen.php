@@ -217,6 +217,14 @@ class TransactionListScreen extends Screen
 
     public function saveMono( TransactionExpensesService $transactionExpensesService )
     {
+        $setting = Auth::user()->setting;
+        if (!$setting || !$setting->monobank_active || empty($setting->monobank_api_key)) {
+            Toast::warning(__('Please configure your Monobank API key in settings first.'));
+            return;
+        }
+
+        $token = $setting->monobank_api_key;
+
         $transactions = FinanceTransaction::whereNotNull('mono_id')->orderBy('id','DESC')->first();
 
 
@@ -229,7 +237,7 @@ class TransactionListScreen extends Screen
         $to = Carbon::now();
 
 
-        $statement = Monobank::getStatement($from,  $to);
+        $statement = Monobank::getStatement($from,  $to, $token);
         if($statement){
             $data = $transactionExpensesService->createInsertDataMono($statement);
             if(FinanceTransaction::insert($data)){

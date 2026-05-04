@@ -13,6 +13,7 @@ class UserSetting extends Model
     use AsSource;
     use Filterable;
     protected $guarded = [];
+    protected $primaryKey = 'user_id';
     public $timestamps = false;
     public function user()
     {
