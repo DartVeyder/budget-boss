@@ -5,6 +5,7 @@ namespace App\Orchid\Screens;
 use App\Models\FinanceTransaction;
 use App\Orchid\Layouts\Dashboard\DashboardChartTransactionCategoryLayout;
 use App\Orchid\Layouts\Dashboard\DashboardChartTransactionLayout;
+use App\Orchid\Layouts\Dashboard\DashboardChartIncomeLayout;
 use App\Orchid\Layouts\Finance\Transaction\TransactionListLayout;
 use App\Services\Currency\Currency;
 use App\Services\Finance\Bill\BillService;
@@ -66,6 +67,9 @@ class DashboardScreen extends Screen
         $data['charts']['transactions'][] = $transactionIncome->chartBar(__("Income"), $start, $end, 'accrual_date', 'currency_amount');
         $data['charts']['transactions'][] = $transactionExpenses->chartBar(__("Expenses"), $start, $end, 'accrual_date', 'absolute_currency_amount');
         $data['charts']['transactions'][] = $transaction->chartBarBalance(__("Balance"), $start, $end, 'accrual_date', 'currency_amount');
+        
+        $data['charts']['income_year'] = $transactionIncome->chartBarComparison(__('Current Year'), __('Previous Year'), $start, $end, 'accrual_date', 'currency_amount');
+        
         $data['charts']['categories']['income'] = $transactionIncome->chartPieCategory(Carbon::now()->startOfMonth(), $end);
         $data['charts']['categories']['expenses'] = $transactionExpenses->chartPieCategory(Carbon::now()->startOfMonth(), $end);
 
@@ -155,6 +159,7 @@ class DashboardScreen extends Screen
                 'Expenses for this year' => 'metrics.currentYear.expenses',
             ])->title('Data for the current year'),
             Layout::view('dashboard.category-list'),
+            DashboardChartIncomeLayout::make('charts.income_year', __('Income for the year')),
             DashboardChartTransactionLayout::make('charts.transactions', __('Statistics for the year')),
             TransactionListLayout::class,
         ];

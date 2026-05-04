@@ -184,6 +184,27 @@ class TransactionsService
     {
         return $this->query()->where('is_balance' ,1)->SumByMonths($value,  $start, $end, $dateColumn)->toChart($name);
     }
+
+    public function chartBarComparison( string $nameCurrent = 'Current', string $namePrev = 'Previous', string $start = null, string $end = null, string $dateColumn = null, string $value) :array
+    {
+        $currentStart = Carbon::parse($start);
+        $currentEnd = Carbon::parse($end);
+        
+        $prevStart = $currentStart->copy()->subYear();
+        $prevEnd = $currentEnd->copy()->subYear();
+
+        $currentData = $this->query()->where('is_balance' ,1)->SumByMonths($value,  $currentStart, $currentEnd, $dateColumn)->toChart($nameCurrent);
+        $prevData = $this->query()->where('is_balance' ,1)->SumByMonths($value,  $prevStart, $prevEnd, $dateColumn)->toChart($namePrev);
+
+        $mappedLabels = array_map(function($label) {
+            return Carbon::createFromFormat('Y-m', $label)->translatedFormat('M');
+        }, $currentData['labels']);
+
+        $currentData['labels'] = $mappedLabels;
+        $prevData['labels'] = $mappedLabels;
+
+        return [$currentData, $prevData];
+    }
     public function query(): object
     {
         return FinanceTransaction::where('type',$this->getType())->where('user_id', $this->getUserId())->where('is_balance' ,1) ;
