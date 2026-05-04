@@ -8,6 +8,7 @@ use Orchid\Screen\Field;
 use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Fields\Relation;
 use Orchid\Screen\Fields\TextArea;
+use Orchid\Screen\Fields\Upload;
 use Orchid\Screen\Layouts\Rows;
 
 class TransactionEditTransferRows extends Rows
@@ -56,6 +57,8 @@ class TransactionEditTransferRows extends Rows
             TextArea::make("transaction.comment")
                 ->title('Comment')
                 ->value(''),
+            Upload::make('transaction.attachment')
+                ->title('Документи / Зображення'),
 
         ];
     }

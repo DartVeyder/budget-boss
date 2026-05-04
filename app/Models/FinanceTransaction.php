@@ -19,6 +19,7 @@ class FinanceTransaction extends Model
     use AsSource;
     use Filterable;
     use Chartable;
+    use \Orchid\Attachment\Attachable;
 
     protected $guarded = [];
 

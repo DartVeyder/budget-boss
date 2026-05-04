@@ -31,6 +31,7 @@ class TransactionEditScreen extends Screen
      */
     public function query(FinanceTransaction $transaction): iterable
     {
+        $transaction->load('attachment');
         return [
             'transaction' => $transaction
         ];
@@ -90,26 +91,40 @@ class TransactionEditScreen extends Screen
     }
     private  function  getLayout(int $typeId) :iterable
     {
+        $layouts = [];
+        
+       
+
         switch ($typeId) {
             case 1:
-                return [ TransactionEditExpensesRows::class ];
+                $layouts[] = TransactionEditExpensesRows::class;
+                break;
             case 2:
-                return [ TransactionEditIncomeRows::class ];
+                $layouts[] = TransactionEditIncomeRows::class;
+                break;
             case 3:
-                return [ TransactionEditTransferRows::class ];
+                $layouts[] = TransactionEditTransferRows::class;
+                break;
             case 4:
-                return [ TransactionEditAuditRows::class ];
-            default:
-                return [];
+                $layouts[] = TransactionEditAuditRows::class;
+                break;
         }
+         if ($this->transaction->exists && $this->transaction->attachment->count() > 0) {
+            $layouts[] = \Orchid\Support\Facades\Layout::view('finance.transaction.partials.attachments');
+        }
+
+        return $layouts;
     }
 
     public function  saveIncome(Request $request, FinanceTransaction $transaction):void
     {
         $transactionIncome = new TransactionIncomeService();
         $data = $transactionIncome->createInsertData($request);
-        unset( $data['balance'],$data['balance_bill']);
+        unset( $data['balance'],$data['balance_bill'],$data['attachment']);
         $transaction->fill($data)->save();
+        $transaction->attachment()->syncWithoutDetaching(
+            $request->input('transaction.attachment', [])
+        );
         $transactionIncome->updateStatusInvoice($data['finance_invoice_id']);
         Toast::info(__('You have successfully created.'));
     }
@@ -118,8 +133,11 @@ class TransactionEditScreen extends Screen
     {
         $transactionExpenses = new TransactionExpensesService();
         $data = $transactionExpenses->createInsertData($request);
-        unset( $data['balance'],$data['balance_bill']);
+        unset( $data['balance'],$data['balance_bill'],$data['attachment']);
         $transaction->fill($data)->save($data);
+        $transaction->attachment()->syncWithoutDetaching(
+            $request->input('transaction.attachment', [])
+        );
 
         Toast::info(__('You have successfully created.'));
     }

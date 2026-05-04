@@ -17,6 +17,7 @@ use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Fields\Relation;
 use Orchid\Screen\Fields\Select;
 use Orchid\Screen\Fields\TextArea;
+use Orchid\Screen\Fields\Upload;
 use Orchid\Screen\Layouts\Rows;
 
 class TransactionEditExpensesRows extends Rows
@@ -61,6 +62,8 @@ class TransactionEditExpensesRows extends Rows
                 ->value(''),
             DateTimer::make('transaction.created_at')
                 ->title('Date created') ,
+            Upload::make('transaction.attachment')
+                ->title('Документи / Зображення'),
             Input::make('transaction.transaction_type_id')
                 ->value(1)
                 ->hidden(),

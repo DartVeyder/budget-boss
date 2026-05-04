@@ -105,6 +105,15 @@ class TransactionListLayout extends Table
                 )
                 ->align(TD::ALIGN_RIGHT)
                 ->sort(),
+            TD::make('attachments', __('Документи'))
+                ->render(function (FinanceTransaction $transaction) {
+                    $links = [];
+                    foreach($transaction->attachment as $file) {
+                        $url = '/storage/' . $file->path . $file->name . '.' . $file->extension;
+                        $links[] = "<a href='{$url}' target='_blank' class='text-primary d-inline-block text-truncate' style='max-width: 150px;' title='{$file->original_name}'><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" fill=\"currentColor\" class=\"bi bi-paperclip\" viewBox=\"0 0 16 16\"><path d=\"M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0z\"/></svg> {$file->original_name}</a>";
+                    }
+                    return implode('<br>', $links);
+                }),
             TD::make(__('Actions'))
                 ->align(TD::ALIGN_CENTER)
                 ->width('100px')

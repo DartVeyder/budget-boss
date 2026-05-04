@@ -40,7 +40,7 @@ class TransactionListScreen extends Screen
 
         return [
             "transactions" =>
-                FinanceTransaction::filters(TransactionSelection::class)
+                FinanceTransaction::with('attachment')->filters(TransactionSelection::class)
                     ->where('user_id' , Auth::user()->id)
                     ->defaultSort('created_at', 'desc')
                     ->paginate()
@@ -113,7 +113,11 @@ class TransactionListScreen extends Screen
     public function  saveIncome(Request $request, FinanceTransaction $transaction,TransactionIncomeService $transactionIncomeService):void
     {
         $data = $transactionIncomeService->createInsertData($request);
+        unset($data['attachment']);
         $transaction->fill($data)->save();
+        $transaction->attachment()->syncWithoutDetaching(
+            $request->input('transaction.attachment', [])
+        );
         $transactionIncomeService->updateStatusInvoice($data['finance_invoice_id']);
         Toast::info(__('You have successfully created.'));
     }
@@ -121,13 +125,19 @@ class TransactionListScreen extends Screen
     public function  saveExpenses(Request $request, FinanceTransaction $transaction, TransactionExpensesService $transactionExpensesService ):void
     {
         $data = $transactionExpensesService->createInsertData($request);
+        unset($data['attachment']);
         $transaction->fill($data)->save($data);
+        $transaction->attachment()->syncWithoutDetaching(
+            $request->input('transaction.attachment', [])
+        );
 
         Toast::info(__('You have successfully created.'));
     }
 
     public function  saveTransfer(Request $request,  TransactionsService  $transactionsService): void{
         $transaction = $request->input('transaction');
+        $attachments = $transaction['attachment'] ?? [];
+        unset($transaction['attachment']);
         $transaction['is_balance'] = 0;
         $bills =  $request->input('bills');
 
@@ -156,15 +166,21 @@ class TransactionListScreen extends Screen
         $expenses['currency_amount'] = $transactionsService->getAmountNegative( $expenses['currency_amount']);
 
 
-        Auth::user()->transactions()->create($expenses);
-        Auth::user()->transactions()->create($income);
+        $exp = Auth::user()->transactions()->create($expenses);
+        $inc = Auth::user()->transactions()->create($income);
 
+        if (!empty($attachments)) {
+            $exp->attachment()->syncWithoutDetaching($attachments);
+            $inc->attachment()->syncWithoutDetaching($attachments);
+        }
     }
 
     public function  saveAudit(Request $request,  TransactionsService  $transactionsService){
 
         $data = [];
         $transaction = $request->input('transaction');
+        $attachments = $transaction['attachment'] ?? [];
+        unset($transaction['attachment']);
         $total =  Auth::user()->transactions()->where('finance_bill_id',  $transaction['bill_id'])->sum('amount') ;
 
         $diffTotal = $transaction['current_balance'] - $total;
@@ -180,7 +196,10 @@ class TransactionListScreen extends Screen
         $data['finance_bill_id'] = $transaction['bill_id'];
         $data = array_merge(  $data,$transactionsService->getCurrency( $transaction['bill_id'],  $diffTotal));
 
-        Auth::user()->transactions()->create($data);
+        $auditTransaction = Auth::user()->transactions()->create($data);
+        if (!empty($attachments)) {
+            $auditTransaction->attachment()->syncWithoutDetaching($attachments);
+        }
         Toast::info(__('You have successfully created.'));
     }
     public function remove(Request $request,TransactionsService  $transactionsService): object

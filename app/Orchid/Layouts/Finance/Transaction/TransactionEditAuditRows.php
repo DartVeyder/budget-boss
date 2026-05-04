@@ -9,6 +9,7 @@ use Orchid\Screen\Fields\DateTimer;
 use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Fields\Relation;
 use Orchid\Screen\Fields\TextArea;
+use Orchid\Screen\Fields\Upload;
 use Orchid\Screen\Layouts\Rows;
 
 class TransactionEditAuditRows extends Rows
@@ -50,6 +51,8 @@ class TransactionEditAuditRows extends Rows
             DateTimer::make('transaction.created_at')
                 ->title('Date created')
                 ->enableTime() ,
+            Upload::make('transaction.attachment')
+                ->title('Документи / Зображення'),
 
         ];
     }

@@ -20,6 +20,7 @@ use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Fields\Relation;
 use Orchid\Screen\Fields\Select;
 use Orchid\Screen\Fields\TextArea;
+use Orchid\Screen\Fields\Upload;
 use Orchid\Screen\Layouts\Rows;
 
 class TransactionEditIncomeRows extends Rows
@@ -94,6 +95,8 @@ class TransactionEditIncomeRows extends Rows
             TextArea::make("transaction.comment")
                 ->title('Comment')
                 ->value(''),
+            Upload::make('transaction.attachment')
+                ->title('Документи / Зображення'),
             Input::make('transaction.transaction_type_id')
                 ->value(2)
                 ->hidden(),
