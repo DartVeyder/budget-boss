@@ -121,11 +121,22 @@ class TransactionEditScreen extends Screen
     {
         $transactionIncome = new TransactionIncomeService();
         $data = $transactionIncome->createInsertData($request);
-        unset( $data['balance'],$data['balance_bill'],$data['attachment']);
-        $transaction->fill($data)->save();
+        $taxDetails = $data['tax_details'] ?? [];
+        unset( $data['balance'],$data['balance_bill'],$data['attachment'], $data['tax_details']);
+        
+        $transaction->fill($data);
+        unset($transaction->tax_details);
+        $transaction->save();
         $transaction->attachment()->syncWithoutDetaching(
             $request->input('transaction.attachment', [])
         );
+
+        if (!empty($taxDetails)) {
+            $transaction->taxes()->sync($taxDetails);
+        } else {
+            $transaction->taxes()->detach();
+        }
+
         $transactionIncome->updateStatusInvoice($data['finance_invoice_id']);
         Toast::info(__('You have successfully created.'));
     }
@@ -163,7 +174,7 @@ class TransactionEditScreen extends Screen
                 'transaction_category_id' => $customer?->fop?->transaction_category_id,
             ],
             'tax_status' => $customer?->fop?->tax_status,
-            'tax_rates' => $customer?->fop?->fopGroup?->taxRates?->first()?->id,
+            'tax_rates' => $customer?->fop?->fopGroup?->taxRates?->pluck('id')->toArray(),
         ];
     }
 

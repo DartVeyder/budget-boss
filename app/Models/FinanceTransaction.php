@@ -85,4 +85,10 @@ class FinanceTransaction extends Model
     public function customer(){
         return $this->belongsTo(Customer::class);
     }
+
+    public function taxes(){
+        return $this->belongsToMany(TaxRate::class, 'finance_transaction_tax_rate')
+                    ->withPivot('amount')
+                    ->withTimestamps();
+    }
 }

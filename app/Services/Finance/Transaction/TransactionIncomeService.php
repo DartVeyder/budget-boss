@@ -46,14 +46,14 @@ class TransactionIncomeService extends  TransactionsService
                     $taxStatus = $customer->fop->tax_status ?? 'without_taxes';
                 }
 
-                $taxRateId = $request->input('tax_rates');
-                if (empty($taxRateId)) {
-                    $taxRateId = $customer->fop?->fopGroup?->taxRates?->first()?->id ?? null;
+                $taxRateIds = $request->input('tax_rates', []);
+                if (empty($taxRateIds)) {
+                    $taxRateIds = $customer->fop?->fopGroup?->taxRates?->pluck('id')->toArray() ?? [];
                 }
             }
         } else {
             $taxStatus = $request->input('tax_status');
-            $taxRateId = $request->input('tax_rates');
+            $taxRateIds = $request->input('tax_rates', []);
         }
 
         // Validation: ensure we have a bill and a category before proceeding with calculations
@@ -72,7 +72,11 @@ class TransactionIncomeService extends  TransactionsService
         $transaction = array_merge($transaction, $this->getCurrency($transaction['finance_bill_id'], $transaction['amount']));
         $transaction['balance'] = $this->getTotalBalance() +  $transaction['amount'];
         $transaction['balance_bill'] = $this->getBalanceToBill($transaction['finance_bill_id']) +  $transaction['amount'];
-        $transaction['tax_amount'] =  $this->calculateTaxAmount($transaction['currency_amount'], $taxStatus, (int)$taxRateId );
+        
+        $taxes = $this->calculateTaxes($transaction['currency_amount'], $taxStatus, $taxRateIds);
+        $transaction['tax_amount'] = $taxes['total'];
+        $transaction['tax_details'] = $taxes['details']; // We will use this in the save method
+
         $transaction['user_id'] = $this->getUserId();
 
         return $transaction;
@@ -80,27 +84,34 @@ class TransactionIncomeService extends  TransactionsService
 
     }
 
-    private function calculateTaxAmount(float $amount, string|null $status = 'without_taxes', int|null $rateId = null): float|int
+    public function calculateTaxes(float $amount, string|null $status = 'without_taxes', array $rateIds = []): array
     {
-        if ($status == 'without_taxes' || !$rateId) {
-            return 0;
+        $result = [
+            'total' => 0,
+            'details' => []
+        ];
+
+        if ($status == 'without_taxes' || empty($rateIds)) {
+            return $result;
         }
 
-        $taxRate = \App\Models\TaxRate::find($rateId);
-        $rateValue = $taxRate ? $taxRate->value : 0;
+        $taxRates = \App\Models\TaxRate::whereIn('id', $rateIds)->get();
 
-        if ($rateValue == 0) {
-            return 0;
+        foreach ($taxRates as $taxRate) {
+            $rateValue = $taxRate->value ?? 0;
+            if ($rateValue == 0) continue;
+
+            $taxAmount = 0;
+            if ($status == 'after_taxes') {
+                $taxAmount = ($amount / (1 - $rateValue / 100)) - $amount;
+            } elseif ($status == 'before_taxes') {
+                $taxAmount = $amount * ($rateValue / 100);
+            }
+
+            $result['total'] += $taxAmount;
+            $result['details'][$taxRate->id] = ['amount' => $taxAmount];
         }
 
-        if ($status == 'after_taxes') {
-            return ($amount / (1 - $rateValue / 100)) - $amount;
-        }
-
-        if ($status == 'before_taxes') {
-            return $amount * ($rateValue / 100);
-        }
-
-        return 0;
+        return $result;
     }
 }

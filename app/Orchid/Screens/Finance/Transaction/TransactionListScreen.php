@@ -113,12 +113,24 @@ class TransactionListScreen extends Screen
     public function  saveIncome(Request $request, FinanceTransaction $transaction,TransactionIncomeService $transactionIncomeService):void
     {
         $data = $transactionIncomeService->createInsertData($request);
-        unset($data['attachment']);
-        $transaction->fill($data)->save();
+        $taxDetails = $data['tax_details'] ?? [];
+        unset($data['attachment'], $data['tax_details']);
+        
+        $transaction->fill($data);
+        unset($transaction->tax_details);
+        $transaction->save();
+        
         $transaction->attachment()->syncWithoutDetaching(
             $request->input('transaction.attachment', [])
         );
-        $transactionIncomeService->updateStatusInvoice($data['finance_invoice_id']);
+        
+        if (!empty($taxDetails)) {
+            $transaction->taxes()->sync($taxDetails);
+        } else {
+            $transaction->taxes()->detach();
+        }
+        
+        $transactionIncomeService->updateStatusInvoice($data['finance_invoice_id'] ?? null);
         Toast::info(__('You have successfully created.'));
     }
 
