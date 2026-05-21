@@ -54,7 +54,8 @@ class TransactionsService
     public function getTotalAmountInUsd() :float{
         return (float) FinanceTransaction::leftJoin('finance_currencies', 'finance_transactions.finance_currency_id', '=', 'finance_currencies.id')
             ->select(DB::raw('SUM(finance_transactions.amount * finance_currencies.value) as total_amount'))
-            ->where('is_balance' ,1)
+            ->where('finance_transactions.is_balance' ,1)
+            ->where('finance_transactions.user_id', $this->getUserId())
             ->value('total_amount'); // Отримання значення суми
 
     }
