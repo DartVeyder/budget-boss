@@ -82,15 +82,15 @@ class TransactionIncomeListener extends Listener
                     ->title('Top-up amount')
                     ->required()
                     ->step(0.01)
-                    ->type('number') ,
+                    ->type('number'),
 
                 Select::make("tax_status")
                     ->options([
                         'without_taxes' => 'без податків',
-                        'after_taxes' => 'після сплати податків',
-                        'before_taxes'=> 'до сплати податків'
+                        'after_taxes'   => 'після сплати податків',
+                        'before_taxes'  => 'до сплати податків'
                     ])
-                    ->empty('без податків','without_taxes')
+                    ->empty('без податків', 'without_taxes')
                     ->title('Tax status'),
 
                 Relation::make("tax_rates")
@@ -99,12 +99,12 @@ class TransactionIncomeListener extends Listener
 
                 DateTimer::make('transaction.accrual_date')
                     ->format24hr()
-                    ->title('Date accrual') ,
+                    ->title('Date accrual'),
 
                 DateTimer::make('transaction.created_at')
                     ->title('Date created')
                     ->enableTime()
-                    ->format24hr() ,
+                    ->format24hr(),
 
                 TextArea::make("transaction.comment")
                     ->title('Comment')

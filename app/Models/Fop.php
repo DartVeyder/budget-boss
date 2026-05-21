@@ -22,6 +22,9 @@ class Fop extends Model
 
         'director',
         'is_active',
+
+        'transaction_category_id',
+        'tax_status',
     ];
 
     protected $casts = [

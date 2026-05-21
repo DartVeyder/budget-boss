@@ -154,15 +154,16 @@ class TransactionEditScreen extends Screen
         
         \Illuminate\Support\Facades\Log::info('asyncGetCustomerDefaults called', ['customerId' => $customerId]);
 
-        $customer = \App\Models\Customer::find($customerId);
+        $customer = \App\Models\Customer::with('fop.fopGroup.taxRates')->find($customerId);
 
         return [
             'transaction' => [
                 'customer_id' => $customerId,
-                'finance_bill_id' => $customer?->finance_bill_id,
+                'finance_bill_id' => $customer?->fop?->finance_bill_id,
+                'transaction_category_id' => $customer?->fop?->transaction_category_id,
             ],
-            'tax_status' => $customer?->tax_status,
-            'tax_rates' => $customer?->tax_rate_id,
+            'tax_status' => $customer?->fop?->tax_status,
+            'tax_rates' => $customer?->fop?->fopGroup?->taxRates?->first()?->id,
         ];
     }
 

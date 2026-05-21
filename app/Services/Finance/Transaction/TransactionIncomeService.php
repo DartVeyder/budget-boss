@@ -34,21 +34,21 @@ class TransactionIncomeService extends  TransactionsService
             $customer = \App\Models\Customer::find($transaction['customer_id']);
             if ($customer) {
                 if (empty($transaction['finance_bill_id'])) {
-                    $transaction['finance_bill_id'] = $customer->finance_bill_id;
+                    $transaction['finance_bill_id'] = $customer->fop->finance_bill_id ?? null;
                 }
 
                 if (empty($transaction['transaction_category_id'])) {
-                    $transaction['transaction_category_id'] = $customer->transaction_category_id;
+                    $transaction['transaction_category_id'] = $customer->fop->transaction_category_id ?? null;
                 }
                 
                 $taxStatus = $request->input('tax_status');
                 if (empty($taxStatus) || $taxStatus == 'without_taxes') {
-                    $taxStatus = $customer->tax_status ?? 'without_taxes';
+                    $taxStatus = $customer->fop->tax_status ?? 'without_taxes';
                 }
 
                 $taxRateId = $request->input('tax_rates');
                 if (empty($taxRateId)) {
-                    $taxRateId = $customer->tax_rate_id;
+                    $taxRateId = $customer->fop?->fopGroup?->taxRates?->first()?->id ?? null;
                 }
             }
         } else {

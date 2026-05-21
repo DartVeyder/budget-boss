@@ -27,4 +27,9 @@ class Customer extends Model
         return $query->where('user_id',Auth::user()->id);
     }
 
+    public function fop()
+    {
+        return $this->belongsTo(Fop::class);
+    }
+
 }

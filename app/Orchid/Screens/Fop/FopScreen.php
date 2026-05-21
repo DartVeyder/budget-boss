@@ -9,6 +9,7 @@ use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Fields\CheckBox;
 use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Fields\Relation;
+use Orchid\Screen\Fields\Select;
 use Orchid\Screen\Screen;
 use Orchid\Support\Facades\Alert;
 use Orchid\Support\Facades\Layout;
@@ -110,6 +111,20 @@ class FopScreen extends Screen
                     ->title('Рахунок / Картка')
                     ->fromModel(FinanceBill::class, 'name')
                     ->required(),
+
+                Relation::make('fop.transaction_category_id')
+                    ->fromModel(\App\Models\FinanceTransactionCategory::class, 'name')
+                    ->applyScope('income')
+                    ->title('Категорія доходу за замовчуванням'),
+
+                Select::make('fop.tax_status')
+                    ->options([
+                        'without_taxes' => 'без податків',
+                        'after_taxes' => 'після сплати податків',
+                        'before_taxes'=> 'до сплати податків'
+                    ])
+                    ->empty('без податків','without_taxes')
+                    ->title('Податковий статус'),
 
                 Input::make('fop.director')
                     ->title('Директор')
