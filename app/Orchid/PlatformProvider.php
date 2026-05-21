@@ -64,6 +64,8 @@ class PlatformProvider extends OrchidServiceProvider
                         ->route('platform.setting'),
                     Menu::make('Tax rates')
                         ->route('platform.setting.tax-rates'),
+                    Menu::make('FOP groups')
+                        ->route('platform.setting.fop-groups'),
                 ]),
 
             Menu::make('Мій ФОП')

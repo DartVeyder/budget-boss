@@ -101,6 +101,11 @@ class FopScreen extends Screen
                     ->title('Адреса')
                     ->placeholder('Введіть адресу'),
 
+                Relation::make('fop.fop_group_id')
+                    ->title('Група ФОП')
+                    ->placeholder('Виберіть групу ФОП')
+                    ->fromModel(\App\Models\FopGroup::class, 'name'),
+
                 Relation::make('fop.finance_bill_id')
                     ->title('Рахунок / Картка')
                     ->fromModel(FinanceBill::class, 'name')

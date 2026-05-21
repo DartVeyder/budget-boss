@@ -14,6 +14,7 @@ class Fop extends Model
     protected $fillable = [
         'user_id',
         'finance_bill_id',
+        'fop_group_id',
         'name',
         'ipn',
         'ewn',
@@ -41,5 +42,13 @@ class Fop extends Model
     public function bill()
     {
         return $this->belongsTo(FinanceBill::class, 'finance_bill_id');
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function fopGroup()
+    {
+        return $this->belongsTo(FopGroup::class, 'fop_group_id');
     }
 }

@@ -171,6 +171,27 @@ Route::screen('setting/tax-rates/{taxRate}/edit', \App\Orchid\Screens\Setting\Ta
         ->parent('platform.setting.tax-rates')
         ->push($taxRate->name, route('platform.setting.tax-rates.edit', $taxRate)));
 
+//Platform > Setting > Fop Groups
+Route::screen('setting/fop-groups', \App\Orchid\Screens\Setting\FopGroup\FopGroupListScreen::class)
+    ->name('platform.setting.fop-groups')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.setting')
+        ->push('Групи ФОП', route('platform.setting.fop-groups')));
+
+//Platform > Setting > Fop Groups > Create
+Route::screen('setting/fop-groups/create', \App\Orchid\Screens\Setting\FopGroup\FopGroupEditScreen::class)
+    ->name('platform.setting.fop-groups.create')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.setting.fop-groups')
+        ->push(__('Create'), route('platform.setting.fop-groups.create')));
+
+//Platform > Setting > Fop Groups > Edit
+Route::screen('setting/fop-groups/{fopGroup}/edit', \App\Orchid\Screens\Setting\FopGroup\FopGroupEditScreen::class)
+    ->name('platform.setting.fop-groups.edit')
+    ->breadcrumbs(fn (Trail $trail, $fopGroup) => $trail
+        ->parent('platform.setting.fop-groups')
+        ->push($fopGroup->name, route('platform.setting.fop-groups.edit', $fopGroup)));
+
 
 
 // Platform > Profile
