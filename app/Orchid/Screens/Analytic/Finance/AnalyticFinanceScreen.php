@@ -32,11 +32,12 @@ class AnalyticFinanceScreen extends Screen
         $transaction = new TransactionsService();
         $transactionIncome = new TransactionIncomeService();
         $transactionExpenses = new TransactionExpensesService();
-        $data['charts']['transactions'][] = $transactionIncome->chartBar(__("Income"),$start, $end,'accrual_date','currency_amount');
-        $data['charts']['transactions'][] = $transactionExpenses->chartBar(__("Expenses"),$start, $end,'accrual_date','absolute_currency_amount');
-        $data['charts']['transactions'][] = $transaction->chartBarBalance(__("Balance"),$start, $end,'accrual_date','currency_amount');
+        $data['charts']['transactions'][] = $transactionIncome->chartBar(__("Income"),$start, $end,'created_at','currency_amount');
+        $data['charts']['transactions'][] = $transactionExpenses->chartBar(__("Expenses"),$start, $end,'created_at','absolute_currency_amount');
+        $data['charts']['transactions'][] = $transaction->chartBarBalance(__("Balance"),$start, $end,'created_at','currency_amount');
         
-        $data['charts']['income_year'] = $transactionIncome->chartBarComparison(__('Current Year'), __('Previous Year'), $start, $end, 'accrual_date', 'currency_amount');
+        $data['charts']['income_year'] = $transactionIncome->chartBarComparison(__('Current Year'), __('Previous Year'), $start, $end, 'created_at', 'currency_amount');
+        $data['charts']['capital'] = $transaction->chartCapital(__('Capital'), $start, $end, 'created_at');
 
         $data['metrics']['sum']['income'] = $transactionIncome->getSum('currency_amount',true, AnalyticFinanceSelection::class,  $start ,$end );
         $data['metrics']['sum']['expenses'] = $transactionExpenses->getSum('currency_amount',true, AnalyticFinanceSelection::class, $start ,$end );
@@ -82,7 +83,7 @@ class AnalyticFinanceScreen extends Screen
     public function layout(): iterable
     {
         return [
-            AnalyticFinanceSelection::class,
+            Layout::view('components.date-range-picker'),
             Layout::metrics([
                 'Balance' => 'metrics.sum.total',
                 'Income' => 'metrics.sum.income',
@@ -90,6 +91,7 @@ class AnalyticFinanceScreen extends Screen
             ]),
             Layout::view('dashboard.category-list'),
             \App\Orchid\Layouts\Dashboard\DashboardChartIncomeLayout::make('charts.income_year', __('Income for the year')),
+            \App\Orchid\Layouts\Dashboard\DashboardChartCapitalLayout::make('charts.capital', __('Capital Statistics')),
             ChartBarTransaction::make('charts.transactions', __('Statistics for the year')),
 
             Layout::view('analytic.income-lists'),

@@ -195,7 +195,7 @@ class TransactionsService
         $prevData = $this->query()->where('is_balance' ,1)->SumByMonths($value,  $prevStart, $prevEnd, $dateColumn)->toChart($namePrev);
 
         $mappedLabels = array_map(function($label) {
-            return Carbon::createFromFormat('Y-m', $label)->translatedFormat('M');
+            return Carbon::createFromFormat('Y-m-d', $label . '-01')->translatedFormat('M');
         }, $currentData['labels']);
 
         $currentData['labels'] = $mappedLabels;
@@ -203,6 +203,50 @@ class TransactionsService
 
         return [$currentData, $prevData];
     }
+
+    public function chartCapital(string $name = null, string $start = null, string $end = null, string $dateColumn = 'accrual_date') : array
+    {
+        $startDate = Carbon::parse($start)->startOfMonth();
+        $stopDate = Carbon::parse($end)->endOfMonth();
+
+        $initialBalance = FinanceTransaction::where('user_id', $this->getUserId())
+            ->where('is_balance', 1)
+            ->where($dateColumn, '<', $startDate)
+            ->sum('currency_amount');
+
+        $monthlySums = FinanceTransaction::where('user_id', $this->getUserId())
+            ->where('is_balance', 1)
+            ->select(DB::raw("DATE_FORMAT($dateColumn, '%Y-%m') as label"), DB::raw('SUM(currency_amount) as value'))
+            ->whereBetween($dateColumn, [$startDate, $stopDate])
+            ->groupBy('label')
+            ->orderBy('label')
+            ->get()
+            ->pluck('value', 'label')
+            ->toArray();
+
+        $months = $startDate->diffInMonths($stopDate) + 1;
+        $labels = [];
+        $values = [];
+        $runningBalance = (float)$initialBalance;
+
+        for ($i = 0; $i < $months; $i++) {
+            $monthKey = $startDate->format('Y-m');
+            $monthSum = $monthlySums[$monthKey] ?? 0;
+            $runningBalance += $monthSum;
+
+            $labels[] = Carbon::createFromFormat('Y-m-d', $monthKey . '-01')->translatedFormat('M Y');
+            $values[] = round($runningBalance, 2);
+
+            $startDate->addMonth();
+        }
+
+        return [[
+            'name' => $name ?? __('Capital'),
+            'labels' => $labels,
+            'values' => $values
+        ]];
+    }
+
     public function query(): object
     {
         return FinanceTransaction::where('type',$this->getType())->where('user_id', $this->getUserId())->where('is_balance' ,1) ;

@@ -6,6 +6,7 @@ use App\Models\FinanceTransaction;
 use App\Orchid\Layouts\Dashboard\DashboardChartTransactionCategoryLayout;
 use App\Orchid\Layouts\Dashboard\DashboardChartTransactionLayout;
 use App\Orchid\Layouts\Dashboard\DashboardChartIncomeLayout;
+use App\Orchid\Layouts\Dashboard\DashboardChartCapitalLayout;
 use App\Orchid\Layouts\Finance\Transaction\TransactionListLayout;
 use App\Services\Currency\Currency;
 use App\Services\Finance\Bill\BillService;
@@ -64,14 +65,17 @@ class DashboardScreen extends Screen
         $data['metrics']['currentYear']['expenses'] = Currency::convertValueToCurrency((clone $expenses)->whereYear('created_at', Carbon::now()->year)->sum('currency_amount'));
 
         $data['metrics']['bills'] = $this->generateMetricsToBill();
-        $data['charts']['transactions'][] = $transactionIncome->chartBar(__("Income"), $start, $end, 'accrual_date', 'currency_amount');
-        $data['charts']['transactions'][] = $transactionExpenses->chartBar(__("Expenses"), $start, $end, 'accrual_date', 'absolute_currency_amount');
-        $data['charts']['transactions'][] = $transaction->chartBarBalance(__("Balance"), $start, $end, 'accrual_date', 'currency_amount');
+        $data['charts']['transactions'][] = $transactionIncome->chartBar(__("Income"), $start, $end, 'created_at', 'currency_amount');
+        $data['charts']['transactions'][] = $transactionExpenses->chartBar(__("Expenses"), $start, $end, 'created_at', 'absolute_currency_amount');
+        $data['charts']['transactions'][] = $transaction->chartBarBalance(__("Balance"), $start, $end, 'created_at', 'currency_amount');
         
-        $data['charts']['income_year'] = $transactionIncome->chartBarComparison(__('Current Year'), __('Previous Year'), $start, $end, 'accrual_date', 'currency_amount');
+        $data['charts']['income_year'] = $transactionIncome->chartBarComparison(__('Current Year'), __('Previous Year'), $start, $end, 'created_at', 'currency_amount');
+        $data['charts']['capital'] = $transaction->chartCapital(__('Capital'), $start, $end, 'created_at');
         
         $data['charts']['categories']['income'] = $transactionIncome->chartPieCategory(Carbon::now()->startOfMonth(), $end);
         $data['charts']['categories']['expenses'] = $transactionExpenses->chartPieCategory(Carbon::now()->startOfMonth(), $end);
+        $data['charts']['bills']['income'] = $transactionIncome->chartPieBill(Carbon::now()->startOfMonth(), $end);
+        $data['charts']['bills']['expenses'] = $transactionExpenses->chartPieBill(Carbon::now()->startOfMonth(), $end);
 
         $data['transactions'] = $this->getTransactions($transactions);
 
@@ -160,6 +164,7 @@ class DashboardScreen extends Screen
             ])->title('Data for the current year'),
             Layout::view('dashboard.category-list'),
             DashboardChartIncomeLayout::make('charts.income_year', __('Income for the year')),
+            DashboardChartCapitalLayout::make('charts.capital', __('Capital Statistics')),
             DashboardChartTransactionLayout::make('charts.transactions', __('Statistics for the year')),
             TransactionListLayout::class,
         ];
