@@ -73,7 +73,7 @@ class TransactionIncomeService extends  TransactionsService
         $transaction['balance'] = $this->getTotalBalance() +  $transaction['amount'];
         $transaction['balance_bill'] = $this->getBalanceToBill($transaction['finance_bill_id']) +  $transaction['amount'];
         
-        $taxes = $this->calculateTaxes($transaction['currency_amount'], $taxStatus, $taxRateIds);
+        $taxes = $this->calculateTaxes($transaction['currency_amount'], $taxStatus, $taxRateIds ?? []);
         $transaction['tax_amount'] = $taxes['total'];
         $transaction['tax_details'] = $taxes['details']; // We will use this in the save method
 

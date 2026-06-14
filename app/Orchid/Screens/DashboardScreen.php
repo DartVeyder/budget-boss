@@ -76,6 +76,7 @@ class DashboardScreen extends Screen
         $data['charts']['categories']['expenses'] = $transactionExpenses->chartPieCategory(Carbon::now()->startOfMonth(), $end);
         $data['charts']['bills']['income'] = $transactionIncome->chartPieBill(Carbon::now()->startOfMonth(), $end);
         $data['charts']['bills']['expenses'] = $transactionExpenses->chartPieBill(Carbon::now()->startOfMonth(), $end);
+        $data['charts']['sources']['expenses'] = $transactionExpenses->chartPieSource(Carbon::now()->startOfMonth(), $end);
 
         $data['transactions'] = $this->getTransactions($transactions);
 
