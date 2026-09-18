@@ -204,6 +204,13 @@ class DocumentGenerationService
         $serviceName = $transaction->comment ?: ($transaction->category?->name ?: 'Послуги згідно домовленості');
         $amount = (float)$transaction->amount;
 
+        if (!$counterparty && $customer) {
+            $customer->loadMissing(['counterparties' => fn ($q) => $q->active()]);
+            if ($customer->counterparties->count() === 1) {
+                $counterparty = $customer->counterparties->first();
+            }
+        }
+
         return [
             'act_number' => $this->generateActNumber($transaction->user_id),
             'act_date' => $transaction->accrual_date ? $transaction->accrual_date->toDateString() : ($transaction->created_at ? $transaction->created_at->toDateString() : Carbon::now()->toDateString()),
@@ -236,6 +243,13 @@ class DocumentGenerationService
         $fop = $invoice->fop ?: ($invoice->customer?->fop ?: Fop::where('user_id', $invoice->user_id)->first());
         $customer = $invoice->customer;
         $counterparty = $invoice->counterparty;
+
+        if (!$counterparty && $customer) {
+            $customer->loadMissing(['counterparties' => fn ($q) => $q->active()]);
+            if ($customer->counterparties->count() === 1) {
+                $counterparty = $customer->counterparties->first();
+            }
+        }
 
         $items = [];
         if (!empty($invoice->items_data) && is_array($invoice->items_data)) {

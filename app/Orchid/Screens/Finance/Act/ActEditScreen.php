@@ -9,6 +9,7 @@ use App\Models\CustomerCounterparty;
 use App\Models\FinanceInvoice;
 use App\Models\FinanceTransaction;
 use App\Models\Fop;
+use App\Orchid\Layouts\Finance\Act\ActPartiesListener;
 use App\Services\Finance\Act\DocumentGenerationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -95,6 +96,14 @@ class ActEditScreen extends Screen
             }
         }
 
+        // Auto-select counterparty if customer has 1 counterparty and counterparty is not set
+        if ($act->customer_id && empty($act->counterparty_id)) {
+            $cust = Customer::with(['counterparties' => fn ($q) => $q->active()])->find($act->customer_id);
+            if ($cust && $cust->counterparties->count() === 1) {
+                $act->counterparty_id = $cust->counterparties->first()->id;
+            }
+        }
+
         return [
             'act' => $act,
             'items' => $items,
@@ -160,32 +169,7 @@ class ActEditScreen extends Screen
     public function layout(): iterable
     {
         return [
-            Layout::block(
-                Layout::rows([
-                    Relation::make('act.fop_id')
-                        ->title('Виконавець (мій ФОП)')
-                        ->fromModel(Fop::class, 'name')
-                        ->applyScope('user')
-                        ->required()
-                        ->help('Реквізити (ПІБ, ІПН, адреса, IBAN банку) автоматично перенесуться в документ'),
-
-                    Group::make([
-                        Relation::make('act.customer_id')
-                            ->title('Замовник (Клієнт)')
-                            ->fromModel(Customer::class, 'name')
-                            ->applyScope('user')
-                            ->required(),
-
-                        Relation::make('act.counterparty_id')
-                            ->title('ФОП контрагент (платник)')
-                            ->fromModel(CustomerCounterparty::class, 'name')
-                            ->applyScope('user')
-                            ->help('Оберіть, якщо кошти або документ оформлюються на конкретного ФОПа-платника замовника'),
-                    ]),
-                ])
-            )
-            ->title('Сторони документа')
-            ->description('Вибір вашого ФОПа та замовника для автоматичного заповнення реквізитів'),
+            ActPartiesListener::class,
 
             Layout::block(
                 Layout::rows([
@@ -269,6 +253,35 @@ class ActEditScreen extends Screen
     }
 
     /**
+     * Asynchronous listener method triggered when customer is selected.
+     */
+    public function asyncGetCustomerParties($actData = null)
+    {
+        $customerId = is_array($actData) ? ($actData['customer_id'] ?? null) : $actData;
+
+        $customer = $customerId ? Customer::with(['fop', 'counterparties' => fn ($q) => $q->active()])->find($customerId) : null;
+
+        $counterpartyId = null;
+        if ($customer && $customer->counterparties->count() === 1) {
+            $counterpartyId = $customer->counterparties->first()->id;
+        }
+
+        $fopId = $customer?->fop_id;
+
+        $actResult = [
+            'customer_id' => $customerId,
+            'counterparty_id' => $counterpartyId,
+        ];
+        if ($fopId) {
+            $actResult['fop_id'] = $fopId;
+        }
+
+        return [
+            'act' => $actResult,
+        ];
+    }
+
+    /**
      * Save or update Act (and optionally Invoice).
      */
     public function save(Act $act, Request $request, DocumentGenerationService $documentService)
@@ -279,6 +292,13 @@ class ActEditScreen extends Screen
 
         $actData = $request->input('act', []);
         $itemsData = $request->input('items', []);
+
+        if (empty($actData['counterparty_id'])) {
+            $actData['counterparty_id'] = null;
+        }
+        if (empty($actData['contract_date'])) {
+            $actData['contract_date'] = null;
+        }
 
         $request->validate([
             'act.fop_id' => 'required|exists:fops,id',

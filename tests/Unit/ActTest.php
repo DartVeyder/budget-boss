@@ -254,4 +254,31 @@ class ActTest extends TestCase
         $listResponse = $this->get(route('platform.acts'));
         $listResponse->assertOk();
     }
+
+    public function test_act_parties_listener_auto_selects_counterparty(): void
+    {
+        $user = User::first() ?? User::factory()->create();
+        $this->actingAs($user);
+
+        $customer = Customer::create([
+            'user_id' => $user->id,
+            'name' => 'Замовник з ФОП ' . uniqid(),
+        ]);
+
+        $counterparty = CustomerCounterparty::create([
+            'customer_id' => $customer->id,
+            'user_id' => $user->id,
+            'name' => 'ФОП Платник ' . uniqid(),
+            'ipn' => '3018200323',
+            'iban' => 'UA193052990000026004021049599',
+            'is_active' => true,
+        ]);
+
+        $editScreen = new ActEditScreen();
+        $result = $editScreen->asyncGetCustomerParties(['customer_id' => $customer->id]);
+
+        $this->assertArrayHasKey('act', $result);
+        $this->assertEquals($customer->id, $result['act']['customer_id']);
+        $this->assertEquals($counterparty->id, $result['act']['counterparty_id']);
+    }
 }
