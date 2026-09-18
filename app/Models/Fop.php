@@ -95,4 +95,12 @@ class Fop extends Model
     {
         return $this->hasMany(FinanceTransaction::class, 'fop_id');
     }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function quarterDocuments()
+    {
+        return $this->hasMany(FopQuarterDocument::class, 'fop_id');
+    }
 }

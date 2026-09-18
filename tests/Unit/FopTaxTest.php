@@ -6,10 +6,13 @@ use App\Models\FinanceBill;
 use App\Models\FinanceTransaction;
 use App\Models\Fop;
 use App\Models\FopGroup;
+use App\Models\FopQuarterDocument;
 use App\Models\TaxRate;
 use App\Models\User;
 use App\Services\Finance\Fop\FopTaxService;
 use Carbon\Carbon;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class FopTaxTest extends TestCase
@@ -191,5 +194,109 @@ class FopTaxTest extends TestCase
 
         $printResp = $this->actingAs($user)->get(route('platform.fop.ledger.print', ['year' => 2026, 'quarter' => 1]));
         $printResp->assertOk();
+    }
+
+    public function test_store_quarter_document_and_counts(): void
+    {
+        Storage::fake('public');
+
+        $fop = Fop::first();
+        if (!$fop) {
+            $user = User::first() ?? User::factory()->create();
+            $fop = Fop::create([
+                'user_id' => $user->id,
+                'name' => 'Тестовий ФОП',
+                'is_active' => true,
+            ]);
+        }
+
+        $taxService = new FopTaxService();
+        $fakeFile = UploadedFile::fake()->create('declaration_2026_q1.xml', 25, 'application/xml');
+
+        $doc = $taxService->storeQuarterDocument(
+            $fop,
+            2026,
+            1,
+            FopQuarterDocument::TYPE_DECLARATION,
+            'Податкова декларація платника ЄП за 1 кв',
+            'ДПС рег. №98765',
+            $fakeFile,
+            $fop->user_id
+        );
+
+        $this->assertInstanceOf(FopQuarterDocument::class, $doc);
+        $this->assertSame(2026, $doc->year);
+        $this->assertSame(1, $doc->quarter);
+        $this->assertSame(FopQuarterDocument::TYPE_DECLARATION, $doc->document_type);
+        $this->assertTrue($doc->isXml());
+        $this->assertStringContainsString('Декларація', $doc->type_label);
+        $this->assertNotEmpty($doc->formatted_size);
+
+        // Check quarterly report contains updated count
+        $report = $taxService->getQuarterlyReport($fop, 2026);
+        $this->assertGreaterThanOrEqual(1, $report['quarters'][1]['documents_count']);
+        $this->assertGreaterThanOrEqual(1, $report['total_year_documents']);
+
+        // Check documents fetch
+        $docs = $taxService->getQuarterDocuments($fop, 2026, 1);
+        $this->assertTrue($docs->contains('id', $doc->id));
+
+        // Clean up
+        $taxService->deleteQuarterDocument($fop, $doc->id);
+        $this->assertNull(FopQuarterDocument::find($doc->id));
+    }
+
+    public function test_quarter_document_controller_upload_and_delete(): void
+    {
+        Storage::fake('public');
+
+        $user = User::first();
+        if (!$user) {
+            $user = User::factory()->create();
+        }
+
+        $fop = Fop::where('user_id', $user->id)->first();
+        if (!$fop) {
+            $fop = Fop::create([
+                'user_id' => $user->id,
+                'name' => 'Тестовий ФОП для HTTP',
+                'is_active' => true,
+            ]);
+        }
+
+        $fakeFile = UploadedFile::fake()->create('receipt_2.pdf', 50, 'application/pdf');
+
+        // Test upload
+        $response = $this->actingAs($user)->post(route('platform.fop.document.upload'), [
+            'quarter' => 2,
+            'year' => 2026,
+            'document_type' => FopQuarterDocument::TYPE_RECEIPT_2,
+            'title' => 'Квитанція №2 (Прийнято)',
+            'notes' => 'Звіт прийнято без зауважень',
+            'file' => $fakeFile,
+        ]);
+
+        $response->assertRedirect(route('platform.fop.tax', ['year' => 2026, 'doc_quarter' => 2]));
+
+        $doc = FopQuarterDocument::where('fop_id', $fop->id)
+            ->where('year', 2026)
+            ->where('quarter', 2)
+            ->where('document_type', FopQuarterDocument::TYPE_RECEIPT_2)
+            ->first();
+
+        $this->assertNotNull($doc);
+        $this->assertTrue($doc->isPdf());
+
+        // Test delete
+        $deleteResp = $this->actingAs($user)->post(route('platform.fop.document.delete', $doc->id));
+        $deleteResp->assertRedirect();
+        $this->assertNull(FopQuarterDocument::find($doc->id));
+    }
+
+    public function test_fop_tax_screen_renders_http_200(): void
+    {
+        $user = User::first() ?? User::factory()->create();
+        $response = $this->actingAs($user)->get(route('platform.fop.tax', ['year' => 2026, 'doc_quarter' => 1]));
+        $response->assertOk();
     }
 }

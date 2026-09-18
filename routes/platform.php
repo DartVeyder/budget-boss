@@ -291,6 +291,15 @@ Route::get('fop/ledger-print', [\App\Http\Controllers\FopTaxController::class, '
 Route::post('fop/tax-pay', [\App\Http\Controllers\FopTaxController::class, 'payTax'])
     ->name('platform.fop.tax.pay');
 
+Route::post('fop/document-upload', [\App\Http\Controllers\FopTaxController::class, 'uploadQuarterDocument'])
+    ->name('platform.fop.document.upload');
+
+Route::post('fop/document-delete/{id}', [\App\Http\Controllers\FopTaxController::class, 'deleteQuarterDocument'])
+    ->name('platform.fop.document.delete');
+
+Route::get('fop/document-download/{id}', [\App\Http\Controllers\FopTaxController::class, 'downloadQuarterDocument'])
+    ->name('platform.fop.document.download');
+
 // Platform > Customers
 Route::screen('customers', \App\Orchid\Screens\Customer\CustomerListScreen::class)
     ->name('platform.customers')

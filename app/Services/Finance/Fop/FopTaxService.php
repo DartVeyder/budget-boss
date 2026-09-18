@@ -7,10 +7,14 @@ use App\Models\FinanceTransaction;
 use App\Models\FinanceTransactionCategory;
 use App\Models\FinanceTransactionType;
 use App\Models\Fop;
+use App\Models\FopQuarterDocument;
 use Carbon\Carbon;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Orchid\Attachment\File as OrchidFile;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FopTaxService
@@ -103,6 +107,13 @@ class FopTaxService
         $now = Carbon::now();
         $quarters = [];
 
+        $docCounts = FopQuarterDocument::where('fop_id', $fop->id)
+            ->where('year', $year)
+            ->selectRaw('quarter, count(*) as count')
+            ->groupBy('quarter')
+            ->pluck('count', 'quarter')
+            ->toArray();
+
         for ($q = 1; $q <= 4; $q++) {
             $startMonth = ($q - 1) * 3 + 1;
             $endMonth = $q * 3;
@@ -124,29 +135,11 @@ class FopTaxService
 
             $income = (float)$query->sum('currency_amount');
 
-            // Check if specific single tax was recorded in pivot table
-            $singleTaxRecorded = 0.0;
-            $militaryTaxRecorded = 0.0;
+            // Single Tax (5%) calculated on the total quarterly income
+            $singleTax = round($income * ($singleTaxPercent / 100), 2);
 
-            if ($singleTaxRate) {
-                $singleTaxRecorded = (float)DB::table('finance_transaction_tax_rate')
-                    ->whereIn('finance_transaction_id', (clone $query)->pluck('id'))
-                    ->where('tax_rate_id', $singleTaxRate->id)
-                    ->sum('amount');
-            }
-
-            if ($militaryRate) {
-                $militaryTaxRecorded = (float)DB::table('finance_transaction_tax_rate')
-                    ->whereIn('finance_transaction_id', (clone $query)->pluck('id'))
-                    ->where('tax_rate_id', $militaryRate->id)
-                    ->sum('amount');
-            }
-
-            // Single Tax (5%)
-            $singleTax = $singleTaxRecorded > 0 ? $singleTaxRecorded : round($income * ($singleTaxPercent / 100), 2);
-
-            // Military tax (1%)
-            $militaryTax = $militaryTaxRecorded > 0 ? $militaryTaxRecorded : round($income * ($militaryTaxPercent / 100), 2);
+            // Military tax (1%) calculated on the total quarterly income
+            $militaryTax = round($income * ($militaryTaxPercent / 100), 2);
 
             $totalTax = $singleTax + $militaryTax + $quarterlyEsv;
 
@@ -217,6 +210,7 @@ class FopTaxService
                 'is_past' => $isPast,
                 'cumulative_income' => $cumulativeIncome,
                 'cumulative_single_tax' => $cumulativeSingleTax,
+                'documents_count' => (int)($docCounts[$q] ?? 0),
             ];
         }
 
@@ -226,11 +220,14 @@ class FopTaxService
             'is_esv_exempt' => (bool)$fop->is_esv_exempt,
             'monthly_esv' => $monthlyEsv,
             'single_tax_percent' => $singleTaxPercent,
+            'military_tax_percent' => $militaryTaxPercent,
             'quarters' => $quarters,
             'total_year_income' => array_sum(array_column($quarters, 'income')),
             'total_year_taxes' => array_sum(array_column($quarters, 'total_tax')),
             'total_year_single_tax' => array_sum(array_column($quarters, 'single_tax')),
+            'total_year_military_tax' => array_sum(array_column($quarters, 'military_tax')),
             'total_year_esv' => array_sum(array_column($quarters, 'esv')),
+            'total_year_documents' => array_sum($docCounts),
         ];
     }
 
@@ -468,5 +465,82 @@ class FopTaxService
         $transaction->save();
 
         return $transaction;
+    }
+
+    /**
+     * Get quarter documents for the given year and optional quarter.
+     */
+    public function getQuarterDocuments(Fop $fop, int $year, ?int $quarter = null): Collection
+    {
+        $query = FopQuarterDocument::with(['attachment', 'user'])
+            ->where('fop_id', $fop->id)
+            ->where('year', $year)
+            ->orderByDesc('quarter')
+            ->orderByDesc('id');
+
+        if ($quarter !== null && $quarter >= 1 && $quarter <= 4) {
+            $query->where('quarter', $quarter);
+        }
+
+        return $query->get();
+    }
+
+    /**
+     * Store an uploaded document for a specific quarter.
+     */
+    public function storeQuarterDocument(
+        Fop $fop,
+        int $year,
+        int $quarter,
+        string $documentType,
+        ?string $title,
+        ?string $notes,
+        UploadedFile $file,
+        ?int $userId = null
+    ): FopQuarterDocument {
+        $orchidFile = new OrchidFile($file, 'public', 'fop_documents');
+        /** @var \Orchid\Attachment\Models\Attachment $attachment */
+        $attachment = $orchidFile->load();
+
+        $originalName = $file->getClientOriginalName();
+        $mimeType = $file->getClientMimeType();
+        $fileSize = $file->getSize() ?: 0;
+        $filePath = $attachment->path . $attachment->name . '.' . $attachment->extension;
+
+        if (empty($title)) {
+            $typeLabel = FopQuarterDocument::TYPES[$documentType]['label'] ?? 'Документ';
+            $title = $typeLabel . ' (' . $quarter . ' кв. ' . $year . ' р.)';
+        }
+
+        return FopQuarterDocument::create([
+            'fop_id'        => $fop->id,
+            'user_id'       => $userId ?? Auth::id() ?? $fop->user_id,
+            'year'          => $year,
+            'quarter'       => $quarter,
+            'document_type' => $documentType,
+            'title'         => $title,
+            'notes'         => $notes,
+            'attachment_id' => $attachment->id,
+            'file_path'     => $filePath,
+            'original_name' => $originalName,
+            'file_size'     => $fileSize,
+            'mime_type'     => $mimeType,
+        ]);
+    }
+
+    /**
+     * Delete a quarter document and its underlying file.
+     */
+    public function deleteQuarterDocument(Fop $fop, int $documentId): bool
+    {
+        $doc = FopQuarterDocument::where('fop_id', $fop->id)->findOrFail($documentId);
+
+        if ($doc->attachment) {
+            $doc->attachment->delete();
+        } elseif ($doc->file_path && Storage::disk('public')->exists($doc->file_path)) {
+            Storage::disk('public')->delete($doc->file_path);
+        }
+
+        return (bool)$doc->delete();
     }
 }

@@ -44,11 +44,19 @@ class FopTaxScreen extends Screen
         $report = $taxService->getQuarterlyReport($fop, $year);
         $declaration = $taxService->getDeclarationSummary($fop, $year, $declQuarter);
 
+        $docFilterQuarter = request()->has('doc_quarter') && request()->get('doc_quarter') !== ''
+            ? (int)request()->get('doc_quarter')
+            : null;
+
+        $quarterDocuments = $taxService->getQuarterDocuments($fop, $year, $docFilterQuarter);
+
         return [
             'fop' => $fop,
             'limitProgress' => $limitProgress,
             'report' => $report,
             'declaration' => $declaration,
+            'quarterDocuments' => $quarterDocuments,
+            'docFilterQuarter' => $docFilterQuarter,
         ];
     }
 
