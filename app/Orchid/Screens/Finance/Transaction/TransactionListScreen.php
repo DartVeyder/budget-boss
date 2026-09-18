@@ -40,7 +40,7 @@ class TransactionListScreen extends Screen
 
         return [
             "transactions" =>
-                FinanceTransaction::with('attachment')->filters(TransactionSelection::class)
+                FinanceTransaction::with(['attachment', 'customer', 'counterparty', 'bill', 'category', 'currency'])->filters(TransactionSelection::class)
                     ->where('user_id' , Auth::user()->id)
                     ->defaultSort('created_at', 'desc')
                     ->paginate()

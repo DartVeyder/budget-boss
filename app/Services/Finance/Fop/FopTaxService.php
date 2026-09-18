@@ -237,7 +237,7 @@ class FopTaxService
     public function getIncomeLedger(Fop $fop, int $year, ?int $quarter = null): Collection
     {
         $query = FinanceTransaction::query()
-            ->with(['customer', 'bill'])
+            ->with(['customer', 'counterparty', 'bill'])
             ->where('is_balance', 1)
             ->where('type', 'income')
             ->whereYear('created_at', $year)
@@ -259,14 +259,23 @@ class FopTaxService
 
         return $query->get()->map(function (FinanceTransaction $tx, $index) {
             $amount = (float)$tx->currency_amount;
+            
+            $payerName = $tx->counterparty?->name ?: ($tx->customer?->name ?: 'Клієнт');
+            $payerEdrpou = $tx->counterparty?->ipn ?: ($tx->customer?->ipn ?: ($tx->customer?->edrpou ?: '-'));
+
+            $description = $tx->customer?->name ?: ($tx->comment ?: 'Надходження за послуги / товари');
+            if ($tx->counterparty && $tx->customer && $tx->counterparty->name !== $tx->customer->name) {
+                $description = "{$tx->customer->name} (через {$tx->counterparty->name})";
+            }
+
             return new \Orchid\Screen\Repository([
                 'index' => $index + 1,
                 'id' => $tx->id,
                 'date' => $tx->created_at ? $tx->created_at->format('d.m.Y') : '',
                 'created_at' => $tx->created_at,
-                'description' => $tx->customer?->name ?: ($tx->comment ?: 'Надходження за послуги / товари'),
-                'payer' => $tx->customer?->name ?: 'Клієнт',
-                'payer_edrpou' => $tx->customer?->ipn ?: '-',
+                'description' => $description,
+                'payer' => $payerName,
+                'payer_edrpou' => $payerEdrpou,
                 'cashless_amount' => $amount,
                 'cash_amount' => 0.00,
                 'total_income' => $amount,

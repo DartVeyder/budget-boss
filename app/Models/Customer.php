@@ -32,4 +32,8 @@ class Customer extends Model
         return $this->belongsTo(Fop::class);
     }
 
+    public function counterparties()
+    {
+        return $this->hasMany(CustomerCounterparty::class)->orderBy('name');
+    }
 }

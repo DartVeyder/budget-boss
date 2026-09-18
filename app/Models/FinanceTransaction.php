@@ -30,6 +30,7 @@ class FinanceTransaction extends Model
     protected $allowedFilters = [
         'transaction_type_id'  => Where::class,
         'customer_id'  => Where::class,
+        'counterparty_id' => Where::class,
         'transaction_category_id'=> Where::class,
         'finance_bill_id' => Where::class,
         'fop_id' => Where::class,
@@ -47,6 +48,7 @@ class FinanceTransaction extends Model
         'finance_bill_id',
         'created_at',
         'customer_id',
+        'counterparty_id',
         'accrual_date',
         'mcc_code'
     ];
@@ -96,5 +98,9 @@ class FinanceTransaction extends Model
 
     public function fop(){
         return $this->belongsTo(Fop::class, 'fop_id');
+    }
+
+    public function counterparty(){
+        return $this->belongsTo(CustomerCounterparty::class, 'counterparty_id');
     }
 }

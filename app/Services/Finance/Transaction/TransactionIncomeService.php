@@ -97,6 +97,10 @@ class TransactionIncomeService extends  TransactionsService
         }
         $transaction['fop_id'] = $fopId;
 
+        if (isset($transaction['counterparty_id'])) {
+            $transaction['counterparty_id'] = !empty($transaction['counterparty_id']) ? (int)$transaction['counterparty_id'] : null;
+        }
+
         $transaction['user_id'] = $this->getUserId();
 
         return $transaction;

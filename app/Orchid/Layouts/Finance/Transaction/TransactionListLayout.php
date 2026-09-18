@@ -63,7 +63,15 @@ class TransactionListLayout extends Table
                     Customer::where('user_id', Auth::id())
                         ->pluck('name', 'id'))
                 ->render(
-                    fn(FinanceTransaction $transaction) => ($transaction->customer)?  $transaction->customer->name: ''
+                    function (FinanceTransaction $transaction) {
+                        $name = $transaction->customer ? e($transaction->customer->name) : '';
+                        if ($transaction->counterparty) {
+                            $cpName = e($transaction->counterparty->name);
+                            $cpIpn = $transaction->counterparty->ipn ? " (ІПН: {$transaction->counterparty->ipn})" : '';
+                            $name .= "<br><span class='text-muted small'><i class='bi bi-person-badge'></i> {$cpName}{$cpIpn}</span>";
+                        }
+                        return $name;
+                    }
                 ),
             TD::make('finance_invoice_id', __('№ Invoice'))
                 ->render(

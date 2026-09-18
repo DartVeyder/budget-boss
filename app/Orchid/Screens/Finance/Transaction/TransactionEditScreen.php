@@ -36,7 +36,7 @@ class TransactionEditScreen extends Screen
             abort(403);
         }
 
-        $transaction->load(['attachment', 'taxes', 'customer.fop.fopGroup.taxRates']);
+        $transaction->load(['attachment', 'taxes', 'customer.fop.fopGroup.taxRates', 'customer.counterparties', 'counterparty']);
 
         $taxRates = $transaction->taxes->pluck('id')->toArray();
         if (empty($taxRates) && $transaction->customer?->fop?->fopGroup?->taxRates) {
@@ -207,11 +207,17 @@ class TransactionEditScreen extends Screen
         
         \Illuminate\Support\Facades\Log::info('asyncGetCustomerDefaults called', ['customerId' => $customerId]);
 
-        $customer = \App\Models\Customer::with('fop.fopGroup.taxRates')->find($customerId);
+        $customer = \App\Models\Customer::with(['fop.fopGroup.taxRates', 'counterparties' => fn ($q) => $q->active()])->find($customerId);
+
+        $counterpartyId = null;
+        if ($customer && $customer->counterparties->count() === 1) {
+            $counterpartyId = $customer->counterparties->first()->id;
+        }
 
         return [
             'transaction' => [
                 'customer_id' => $customerId,
+                'counterparty_id' => $counterpartyId,
                 'finance_bill_id' => $customer?->fop?->finance_bill_id,
                 'transaction_category_id' => $customer?->fop?->transaction_category_id,
             ],

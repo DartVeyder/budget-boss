@@ -3,8 +3,10 @@
 namespace App\Orchid\Layouts\Finance\Transaction;
 
 use App\Models\Customer;
+use App\Models\CustomerCounterparty;
 use App\Models\FinanceBill;
 use App\Models\FinanceInvoice;
+use App\Models\FinanceTransaction;
 use App\Models\FinanceTransactionCategory;
 use App\Models\TaxRate;
 use Orchid\Screen\Fields\DateTimer;
@@ -45,6 +47,39 @@ class TransactionIncomeListener extends Listener
      */
     public function handle(\Orchid\Screen\Repository $repository, \Illuminate\Http\Request $request): \Orchid\Screen\Repository
     {
+        $customerId = $request->input('transaction.customer_id');
+        $customer = $customerId ? Customer::with(['fop.fopGroup.taxRates', 'counterparties' => fn ($q) => $q->active()])->find($customerId) : null;
+
+        $transaction = $repository->get('transaction', []);
+        if ($transaction instanceof FinanceTransaction) {
+            $transaction = $transaction->toArray();
+        }
+
+        $transaction['customer_id'] = $customerId;
+        if ($customer?->fop?->finance_bill_id) {
+            $transaction['finance_bill_id'] = $customer->fop->finance_bill_id;
+        }
+        if ($customer?->fop?->transaction_category_id) {
+            $transaction['transaction_category_id'] = $customer->fop->transaction_category_id;
+        }
+
+        if ($customer && $customer->counterparties->count() === 1) {
+            $transaction['counterparty_id'] = $customer->counterparties->first()->id;
+        } else {
+            $currentCpId = $transaction['counterparty_id'] ?? null;
+            if ($currentCpId && $customer && !$customer->counterparties->pluck('id')->contains($currentCpId)) {
+                $transaction['counterparty_id'] = null;
+            }
+        }
+
+        $repository->set('transaction', $transaction);
+        if ($customer?->fop?->tax_status) {
+            $repository->set('tax_status', $customer->fop->tax_status);
+        }
+        if ($customer?->fop?->fopGroup?->taxRates) {
+            $repository->set('tax_rates', $customer->fop->fopGroup->taxRates->pluck('id')->toArray());
+        }
+
         return $repository;
     }
 
@@ -53,6 +88,30 @@ class TransactionIncomeListener extends Listener
      */
     protected function layouts(): iterable
     {
+        $customerId = null;
+        if ($this->query) {
+            $customerId = $this->query->get('transaction.customer_id');
+            if (!$customerId) {
+                $tx = $this->query->get('transaction');
+                if (is_array($tx)) {
+                    $customerId = $tx['customer_id'] ?? null;
+                } elseif ($tx instanceof FinanceTransaction) {
+                    $customerId = $tx->customer_id;
+                }
+            }
+        }
+
+        $counterpartyOptions = [];
+        if ($customerId) {
+            $counterparties = CustomerCounterparty::where('customer_id', $customerId)
+                ->active()
+                ->get();
+
+            foreach ($counterparties as $cp) {
+                $counterpartyOptions[$cp->id] = $cp->full_title;
+            }
+        }
+
         return [
             Layout::rows([
                 Relation::make('transaction.transaction_category_id')
@@ -70,6 +129,12 @@ class TransactionIncomeListener extends Listener
                     ->title('From whom')
                     ->fromModel(Customer::class, 'name')
                     ->applyScope('user'),
+
+                Select::make('transaction.counterparty_id')
+                    ->title('ФОП контрагент (платник)')
+                    ->options($counterpartyOptions)
+                    ->empty('Не обрано (оплата від основного клієнта)', '')
+                    ->help('Якщо оплата надійшла від конкретного ФОП контрагента клієнта'),
 
                 Relation::make('transaction.finance_bill_id')
                     ->title('Bills')

@@ -46,6 +46,12 @@ class TransactionEditIncomeRows extends Rows
                 ->fromModel(Customer::class, 'name')
                 ->applyScope('user'),
 
+            Relation::make('transaction.counterparty_id')
+                ->title('ФОП контрагент (платник)')
+                ->fromModel(\App\Models\CustomerCounterparty::class, 'name')
+                ->applyScope('user')
+                ->help('Якщо оплата надійшла від конкретного ФОП контрагента'),
+
             Relation::make('transaction.finance_bill_id')
                 ->title('Bills')
                 ->displayAppend('billCurrency')
