@@ -97,7 +97,20 @@ class TransactionListLayout extends Table
                 ->render(
                 fn(FinanceTransaction $transaction) => $transaction->tax_amount . ' '. ($transaction->currency?->symbol ?? '')
             ),
-            TD::make('comment', __('Comment')) ,
+            TD::make('comment', __('Comment'))
+                ->render(function (FinanceTransaction $transaction) {
+                    $html = e($transaction->comment ?? '');
+                    if ($transaction->tax_type) {
+                        $badgeClass = match ($transaction->tax_type) {
+                            'single_tax' => 'bg-primary-subtle text-primary border border-primary-subtle',
+                            'military_tax' => 'bg-dark-subtle text-dark border border-secondary-subtle',
+                            'esv' => 'bg-info-subtle text-info border border-info-subtle',
+                            default => 'bg-secondary-subtle text-secondary',
+                        };
+                        $html .= "<div class='mt-1'><span class='badge {$badgeClass} rounded-pill small'>🏛️ {$transaction->tax_type_label} ({$transaction->tax_period_label})</span></div>";
+                    }
+                    return $html;
+                }),
             TD::make('created_at', __('Created'))
                 ->sort()
                 ->filter(TD::FILTER_DATE_RANGE)

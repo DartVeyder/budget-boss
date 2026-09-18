@@ -49,6 +49,7 @@ class FopTaxScreen extends Screen
             : null;
 
         $quarterDocuments = $taxService->getQuarterDocuments($fop, $year, $docFilterQuarter);
+        $availableExpenses = $taxService->getRecentExpenseTransactions($fop, $year);
 
         return [
             'fop' => $fop,
@@ -57,6 +58,7 @@ class FopTaxScreen extends Screen
             'declaration' => $declaration,
             'quarterDocuments' => $quarterDocuments,
             'docFilterQuarter' => $docFilterQuarter,
+            'availableExpenses' => $availableExpenses,
         ];
     }
 
@@ -143,11 +145,12 @@ class FopTaxScreen extends Screen
 
         $taxTitle = match ($taxType) {
             'single_tax' => 'Сплата Єдиного Податку',
+            'military_tax' => 'Сплата Військового збору',
             'esv' => 'Сплата ЄСВ',
             default => 'Сплата податку',
         };
 
-        $transaction = $taxService->createTaxPayment($fop, $taxTitle, $amount, $quarter, $year);
+        $transaction = $taxService->createTaxPayment($fop, $taxTitle, $amount, $quarter, $year, $taxType);
 
         Alert::success("Створено транзакцію витрат на суму " . number_format($amount, 2, '.', ' ') . " ₴ ({$taxTitle}).");
 

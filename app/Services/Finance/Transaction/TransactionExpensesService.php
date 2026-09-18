@@ -27,6 +27,11 @@ class TransactionExpensesService extends TransactionsService
         $transaction['amount'] = $this->getAmountNegative($transaction['amount']);
         $transaction['user_id'] = $this->getUserId();
 
+        $transaction['fop_id'] = !empty($transaction['fop_id']) ? (int)$transaction['fop_id'] : null;
+        $transaction['tax_type'] = !empty($transaction['tax_type']) ? $transaction['tax_type'] : null;
+        $transaction['tax_quarter'] = !empty($transaction['tax_quarter']) ? (int)$transaction['tax_quarter'] : null;
+        $transaction['tax_year'] = !empty($transaction['tax_year']) ? (int)$transaction['tax_year'] : null;
+
         $transaction = array_merge($transaction, $this->getCurrency($transaction['finance_bill_id'], $transaction['amount']));
 
         return $transaction;

@@ -17,7 +17,15 @@
                 <h3 class="fw-bold text-primary mb-1 mt-2">
                     {{ number_format($report['total_year_single_tax'], 2, '.', ' ') }} ₴
                 </h3>
-                <span class="text-muted small">+ Військовий збір ({{ $report['military_tax_percent'] ?? 1 }}%): <strong class="text-dark">{{ number_format($report['total_year_military_tax'] ?? 0, 2, '.', ' ') }} ₴</strong></span>
+                <div class="small text-muted mb-1">
+                    Сплачено: <strong class="text-success">{{ number_format($report['total_year_single_tax_paid'] ?? 0, 2, '.', ' ') }} ₴</strong>
+                    @if(($report['total_year_single_tax'] - ($report['total_year_single_tax_paid'] ?? 0)) > 0)
+                        &bull; Залишок: <span class="text-danger fw-semibold">{{ number_format($report['total_year_single_tax'] - $report['total_year_single_tax_paid'], 2, '.', ' ') }} ₴</span>
+                    @else
+                        &bull; <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small">Сплачено</span>
+                    @endif
+                </div>
+                <span class="text-muted small">Військовий збір ({{ $report['military_tax_percent'] ?? 1 }}%): <strong class="text-dark">{{ number_format($report['total_year_military_tax'] ?? 0, 2, '.', ' ') }} ₴</strong> (сплачено: <span class="text-success fw-semibold">{{ number_format($report['total_year_military_tax_paid'] ?? 0, 2, '.', ' ') }} ₴</span>)</span>
             </div>
         </div>
         <div class="col-md-3">
@@ -30,6 +38,9 @@
                     <h3 class="fw-bold text-info mb-1 mt-2">
                         {{ number_format($report['total_year_esv'], 2, '.', ' ') }} ₴
                     </h3>
+                    <div class="small text-muted mb-1">
+                        Сплачено: <strong class="text-success">{{ number_format($report['total_year_esv_paid'] ?? 0, 2, '.', ' ') }} ₴</strong>
+                    </div>
                     <span class="text-muted small">{{ number_format($report['monthly_esv'], 2, '.', ' ') }} ₴ / місяць</span>
                 @endif
             </div>
@@ -40,6 +51,14 @@
                 <h3 class="fw-bold text-white mb-1 mt-2">
                     {{ number_format($report['total_year_taxes'], 2, '.', ' ') }} ₴
                 </h3>
+                <div class="small text-white-50 mb-1">
+                    Сплачено: <strong class="text-white">{{ number_format($report['total_year_taxes_paid'] ?? 0, 2, '.', ' ') }} ₴</strong>
+                    @if(($report['total_year_taxes_remaining'] ?? 0) > 0)
+                        &bull; Залишок: <strong class="text-warning">{{ number_format($report['total_year_taxes_remaining'], 2, '.', ' ') }} ₴</strong>
+                    @else
+                        &bull; <span class="badge bg-success text-white small">Все сплачено</span>
+                    @endif
+                </div>
                 <span class="text-white-50 small">ЄП ({{ number_format($report['total_year_single_tax'], 0, '.', ' ') }}) + ВЗ ({{ number_format($report['total_year_military_tax'] ?? 0, 0, '.', ' ') }}) + ЄСВ ({{ number_format($report['total_year_esv'], 0, '.', ' ') }}) ₴</span>
             </div>
         </div>
@@ -73,7 +92,7 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light text-muted small text-uppercase">
                     <tr>
-                        <th class="ps-4">Квартал / Період</th>
+                        <th class="ps-4" style="min-width: 170px;">Квартал / Період</th>
                         <th>Дохід за квартал</th>
                         <th>Єдиний податок ({{ $report['single_tax_percent'] }}%)</th>
                         <th>Військовий збір (1%)</th>
@@ -87,64 +106,178 @@
                 <tbody>
                     @foreach($report['quarters'] as $qNum => $qData)
                         <tr class="{{ $qData['is_current'] ? 'table-primary-subtle' : '' }}">
-                            <td class="ps-4">
+                            <td class="ps-4" style="min-width: 170px; white-space: nowrap;">
                                 <div class="d-flex align-items-center gap-2">
-                                    <span class="badge {{ $qData['is_current'] ? 'bg-primary' : 'bg-secondary' }} rounded-circle p-2" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
+                                    <span class="badge {{ $qData['is_current'] ? 'bg-primary' : ($qData['is_fully_paid'] ? 'bg-success' : 'bg-secondary') }} rounded-circle p-2 flex-shrink-0" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
                                         {{ $qNum }}
                                     </span>
                                     <div>
-                                        <strong class="text-dark d-block">{{ $qData['name'] }}</strong>
-                                        <span class="text-muted" style="font-size: 0.75rem;">
-                                             {{ $qData['start_date']->format('d.m') }} — {{ $qData['end_date']->format('d.m.Y') }}
+                                        <strong class="text-dark d-block" style="white-space: nowrap;">{{ $qData['name'] }}</strong>
+                                        <span class="text-muted d-block" style="font-size: 0.75rem; white-space: nowrap;">
+                                            {{ $qData['start_date']->format('d.m') }} — {{ $qData['end_date']->format('d.m.Y') }}
                                         </span>
+                                        @if($qData['is_current'])
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill" style="font-size: 0.7rem;">Поточний</span>
+                                        @endif
                                     </div>
-                                    @if($qData['is_current'])
-                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill ms-1" style="font-size: 0.7rem;">Поточний</span>
-                                    @endif
                                 </div>
                             </td>
                             <td>
                                 <strong class="text-success">{{ number_format($qData['income'], 2, '.', ' ') }} ₴</strong>
                             </td>
                             <td>
-                                <strong>{{ number_format($qData['single_tax'], 2, '.', ' ') }} ₴</strong>
+                                <div><strong>{{ number_format($qData['single_tax'], 2, '.', ' ') }} ₴</strong></div>
+                                @if($qData['is_single_tax_paid'])
+                                    <div class="mt-1">
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small">
+                                            ✓ Сплачено ({{ number_format($qData['single_tax_paid'], 2, '.', ' ') }} ₴)
+                                        </span>
+                                        @foreach($qData['single_tax_payments'] as $pTx)
+                                            <div class="d-flex align-items-center gap-1 mt-1">
+                                                <a href="{{ route('platform.transactions.edit', $pTx->id) }}" class="small text-muted text-decoration-none" title="Транзакція #{{ $pTx->id }}: {{ $pTx->comment }}" target="_blank">
+                                                    🔗 #{{ $pTx->id }} ({{ $pTx->created_at?->format('d.m') }}): {{ number_format($pTx->currency_amount, 2, '.', ' ') }} ₴
+                                                </a>
+                                                <form method="POST" action="{{ route('platform.fop.tax.unlink', $pTx->id) }}" class="d-inline" onsubmit="return confirm('Відв\'язати транзакцію #{{ $pTx->id }} від сплати ЄП?');">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-link p-0 text-danger" title="Відв'язати від податку" style="font-size: 11px; line-height: 1;">✕</button>
+                                                </form>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @elseif($qData['single_tax_paid'] > 0)
+                                    <div class="mt-1">
+                                        <span class="badge bg-warning-subtle text-dark border border-warning-subtle rounded-pill small">
+                                            Сплачено: {{ number_format($qData['single_tax_paid'], 2, '.', ' ') }} ₴
+                                        </span>
+                                        <div class="small text-danger fw-semibold">Залишок: {{ number_format($qData['single_tax_remaining'], 2, '.', ' ') }} ₴</div>
+                                    </div>
+                                @elseif($qData['single_tax'] > 0)
+                                    <div class="mt-1">
+                                        <span class="badge bg-light text-muted border rounded-pill small">Не сплачено</span>
+                                    </div>
+                                @else
+                                    <span class="text-muted small">—</span>
+                                @endif
                             </td>
                             <td>
-                                <span class="text-muted">{{ number_format($qData['military_tax'], 2, '.', ' ') }} ₴</span>
+                                <div><strong>{{ number_format($qData['military_tax'], 2, '.', ' ') }} ₴</strong></div>
+                                @if($qData['is_military_tax_paid'])
+                                    <div class="mt-1">
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small">
+                                            ✓ Сплачено ({{ number_format($qData['military_tax_paid'], 2, '.', ' ') }} ₴)
+                                        </span>
+                                        @foreach($qData['military_tax_payments'] as $pTx)
+                                            <div class="d-flex align-items-center gap-1 mt-1">
+                                                <a href="{{ route('platform.transactions.edit', $pTx->id) }}" class="small text-muted text-decoration-none" title="Транзакція #{{ $pTx->id }}: {{ $pTx->comment }}" target="_blank">
+                                                    🔗 #{{ $pTx->id }} ({{ $pTx->created_at?->format('d.m') }}): {{ number_format($pTx->currency_amount, 2, '.', ' ') }} ₴
+                                                </a>
+                                                <form method="POST" action="{{ route('platform.fop.tax.unlink', $pTx->id) }}" class="d-inline" onsubmit="return confirm('Відв\'язати транзакцію #{{ $pTx->id }} від сплати ВЗ?');">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-link p-0 text-danger" title="Відв'язати від податку" style="font-size: 11px; line-height: 1;">✕</button>
+                                                </form>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @elseif($qData['military_tax_paid'] > 0)
+                                    <div class="mt-1">
+                                        <span class="badge bg-warning-subtle text-dark border border-warning-subtle rounded-pill small">
+                                            Сплачено: {{ number_format($qData['military_tax_paid'], 2, '.', ' ') }} ₴
+                                        </span>
+                                        <div class="small text-danger fw-semibold">Залишок: {{ number_format($qData['military_tax_remaining'], 2, '.', ' ') }} ₴</div>
+                                    </div>
+                                @elseif($qData['military_tax'] > 0)
+                                    <div class="mt-1">
+                                        <span class="badge bg-light text-muted border rounded-pill small">Не сплачено</span>
+                                    </div>
+                                @else
+                                    <span class="text-muted small">—</span>
+                                @endif
                             </td>
                             <td>
                                 @if($report['is_esv_exempt'])
                                     <span class="badge bg-light text-muted border rounded-pill small">Звільнено</span>
                                 @else
-                                    <span class="text-muted">{{ number_format($qData['esv'], 2, '.', ' ') }} ₴</span>
+                                    <div><span class="text-muted">{{ number_format($qData['esv'], 2, '.', ' ') }} ₴</span></div>
+                                    @if($qData['is_esv_paid'])
+                                        <div class="mt-1">
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small">✓ Сплачено</span>
+                                        </div>
+                                    @elseif($qData['esv_paid'] > 0)
+                                        <div class="mt-1">
+                                            <span class="badge bg-warning-subtle text-dark border rounded-pill small">Сплачено: {{ number_format($qData['esv_paid'], 2, '.', ' ') }} ₴</span>
+                                        </div>
+                                    @else
+                                        <div class="mt-1">
+                                            <span class="badge bg-light text-muted border rounded-pill small">Не сплачено</span>
+                                        </div>
+                                    @endif
                                 @endif
                             </td>
                             <td>
-                                <h6 class="fw-bold text-dark mb-0">
-                                    {{ number_format($qData['total_tax'], 2, '.', ' ') }} ₴
-                                </h6>
+                                @if($qData['is_fully_paid'])
+                                    <span class="badge bg-success rounded-pill px-2 py-1 mb-1">
+                                        ✓ Сплачено
+                                    </span>
+                                    <span class="text-muted small d-block">0.00 ₴ до сплати</span>
+                                @elseif($qData['total_tax_paid'] > 0)
+                                    <h6 class="fw-bold text-danger mb-0">
+                                        {{ number_format($qData['total_tax_remaining'], 2, '.', ' ') }} ₴
+                                    </h6>
+                                    <span class="text-muted small">з {{ number_format($qData['total_tax'], 2, '.', ' ') }} ₴</span>
+                                @else
+                                    <h6 class="fw-bold text-dark mb-0">
+                                        {{ number_format($qData['total_tax'], 2, '.', ' ') }} ₴
+                                    </h6>
+                                @endif
                             </td>
                             <td>
                                 @php
                                     $singleTaxDeadline = $qData['deadlines']['single_tax'];
+                                    $militaryTaxDeadline = $qData['deadlines']['military_tax'] ?? $singleTaxDeadline;
                                     $esvDeadline = $qData['deadlines']['esv'];
                                     $daysLeft = $singleTaxDeadline['days_left'];
                                 @endphp
                                 <div>
-                                    <span class="small fw-semibold d-block">
-                                        ЄП: {{ $singleTaxDeadline['date']->format('d.m.Y') }}
-                                    </span>
-                                    @if(!$report['is_esv_exempt'])
-                                    <span class="small text-muted d-block" style="font-size: 0.75rem;">
-                                        ЄСВ: {{ $esvDeadline['date']->format('d.m.Y') }}
-                                    </span>
+                                    @if($singleTaxDeadline['is_paid'])
+                                        <span class="small text-success d-block">
+                                            ✓ ЄП: сплачено {{ $singleTaxDeadline['paid_at']?->format('d.m.Y') }}
+                                        </span>
+                                    @else
+                                        <span class="small fw-semibold d-block">
+                                            ЄП: {{ $singleTaxDeadline['date']->format('d.m.Y') }}
+                                        </span>
                                     @endif
-                                    @if($daysLeft > 0 && $daysLeft <= 14)
-                                        <span class="badge bg-warning text-dark rounded-pill" style="font-size: 0.7rem;">Залишилось {{ $daysLeft }} дн.</span>
+
+                                    @if($militaryTaxDeadline['is_paid'])
+                                        <span class="small text-success d-block" style="font-size: 0.75rem;">
+                                            ✓ ВЗ: сплачено {{ $militaryTaxDeadline['paid_at']?->format('d.m.Y') }}
+                                        </span>
+                                    @else
+                                        <span class="small text-muted d-block" style="font-size: 0.75rem;">
+                                            ВЗ: {{ $militaryTaxDeadline['date']->format('d.m.Y') }}
+                                        </span>
+                                    @endif
+
+                                    @if(!$report['is_esv_exempt'])
+                                        @if($esvDeadline['is_paid'])
+                                            <span class="small text-success d-block" style="font-size: 0.75rem;">
+                                                ✓ ЄСВ: сплачено {{ $esvDeadline['paid_at']?->format('d.m.Y') }}
+                                            </span>
+                                        @else
+                                            <span class="small text-muted d-block" style="font-size: 0.75rem;">
+                                                ЄСВ: {{ $esvDeadline['date']->format('d.m.Y') }}
+                                            </span>
+                                        @endif
+                                    @endif
+
+                                    @if($qData['is_fully_paid'])
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill mt-1" style="font-size: 0.7rem;">Сплачено вчасно ✓</span>
+                                    @elseif($daysLeft > 0 && $daysLeft <= 14)
+                                        <span class="badge bg-warning text-dark rounded-pill mt-1" style="font-size: 0.7rem;">Залишилось {{ $daysLeft }} дн.</span>
                                     @elseif($daysLeft > 14)
-                                        <span class="badge bg-light text-muted border rounded-pill" style="font-size: 0.7rem;">Через {{ $daysLeft }} дн.</span>
+                                        <span class="badge bg-light text-muted border rounded-pill mt-1" style="font-size: 0.7rem;">Через {{ $daysLeft }} дн.</span>
                                     @elseif($qData['is_past'] && $daysLeft < 0)
-                                        <span class="badge bg-secondary-subtle text-secondary rounded-pill" style="font-size: 0.7rem;">Минув</span>
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill mt-1" style="font-size: 0.7rem;">Минув</span>
                                     @endif
                                 </div>
                             </td>
@@ -164,52 +297,82 @@
                             </td>
                             <td class="text-end pe-4">
                                 <div class="dropdown">
-                                    <button class="btn btn-sm btn-outline-primary dropdown-toggle rounded-pill px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        Дії
+                                    <button class="btn btn-sm {{ $qData['is_fully_paid'] ? 'btn-outline-success' : 'btn-outline-primary' }} dropdown-toggle rounded-pill px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        {{ $qData['is_fully_paid'] ? 'Сплачено' : 'Дії' }}
                                     </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
-                                        <li>
-                                            <form method="POST" action="{{ route('platform.fop.tax.pay') }}">
-                                                @csrf
-                                                <input type="hidden" name="quarter" value="{{ $qNum }}">
-                                                <input type="hidden" name="year" value="{{ $report['year'] }}">
-                                                <input type="hidden" name="tax_type" value="single_tax">
-                                                <input type="hidden" name="amount" value="{{ $qData['single_tax'] }}">
-                                                <button type="submit" class="dropdown-item d-flex justify-content-between align-items-center" {{ $qData['single_tax'] <= 0 ? 'disabled' : '' }}>
-                                                    <span>Сплатити ЄП ({{ $qNum }} кв)</span>
-                                                    <strong class="ms-2 text-primary">{{ number_format($qData['single_tax'], 2, '.', ' ') }} ₴</strong>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="min-width: 280px;">
+                                        @if($qData['is_single_tax_paid'])
+                                            <li class="dropdown-header text-success py-1 small fw-bold">✓ Єдиний податок сплачено</li>
+                                            <li>
+                                                <button type="button" class="dropdown-item small text-primary" data-bs-toggle="modal" data-bs-target="#payTaxCustomModal" onclick="setCustomPayModal({{ $qNum }}, 'single_tax', '{{ $qData['single_tax'] }}', 'Єдиний податок')">
+                                                    ➕ Додати ще платіж ЄП...
                                                 </button>
-                                            </form>
-                                        </li>
-                                        <li>
-                                            <form method="POST" action="{{ route('platform.fop.tax.pay') }}">
-                                                @csrf
-                                                <input type="hidden" name="quarter" value="{{ $qNum }}">
-                                                <input type="hidden" name="year" value="{{ $report['year'] }}">
-                                                <input type="hidden" name="tax_type" value="military_tax">
-                                                <input type="hidden" name="amount" value="{{ $qData['military_tax'] }}">
-                                                <button type="submit" class="dropdown-item d-flex justify-content-between align-items-center" {{ $qData['military_tax'] <= 0 ? 'disabled' : '' }}>
-                                                    <span>Сплатити ВЗ ({{ $qNum }} кв)</span>
-                                                    <strong class="ms-2 text-dark">{{ number_format($qData['military_tax'], 2, '.', ' ') }} ₴</strong>
-                                                </button>
-                                            </form>
-                                        </li>
-                                        @if(!$report['is_esv_exempt'])
-                                        <li>
-                                            <form method="POST" action="{{ route('platform.fop.tax.pay') }}">
-                                                @csrf
-                                                <input type="hidden" name="quarter" value="{{ $qNum }}">
-                                                <input type="hidden" name="year" value="{{ $report['year'] }}">
-                                                <input type="hidden" name="tax_type" value="esv">
-                                                <input type="hidden" name="amount" value="{{ $qData['esv'] }}">
-                                                <button type="submit" class="dropdown-item d-flex justify-content-between align-items-center">
-                                                    <span>Сплатити ЄСВ ({{ $qNum }} кв)</span>
-                                                    <strong class="ms-2 text-info">{{ number_format($qData['esv'], 2, '.', ' ') }} ₴</strong>
-                                                </button>
-                                            </form>
-                                        </li>
+                                            </li>
+                                        @else
+                                            <li>
+                                                <form method="POST" action="{{ route('platform.fop.tax.pay') }}">
+                                                    @csrf
+                                                    <input type="hidden" name="quarter" value="{{ $qNum }}">
+                                                    <input type="hidden" name="year" value="{{ $report['year'] }}">
+                                                    <input type="hidden" name="tax_type" value="single_tax">
+                                                    <input type="hidden" name="amount" value="{{ $qData['single_tax_remaining'] }}">
+                                                    <button type="submit" class="dropdown-item d-flex justify-content-between align-items-center" {{ $qData['single_tax_remaining'] <= 0 ? 'disabled' : '' }}>
+                                                        <span>💳 Сплатити ЄП ({{ $qNum }} кв)</span>
+                                                        <strong class="ms-2 text-primary">{{ number_format($qData['single_tax_remaining'], 2, '.', ' ') }} ₴</strong>
+                                                    </button>
+                                                </form>
+                                            </li>
                                         @endif
+
+                                        @if($qData['is_military_tax_paid'])
+                                            <li class="dropdown-header text-success py-1 small fw-bold">✓ Військовий збір сплачено</li>
+                                            <li>
+                                                <button type="button" class="dropdown-item small text-dark" data-bs-toggle="modal" data-bs-target="#payTaxCustomModal" onclick="setCustomPayModal({{ $qNum }}, 'military_tax', '{{ $qData['military_tax'] }}', 'Військовий збір')">
+                                                    ➕ Додати ще платіж ВЗ...
+                                                </button>
+                                            </li>
+                                        @else
+                                            <li>
+                                                <form method="POST" action="{{ route('platform.fop.tax.pay') }}">
+                                                    @csrf
+                                                    <input type="hidden" name="quarter" value="{{ $qNum }}">
+                                                    <input type="hidden" name="year" value="{{ $report['year'] }}">
+                                                    <input type="hidden" name="tax_type" value="military_tax">
+                                                    <input type="hidden" name="amount" value="{{ $qData['military_tax_remaining'] }}">
+                                                    <button type="submit" class="dropdown-item d-flex justify-content-between align-items-center" {{ $qData['military_tax_remaining'] <= 0 ? 'disabled' : '' }}>
+                                                        <span>🛡️ Сплатити ВЗ ({{ $qNum }} кв)</span>
+                                                        <strong class="ms-2 text-dark">{{ number_format($qData['military_tax_remaining'], 2, '.', ' ') }} ₴</strong>
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        @endif
+
+                                        @if(!$report['is_esv_exempt'])
+                                            @if($qData['is_esv_paid'])
+                                                <li class="dropdown-header text-success py-1 small fw-bold">✓ ЄСВ сплачено</li>
+                                            @else
+                                                <li>
+                                                    <form method="POST" action="{{ route('platform.fop.tax.pay') }}">
+                                                        @csrf
+                                                        <input type="hidden" name="quarter" value="{{ $qNum }}">
+                                                        <input type="hidden" name="year" value="{{ $report['year'] }}">
+                                                        <input type="hidden" name="tax_type" value="esv">
+                                                        <input type="hidden" name="amount" value="{{ $qData['esv_remaining'] }}">
+                                                        <button type="submit" class="dropdown-item d-flex justify-content-between align-items-center">
+                                                            <span>💼 Сплатити ЄСВ ({{ $qNum }} кв)</span>
+                                                            <strong class="ms-2 text-info">{{ number_format($qData['esv_remaining'], 2, '.', ' ') }} ₴</strong>
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            @endif
+                                        @endif
+
                                         <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <button type="button" class="dropdown-item text-primary" data-bs-toggle="modal" data-bs-target="#linkTransactionModal" onclick="setLinkModalQuarter({{ $qNum }})">
+                                                🔗 Прив'язати існуючу витрату...
+                                            </button>
+                                        </li>
                                         <li>
                                             <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#uploadDocModal" onclick="setModalQuarter({{ $qNum }})">
                                                 📎 Додати документ до {{ $qNum }} кв.
@@ -264,7 +427,7 @@
                 </a>
                 @foreach([1, 2, 3, 4] as $q)
                     <a href="{{ request()->fullUrlWithQuery(['doc_quarter' => $q]) }}#quarter-docs" 
-                       class="btn {{ ($docFilterQuarter == $q) ? 'btn-primary text-white' : 'btn-outline-secondary' }}">
+                       class="btn {{ (($docFilterQuarter ?? null) == $q) ? 'btn-primary text-white' : 'btn-outline-secondary' }}">
                         {{ $q }} квартал ({{ $report['quarters'][$q]['documents_count'] ?? 0 }})
                     </a>
                 @endforeach
@@ -455,6 +618,110 @@
     </div>
     @endif
 
+    <!-- Link Transaction Modal -->
+    <div class="modal fade" id="linkTransactionModal" tabindex="-1" aria-labelledby="linkTransactionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow rounded-4">
+                <form action="{{ route('platform.fop.tax.link') }}" method="POST">
+                    @csrf
+                    <div class="modal-header border-bottom py-3 px-4">
+                        <h5 class="modal-title fw-bold text-dark" id="linkTransactionModalLabel">
+                            🔗 Прив'язати існуючу витрату до податків ФОП
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <input type="hidden" name="year" value="{{ $report['year'] }}">
+                        
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Податковий квартал <span class="text-danger">*</span></label>
+                                <select name="quarter" id="linkModalQuarterSelect" class="form-select" required>
+                                    <option value="1">I квартал (Січ - Бер)</option>
+                                    <option value="2">II квартал (Кві - Чер)</option>
+                                    <option value="3">III квартал (Лип - Вер)</option>
+                                    <option value="4">IV квартал (Жов - Гру)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Тип податку <span class="text-danger">*</span></label>
+                                <select name="tax_type" id="linkModalTaxTypeSelect" class="form-select" required>
+                                    <option value="single_tax">Єдиний податок (5%)</option>
+                                    <option value="military_tax">Військовий збір (1%)</option>
+                                    <option value="esv">ЄСВ</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Оберіть витратну транзакцію <span class="text-danger">*</span></label>
+                            @if(isset($availableExpenses) && $availableExpenses->count() > 0)
+                                <select name="transaction_id" id="linkModalTransactionSelect" class="form-select" required size="7" style="font-family: monospace; font-size: 0.85rem;">
+                                    @foreach($availableExpenses as $tx)
+                                        <option value="{{ $tx->id }}">
+                                            #{{ $tx->id }} | {{ $tx->created_at?->format('d.m.Y') }} | {{ number_format($tx->currency_amount, 2, '.', ' ') }} ₴ | {{ \Illuminate\Support\Str::limit($tx->comment ?: 'Без коментаря', 45) }} {{ $tx->tax_type ? " [Вже прив'язано: {$tx->tax_period_label}]" : '' }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="form-text small">Виберіть зі списку останніх витрат за {{ $report['year'] }} рік. Транзакцію буде закріплено за обраним податком і кварталом.</div>
+                            @else
+                                <div class="alert alert-warning small mb-0">Немає доступних витратних транзакцій за {{ $report['year'] }} рік.</div>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top py-3 px-4">
+                        <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Скасувати</button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4">
+                            Прив'язати до кварталу
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom / Additional Tax Payment Modal -->
+    <div class="modal fade" id="payTaxCustomModal" tabindex="-1" aria-labelledby="payTaxCustomModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow rounded-4">
+                <form action="{{ route('platform.fop.tax.pay') }}" method="POST">
+                    @csrf
+                    <div class="modal-header border-bottom py-3 px-4">
+                        <h5 class="modal-title fw-bold text-dark" id="payTaxCustomModalLabel">
+                            💳 Сплата податку ФОП
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <input type="hidden" name="year" value="{{ $report['year'] }}">
+                        <input type="hidden" name="quarter" id="customPayQuarter">
+                        <input type="hidden" name="tax_type" id="customPayTaxType">
+                        
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Податок та період</label>
+                            <input type="text" class="form-control" id="customPayTitleDisplay" readonly disabled>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Сума для сплати (грн) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="number" step="0.01" min="0.01" name="amount" id="customPayAmountInput" class="form-control fs-5 fw-bold" required>
+                                <span class="input-group-text">₴</span>
+                            </div>
+                            <div class="form-text small">Буде створено витратну транзакцію у категорії «Податки» з прив'язкою до цього кварталу.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top py-3 px-4">
+                        <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Скасувати</button>
+                        <button type="submit" class="btn btn-success rounded-pill px-4">
+                            Підтвердити оплату
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Upload Quarter Document Modal -->
     <div class="modal fade" id="uploadDocModal" tabindex="-1" aria-labelledby="uploadDocModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -535,6 +802,24 @@
         if (select) {
             select.value = quarter;
         }
+    }
+
+    function setLinkModalQuarter(quarter, taxType) {
+        var selectQuarter = document.getElementById('linkModalQuarterSelect');
+        if (selectQuarter) {
+            selectQuarter.value = quarter;
+        }
+        var selectTax = document.getElementById('linkModalTaxTypeSelect');
+        if (selectTax && taxType) {
+            selectTax.value = taxType;
+        }
+    }
+
+    function setCustomPayModal(quarter, taxType, amount, title) {
+        document.getElementById('customPayQuarter').value = quarter;
+        document.getElementById('customPayTaxType').value = taxType;
+        document.getElementById('customPayAmountInput').value = amount;
+        document.getElementById('customPayTitleDisplay').value = (title || taxType) + ' (' + quarter + ' кв. {{ $report['year'] }} р.)';
     }
     </script>
 </div>

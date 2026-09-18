@@ -34,6 +34,9 @@ class FinanceTransaction extends Model
         'transaction_category_id'=> Where::class,
         'finance_bill_id' => Where::class,
         'fop_id' => Where::class,
+        'tax_type' => Where::class,
+        'tax_quarter' => Where::class,
+        'tax_year' => Where::class,
         'created_at' => WhereDateStartEnd::class,
         'amount' => WhereMaxMin::class,
         'accrual_date'=>WhereDateStartEnd::class,
@@ -50,8 +53,49 @@ class FinanceTransaction extends Model
         'customer_id',
         'counterparty_id',
         'accrual_date',
-        'mcc_code'
+        'mcc_code',
+        'tax_year',
+        'tax_quarter',
     ];
+
+    public const TAX_TYPES = [
+        'single_tax'   => 'Єдиний податок (5%)',
+        'military_tax' => 'Військовий збір (1%)',
+        'esv'          => 'ЄСВ',
+    ];
+
+    public function getTaxTypeLabelAttribute(): ?string
+    {
+        return self::TAX_TYPES[$this->tax_type] ?? $this->tax_type;
+    }
+
+    public function getTaxPeriodLabelAttribute(): ?string
+    {
+        if (!$this->tax_quarter || !$this->tax_year) {
+            return null;
+        }
+        return "{$this->tax_quarter} кв. {$this->tax_year} р.";
+    }
+
+    public function scopeTaxPayments($query, $fopId = null, $year = null, $quarter = null, $taxType = null)
+    {
+        $query->where('type', 'expenses');
+
+        if ($fopId) {
+            $query->where('fop_id', $fopId);
+        }
+        if ($year) {
+            $query->where('tax_year', $year);
+        }
+        if ($quarter) {
+            $query->where('tax_quarter', $quarter);
+        }
+        if ($taxType) {
+            $query->where('tax_type', $taxType);
+        }
+
+        return $query;
+    }
 
 
     public function getCurrencyAmountAttribute($value)

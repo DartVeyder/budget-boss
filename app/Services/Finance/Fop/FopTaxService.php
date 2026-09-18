@@ -114,6 +114,19 @@ class FopTaxService
             ->pluck('count', 'quarter')
             ->toArray();
 
+        // Query all tax payment transactions for this FOP and year
+        $taxPayments = FinanceTransaction::where('type', 'expenses')
+            ->where('tax_year', $year)
+            ->where(function ($q) use ($fop) {
+                $q->where('fop_id', $fop->id);
+                if ($fop->finance_bill_id) {
+                    $q->orWhere('finance_bill_id', $fop->finance_bill_id);
+                }
+            })
+            ->whereIn('tax_type', ['single_tax', 'military_tax', 'esv'])
+            ->orderBy('created_at', 'asc')
+            ->get();
+
         for ($q = 1; $q <= 4; $q++) {
             $startMonth = ($q - 1) * 3 + 1;
             $endMonth = $q * 3;
@@ -141,7 +154,30 @@ class FopTaxService
             // Military tax (1%) calculated on the total quarterly income
             $militaryTax = round($income * ($militaryTaxPercent / 100), 2);
 
-            $totalTax = $singleTax + $militaryTax + $quarterlyEsv;
+            $quarterlyEsvAmount = $fop->is_esv_exempt ? 0.0 : $quarterlyEsv;
+            $totalTax = $singleTax + $militaryTax + $quarterlyEsvAmount;
+
+            // Payments made for this quarter
+            $qPayments = $taxPayments->where('tax_quarter', $q);
+            $singleTaxPayments = $qPayments->where('tax_type', 'single_tax');
+            $militaryTaxPayments = $qPayments->where('tax_type', 'military_tax');
+            $esvPayments = $qPayments->where('tax_type', 'esv');
+
+            $singleTaxPaid = round((float)$singleTaxPayments->sum('currency_amount'), 2);
+            $militaryTaxPaid = round((float)$militaryTaxPayments->sum('currency_amount'), 2);
+            $esvPaid = round((float)$esvPayments->sum('currency_amount'), 2);
+
+            $singleTaxRemaining = max(0.0, round($singleTax - $singleTaxPaid, 2));
+            $militaryTaxRemaining = max(0.0, round($militaryTax - $militaryTaxPaid, 2));
+            $esvRemaining = $fop->is_esv_exempt ? 0.0 : max(0.0, round($quarterlyEsvAmount - $esvPaid, 2));
+
+            $totalTaxPaid = $singleTaxPaid + $militaryTaxPaid + $esvPaid;
+            $totalTaxRemaining = $singleTaxRemaining + $militaryTaxRemaining + $esvRemaining;
+
+            $isSingleTaxPaid = ($singleTax > 0 && $singleTaxRemaining <= 0) || ($singleTax == 0 && $singleTaxPaid > 0);
+            $isMilitaryTaxPaid = ($militaryTax > 0 && $militaryTaxRemaining <= 0) || ($militaryTax == 0 && $militaryTaxPaid > 0);
+            $isEsvPaid = (bool)$fop->is_esv_exempt || ($quarterlyEsvAmount > 0 && $esvRemaining <= 0) || ($quarterlyEsvAmount == 0 && $esvPaid > 0);
+            $isFullyPaid = ($totalTax > 0 && $totalTaxRemaining <= 0) || ($totalTax == 0 && $totalTaxPaid > 0);
 
             // Deadlines
             // ESV deadline: 19th of month following quarter
@@ -160,22 +196,45 @@ class FopTaxService
             $isPast = $endDate->isPast();
             $isCurrent = $now->between($startDate, $endDate);
 
+            $lastSingleTaxPayment = $singleTaxPayments->last();
+            $lastMilitaryTaxPayment = $militaryTaxPayments->last();
+            $lastEsvPayment = $esvPayments->last();
+
             $deadlinesList = [
                 'esv' => [
                     'title' => 'Сплата ЄСВ',
                     'date' => $esvDeadline,
-                    'amount' => $quarterlyEsv,
+                    'amount' => $quarterlyEsvAmount,
+                    'paid_amount' => $esvPaid,
+                    'is_paid' => $isEsvPaid,
+                    'paid_at' => $lastEsvPayment?->created_at,
+                    'transaction_id' => $lastEsvPayment?->id,
                     'days_left' => $now->diffInDays($esvDeadline, false),
                 ],
                 'declaration' => [
                     'title' => 'Подання декларації ЄП',
                     'date' => $declarationDeadline,
+                    'is_submitted' => ($docCounts[$q] ?? 0) > 0,
                     'days_left' => $now->diffInDays($declarationDeadline, false),
                 ],
                 'single_tax' => [
                     'title' => 'Сплата Єдиного Податку',
                     'date' => $singleTaxDeadline,
                     'amount' => $singleTax,
+                    'paid_amount' => $singleTaxPaid,
+                    'is_paid' => $isSingleTaxPaid,
+                    'paid_at' => $lastSingleTaxPayment?->created_at,
+                    'transaction_id' => $lastSingleTaxPayment?->id,
+                    'days_left' => $now->diffInDays($singleTaxDeadline, false),
+                ],
+                'military_tax' => [
+                    'title' => 'Сплата Військового збору',
+                    'date' => $singleTaxDeadline,
+                    'amount' => $militaryTax,
+                    'paid_amount' => $militaryTaxPaid,
+                    'is_paid' => $isMilitaryTaxPaid,
+                    'paid_at' => $lastMilitaryTaxPayment?->created_at,
+                    'transaction_id' => $lastMilitaryTaxPayment?->id,
                     'days_left' => $now->diffInDays($singleTaxDeadline, false),
                 ],
             ];
@@ -202,9 +261,28 @@ class FopTaxService
                 'income' => $income,
                 'single_tax_percent' => $singleTaxPercent,
                 'single_tax' => $singleTax,
+                'single_tax_paid' => $singleTaxPaid,
+                'single_tax_remaining' => $singleTaxRemaining,
+                'is_single_tax_paid' => $isSingleTaxPaid,
+                'single_tax_payments' => $singleTaxPayments->values()->all(),
+
                 'military_tax' => $militaryTax,
-                'esv' => $quarterlyEsv,
+                'military_tax_paid' => $militaryTaxPaid,
+                'military_tax_remaining' => $militaryTaxRemaining,
+                'is_military_tax_paid' => $isMilitaryTaxPaid,
+                'military_tax_payments' => $militaryTaxPayments->values()->all(),
+
+                'esv' => $quarterlyEsvAmount,
+                'esv_paid' => $esvPaid,
+                'esv_remaining' => $esvRemaining,
+                'is_esv_paid' => $isEsvPaid,
+                'esv_payments' => $esvPayments->values()->all(),
+
                 'total_tax' => $totalTax,
+                'total_tax_paid' => $totalTaxPaid,
+                'total_tax_remaining' => $totalTaxRemaining,
+                'is_fully_paid' => $isFullyPaid,
+
                 'deadlines' => $deadlinesList,
                 'is_current' => $isCurrent,
                 'is_past' => $isPast,
@@ -224,9 +302,14 @@ class FopTaxService
             'quarters' => $quarters,
             'total_year_income' => array_sum(array_column($quarters, 'income')),
             'total_year_taxes' => array_sum(array_column($quarters, 'total_tax')),
+            'total_year_taxes_paid' => array_sum(array_column($quarters, 'total_tax_paid')),
+            'total_year_taxes_remaining' => array_sum(array_column($quarters, 'total_tax_remaining')),
             'total_year_single_tax' => array_sum(array_column($quarters, 'single_tax')),
+            'total_year_single_tax_paid' => array_sum(array_column($quarters, 'single_tax_paid')),
             'total_year_military_tax' => array_sum(array_column($quarters, 'military_tax')),
+            'total_year_military_tax_paid' => array_sum(array_column($quarters, 'military_tax_paid')),
             'total_year_esv' => array_sum(array_column($quarters, 'esv')),
+            'total_year_esv_paid' => array_sum(array_column($quarters, 'esv_paid')),
             'total_year_documents' => array_sum($docCounts),
         ];
     }
@@ -436,24 +519,44 @@ class FopTaxService
     /**
      * Create tax payment expense transaction.
      */
-    public function createTaxPayment(Fop $fop, string $taxTitle, float $amount, int $quarter, int $year): FinanceTransaction
+    public function createTaxPayment(Fop $fop, string $taxTitle, float $amount, int $quarter, int $year, ?string $taxType = null): FinanceTransaction
     {
         $billId = $fop->finance_bill_id;
-        if (!$billId) {
+        $bill = null;
+        if ($billId) {
+            $bill = FinanceBill::find($billId);
+        }
+        if (!$bill) {
             $bill = FinanceBill::where('user_id', $fop->user_id)->first();
             $billId = $bill?->id;
         }
 
-        // Find or create 'Податки' expense category
-        $category = FinanceTransactionCategory::firstOrCreate(
-            ['name' => 'Податки', 'type' => 'expenses', 'user_id' => $fop->user_id],
-            ['active' => 1]
-        );
+        $currencyId = $bill?->finance_currency_id ?? 1;
+        $currencyCode = $bill?->currency_code ?? 'UAH';
 
-        // Find or create 'Tax payment' type
-        $type = FinanceTransactionType::firstOrCreate(
-            ['name' => 'expenses', 'type' => 'expenses']
-        );
+        // Auto-detect taxType if not explicitly passed
+        if (!$taxType) {
+            $lowerTitle = mb_strtolower($taxTitle);
+            if (str_contains($lowerTitle, 'військов')) {
+                $taxType = 'military_tax';
+            } elseif (str_contains($lowerTitle, 'єсв')) {
+                $taxType = 'esv';
+            } else {
+                $taxType = 'single_tax';
+            }
+        }
+
+        // Find or create 'Податок' / 'Податки' expense category
+        $category = FinanceTransactionCategory::where('user_id', $fop->user_id)
+            ->where('transaction_type_id', 1)
+            ->where(function ($q) {
+                $q->where('name', 'like', '%подат%');
+            })->first()
+            ?? FinanceTransactionCategory::firstOrCreate([
+                'name' => 'Податок',
+                'transaction_type_id' => 1,
+                'user_id' => $fop->user_id,
+            ]);
 
         $comment = "{$taxTitle} за {$quarter} кв. {$year} р. ({$fop->name})";
 
@@ -462,18 +565,71 @@ class FopTaxService
         $transaction->currency_amount = $amount;
         $transaction->absolute_currency_amount = $amount;
         $transaction->currency_value = 1.0;
+        $transaction->currency_code = $currencyCode;
+        $transaction->finance_currency_id = $currencyId;
         $transaction->type = 'expenses';
-        $transaction->transaction_type_id = $type->id;
+        $transaction->transaction_type_id = 1;
         $transaction->transaction_category_id = $category->id;
         $transaction->finance_bill_id = $billId;
         $transaction->fop_id = $fop->id;
         $transaction->user_id = $fop->user_id;
+        $transaction->tax_type = $taxType;
+        $transaction->tax_quarter = $quarter;
+        $transaction->tax_year = $year;
         $transaction->comment = $comment;
         $transaction->is_balance = 1;
         $transaction->created_at = Carbon::now();
+        $transaction->accrual_date = Carbon::now();
         $transaction->save();
 
         return $transaction;
+    }
+
+    /**
+     * Link an existing expense transaction to a tax quarter.
+     */
+    public function linkTransactionToTax(Fop $fop, int $transactionId, string $taxType, int $quarter, int $year): FinanceTransaction
+    {
+        $transaction = FinanceTransaction::where('user_id', $fop->user_id)
+            ->where('type', 'expenses')
+            ->findOrFail($transactionId);
+
+        $transaction->tax_type = $taxType;
+        $transaction->tax_quarter = $quarter;
+        $transaction->tax_year = $year;
+        $transaction->fop_id = $fop->id;
+        $transaction->save();
+
+        return $transaction;
+    }
+
+    /**
+     * Unlink a transaction from taxes.
+     */
+    public function unlinkTransactionFromTax(Fop $fop, int $transactionId): FinanceTransaction
+    {
+        $transaction = FinanceTransaction::where('user_id', $fop->user_id)
+            ->findOrFail($transactionId);
+
+        $transaction->tax_type = null;
+        $transaction->tax_quarter = null;
+        $transaction->tax_year = null;
+        $transaction->save();
+
+        return $transaction;
+    }
+
+    /**
+     * Get recent expense transactions that could be linked to taxes.
+     */
+    public function getRecentExpenseTransactions(Fop $fop, int $year): Collection
+    {
+        return FinanceTransaction::where('user_id', $fop->user_id)
+            ->where('type', 'expenses')
+            ->whereYear('created_at', $year)
+            ->orderByDesc('created_at')
+            ->limit(100)
+            ->get(['id', 'comment', 'amount', 'currency_amount', 'created_at', 'tax_type', 'tax_quarter', 'tax_year', 'finance_bill_id']);
     }
 
     /**

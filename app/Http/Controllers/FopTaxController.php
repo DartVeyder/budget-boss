@@ -81,11 +81,60 @@ class FopTaxController extends Controller
             default => 'Сплата податку',
         };
 
-        $taxService->createTaxPayment($fop, $taxTitle, $amount, $quarter, $year);
+        $taxService->createTaxPayment($fop, $taxTitle, $amount, $quarter, $year, $taxType);
 
         Alert::success("Створено транзакцію витрат на суму " . number_format($amount, 2, '.', ' ') . " ₴ ({$taxTitle}).");
 
         return redirect()->route('platform.fop.tax', ['year' => $year]);
+    }
+
+    /**
+     * Link an existing transaction to a tax period.
+     */
+    public function linkTransaction(Request $request, FopTaxService $taxService)
+    {
+        $fop = $taxService->getFop();
+        if (!$fop) {
+            Toast::error('ФОП не знайдено.');
+            return redirect()->back();
+        }
+
+        $request->validate([
+            'transaction_id' => 'required|integer|exists:finance_transactions,id',
+            'tax_type'       => 'required|string|in:single_tax,military_tax,esv',
+            'quarter'        => 'required|integer|min:1|max:4',
+            'year'           => 'required|integer|min:2020|max:2050',
+        ]);
+
+        $tx = $taxService->linkTransactionToTax(
+            $fop,
+            (int)$request->input('transaction_id'),
+            $request->input('tax_type'),
+            (int)$request->input('quarter'),
+            (int)$request->input('year')
+        );
+
+        Toast::info("Транзакцію #{$tx->id} успішно прив'язано до {$tx->tax_period_label} ({$tx->tax_type_label}).");
+
+        return redirect()->route('platform.fop.tax', ['year' => $request->input('year')]);
+    }
+
+    /**
+     * Unlink a transaction from taxes.
+     */
+    public function unlinkTransaction(Request $request, $id, FopTaxService $taxService)
+    {
+        $fop = $taxService->getFop();
+        if (!$fop) {
+            Toast::error('ФОП не знайдено.');
+            return redirect()->back();
+        }
+
+        $tx = $taxService->unlinkTransactionFromTax($fop, (int)$id);
+
+        Toast::info("Транзакцію #{$tx->id} відв'язано від податкового розрахунку.");
+
+        return redirect()->back();
     }
 
     /**

@@ -291,6 +291,12 @@ Route::get('fop/ledger-print', [\App\Http\Controllers\FopTaxController::class, '
 Route::post('fop/tax-pay', [\App\Http\Controllers\FopTaxController::class, 'payTax'])
     ->name('platform.fop.tax.pay');
 
+Route::post('fop/tax-link', [\App\Http\Controllers\FopTaxController::class, 'linkTransaction'])
+    ->name('platform.fop.tax.link');
+
+Route::post('fop/tax-unlink/{id}', [\App\Http\Controllers\FopTaxController::class, 'unlinkTransaction'])
+    ->name('platform.fop.tax.unlink');
+
 Route::post('fop/document-upload', [\App\Http\Controllers\FopTaxController::class, 'uploadQuarterDocument'])
     ->name('platform.fop.document.upload');
 
