@@ -70,6 +70,11 @@ class TransactionEditScreen extends Screen
     public function commandBar(): iterable
     {
         return [
+            Link::make('Сформувати Акт')
+                ->icon('bs.file-earmark-plus')
+                ->route('platform.acts.create', ['transaction_id' => $this->transaction->id])
+                ->canSee($this->transaction->exists && $this->transaction->type === 'income'),
+
             Button::make(__('Back'))
                 ->method('back'),
             Button::make(__('Save'))

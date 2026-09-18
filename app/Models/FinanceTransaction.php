@@ -103,4 +103,8 @@ class FinanceTransaction extends Model
     public function counterparty(){
         return $this->belongsTo(CustomerCounterparty::class, 'counterparty_id');
     }
+
+    public function act(){
+        return $this->hasOne(Act::class, 'finance_transaction_id');
+    }
 }

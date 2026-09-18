@@ -36,4 +36,9 @@ class Customer extends Model
     {
         return $this->hasMany(CustomerCounterparty::class)->orderBy('name');
     }
+
+    public function acts()
+    {
+        return $this->hasMany(Act::class)->latest('act_date');
+    }
 }

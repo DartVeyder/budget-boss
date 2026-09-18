@@ -321,4 +321,33 @@ Route::screen('customers/{customer}/edit', \App\Orchid\Screens\Customer\Customer
         ->parent('platform.customers')
         ->push($customer->name, route('platform.customers.edit', $customer)));
 
+// Platform > Acts
+Route::screen('acts', \App\Orchid\Screens\Finance\Act\ActListScreen::class)
+    ->name('platform.acts')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.index')
+        ->push('Акти наданих послуг', route('platform.acts')));
+
+// Platform > Acts > Create
+Route::screen('acts/create', \App\Orchid\Screens\Finance\Act\ActEditScreen::class)
+    ->name('platform.acts.create')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.acts')
+        ->push('Створення', route('platform.acts.create')));
+
+// Platform > Acts > Edit
+Route::screen('acts/{act}/edit', \App\Orchid\Screens\Finance\Act\ActEditScreen::class)
+    ->name('platform.acts.edit')
+    ->breadcrumbs(fn (Trail $trail, $act) => $trail
+        ->parent('platform.acts')
+        ->push($act->act_number ?? 'Редагування', route('platform.acts.edit', $act)));
+
+// Print Act & Invoice endpoints (clean A4 pages)
+Route::get('acts/{act}/print', [\App\Http\Controllers\ActPrintController::class, 'printAct'])
+    ->name('platform.acts.print');
+
+Route::get('invoices/{invoice}/print', [\App\Http\Controllers\ActPrintController::class, 'printInvoice'])
+    ->name('platform.invoices.print');
+
+
 //Route::screen('idea', Idea::class, 'platform.screens.idea');

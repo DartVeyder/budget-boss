@@ -116,6 +116,11 @@ class FopEditScreen extends Screen
                     ->title('Адреса')
                     ->placeholder('Введіть адресу'),
 
+                Input::make('fop.phone')
+                    ->title('Телефон')
+                    ->placeholder('+38 (098) 000-00-00')
+                    ->help('Відображається в актах та рахунках'),
+
                 Relation::make('fop.fop_group_id')
                     ->title('Група ФОП')
                     ->placeholder('Виберіть групу ФОП')

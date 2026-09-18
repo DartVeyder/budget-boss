@@ -37,7 +37,7 @@ class InvoiceListLayout extends Table
             ),
             TD::make('status', __('Status'))
                 ->render(
-                    fn(FinanceInvoice $invoice) => $invoice->translated_status
+                    fn(FinanceInvoice $invoice) => $invoice->status_badge
                 ),
             TD::make('created_at', __('Created'))
                 ->sort()
@@ -49,17 +49,22 @@ class InvoiceListLayout extends Table
                 ->sort(),
             TD::make(__('Actions'))
                 ->align(TD::ALIGN_CENTER)
-                ->width('100px')
+                ->width('120px')
                 ->render(fn (FinanceInvoice $invoice) => DropDown::make()
                     ->icon('bs.three-dots-vertical')
                     ->list([
-//                        Link::make(__('Edit'))
-//                            ->route('platform.transactions.edit', [$invoice->id])
-//
-//                            ->icon('bs.pencil'),
+                        Link::make('Друк Рахунку (A4)')
+                            ->icon('bs.printer')
+                            ->route('platform.invoices.print', $invoice)
+                            ->target('_blank'),
+
+                        Link::make('Сформувати Акт')
+                            ->icon('bs.file-earmark-plus')
+                            ->route('platform.acts.create', ['invoice_id' => $invoice->id]),
 
                         Button::make(__('Delete'))
                             ->icon('bs.trash3')
+                            ->confirm('Видалити цей рахунок?')
                             ->method('remove', [
                                 'id' => $invoice->id,
                             ]),

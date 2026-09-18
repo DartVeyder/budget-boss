@@ -26,6 +26,7 @@ class Fop extends Model
         'ipn',
         'ewn',
         'address',
+        'phone',
 
         'director',
         'is_active',
