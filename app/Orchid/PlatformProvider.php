@@ -70,7 +70,14 @@ class PlatformProvider extends OrchidServiceProvider
 
             Menu::make('Мій ФОП')
                 ->icon('bs.briefcase')
-                ->route('platform.fops')
+                ->list([
+                    Menu::make('Профіль ФОП')
+                        ->route('platform.fops'),
+                    Menu::make('Податки та Календар')
+                        ->route('platform.fop.tax'),
+                    Menu::make('Книга доходів')
+                        ->route('platform.fop.ledger'),
+                ])
                 ->title('Керування'),
 
             Menu::make('Customers')

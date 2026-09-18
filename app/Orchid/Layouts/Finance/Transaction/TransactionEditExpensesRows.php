@@ -55,6 +55,7 @@ class TransactionEditExpensesRows extends Rows
             Input::make("transaction.amount")
                 ->title('Money spent')
                 ->required()
+                ->step(0.01)
                 ->type('number'),
 
             TextArea::make("transaction.comment")

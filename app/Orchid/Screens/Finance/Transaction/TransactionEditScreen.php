@@ -32,9 +32,23 @@ class TransactionEditScreen extends Screen
      */
     public function query(FinanceTransaction $transaction): iterable
     {
-        $transaction->load('attachment');
+        if ($transaction->exists && $transaction->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $transaction->load(['attachment', 'taxes', 'customer.fop.fopGroup.taxRates']);
+
+        $taxRates = $transaction->taxes->pluck('id')->toArray();
+        if (empty($taxRates) && $transaction->customer?->fop?->fopGroup?->taxRates) {
+            $taxRates = $transaction->customer->fop->fopGroup->taxRates->pluck('id')->toArray();
+        }
+
+        $taxStatus = $transaction->customer?->fop?->tax_status ?? 'without_taxes';
+
         return [
-            'transaction' => $transaction
+            'transaction' => $transaction,
+            'tax_rates' => $taxRates,
+            'tax_status' => $taxStatus,
         ];
     }
 
@@ -93,15 +107,13 @@ class TransactionEditScreen extends Screen
     private  function  getLayout(int $typeId) :iterable
     {
         $layouts = [];
-        
-       
 
         switch ($typeId) {
             case 1:
                 $layouts[] = TransactionEditExpensesRows::class;
                 break;
             case 2:
-                $layouts[] = TransactionEditIncomeRows::class;
+                $layouts[] = TransactionIncomeListener::class;
                 break;
             case 3:
                 $layouts[] = TransactionEditTransferRows::class;
@@ -137,7 +149,7 @@ class TransactionEditScreen extends Screen
             $transaction->taxes()->detach();
         }
 
-        $transactionIncome->updateStatusInvoice($data['finance_invoice_id']);
+        $transactionIncome->updateStatusInvoice($data['finance_invoice_id'] ?? null);
         Toast::info(__('You have successfully created.'));
     }
 
@@ -150,6 +162,36 @@ class TransactionEditScreen extends Screen
         $transaction->attachment()->syncWithoutDetaching(
             $request->input('transaction.attachment', [])
         );
+
+        Toast::info(__('You have successfully created.'));
+    }
+
+    public function saveTransfer(Request $request, FinanceTransaction $transaction): void
+    {
+        $data = $request->input('transaction', []);
+        $attachments = $request->input('transaction.attachment', []);
+        unset($data['attachment']);
+
+        $transaction->fill($data)->save();
+
+        if (!empty($attachments)) {
+            $transaction->attachment()->syncWithoutDetaching($attachments);
+        }
+
+        Toast::info(__('You have successfully created.'));
+    }
+
+    public function saveAudit(Request $request, FinanceTransaction $transaction): void
+    {
+        $data = $request->input('transaction', []);
+        $attachments = $request->input('transaction.attachment', []);
+        unset($data['attachment']);
+
+        $transaction->fill($data)->save();
+
+        if (!empty($attachments)) {
+            $transaction->attachment()->syncWithoutDetaching($attachments);
+        }
 
         Toast::info(__('You have successfully created.'));
     }

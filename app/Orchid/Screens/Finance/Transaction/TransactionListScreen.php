@@ -147,36 +147,48 @@ class TransactionListScreen extends Screen
     }
 
     public function  saveTransfer(Request $request,  TransactionsService  $transactionsService): void{
-        $transaction = $request->input('transaction');
+        $transaction = $request->input('transaction', []);
         $attachments = $transaction['attachment'] ?? [];
         unset($transaction['attachment']);
         $transaction['is_balance'] = 0;
-        $bills =  $request->input('bills');
+        $bills =  $request->input('bills', []);
 
-        if(FinanceBill::find($bills['with_bill_id'])->finance_currency_id  != FinanceBill::find($bills['to_bill_id'])->finance_currency_id ){
+        if (empty($bills['with_bill_id']) || empty($bills['to_bill_id'])) {
+            Toast::error(__('Будь ласка, виберіть обидва рахунки для переказу'));
+            return;
+        }
+
+        $withBill = FinanceBill::where('user_id', Auth::id())->find($bills['with_bill_id']);
+        $toBill = FinanceBill::where('user_id', Auth::id())->find($bills['to_bill_id']);
+
+        if (!$withBill || !$toBill) {
+            Toast::error(__('Рахунок не знайдено'));
+            return;
+        }
+
+        if ($withBill->finance_currency_id != $toBill->finance_currency_id) {
             Toast::info(__('Transfers between accounts with different currencies are prohibited'));
             return ;
         }
 
-        if( $bills['with_bill_id'] ==  $bills['to_bill_id']){
+        if ($bills['with_bill_id'] == $bills['to_bill_id']) {
             Toast::info(__('It is not possible to transfer to the same account'));
             return ;
         }
 
+        $amount = (float)($transaction['amount'] ?? 0);
+
         $income =  $transaction;
         $income['type'] = 'income';
         $income['finance_bill_id']  =  $bills['to_bill_id'];
-
-        $income = array_merge(  $income,$transactionsService->getCurrency($bills['to_bill_id'], $transaction['amount']));
+        $income = array_merge($income, $transactionsService->getCurrency((int)$bills['to_bill_id'], $amount));
 
         $expenses =  $transaction;
         $expenses['type'] = 'expenses';
         $expenses['finance_bill_id']  = $bills['with_bill_id'];
-
-        $expenses = array_merge(  $expenses,$transactionsService->getCurrency($bills['with_bill_id'],  $income['currency_amount']));
-        $expenses['amount'] = $transactionsService->getAmountNegative( $expenses['amount']);
-        $expenses['currency_amount'] = $transactionsService->getAmountNegative( $expenses['currency_amount']);
-
+        $expenses = array_merge($expenses, $transactionsService->getCurrency((int)$bills['with_bill_id'], $amount));
+        $expenses['amount'] = $transactionsService->getAmountNegative($expenses['amount']);
+        $expenses['currency_amount'] = $transactionsService->getAmountNegative($expenses['currency_amount']);
 
         $exp = Auth::user()->transactions()->create($expenses);
         $inc = Auth::user()->transactions()->create($income);
@@ -185,6 +197,8 @@ class TransactionListScreen extends Screen
             $exp->attachment()->syncWithoutDetaching($attachments);
             $inc->attachment()->syncWithoutDetaching($attachments);
         }
+
+        Toast::info(__('You have successfully created.'));
     }
 
     public function  saveAudit(Request $request,  TransactionsService  $transactionsService){
@@ -237,7 +251,10 @@ class TransactionListScreen extends Screen
 
         $token = $setting->monobank_api_key;
 
-        $transactions = FinanceTransaction::whereNotNull('mono_id')->orderBy('id','DESC')->first();
+        $transactions = FinanceTransaction::where('user_id', Auth::id())
+            ->whereNotNull('mono_id')
+            ->orderBy('id', 'DESC')
+            ->first();
 
 
         if( is_null($transactions)){

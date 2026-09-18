@@ -267,6 +267,30 @@ Route::screen('fops', FopScreen::class)
         ->parent('platform.index')
         ->push(__('Мій ФОП'), route('platform.fops')));
 
+// Platform > FOP > Tax & Calendar
+Route::screen('fop/tax', \App\Orchid\Screens\Fop\FopTaxScreen::class)
+    ->name('platform.fop.tax')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.fops')
+        ->push('Податки та Календар', route('platform.fop.tax')));
+
+// Platform > FOP > Income Ledger
+Route::screen('fop/ledger', \App\Orchid\Screens\Fop\FopLedgerScreen::class)
+    ->name('platform.fop.ledger')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.fops')
+        ->push('Книга обліку доходів', route('platform.fop.ledger')));
+
+// Platform > FOP > Actions (Export, Print, Pay Tax)
+Route::get('fop/ledger-export', [\App\Http\Controllers\FopTaxController::class, 'exportLedger'])
+    ->name('platform.fop.ledger.export');
+
+Route::get('fop/ledger-print', [\App\Http\Controllers\FopTaxController::class, 'printLedger'])
+    ->name('platform.fop.ledger.print');
+
+Route::post('fop/tax-pay', [\App\Http\Controllers\FopTaxController::class, 'payTax'])
+    ->name('platform.fop.tax.pay');
+
 // Platform > Customers
 Route::screen('customers', \App\Orchid\Screens\Customer\CustomerListScreen::class)
     ->name('platform.customers')

@@ -30,6 +30,10 @@ class BillEditScreen extends Screen
      */
     public function query(FinanceBill $bill): iterable
     {
+        if ($bill->exists && $bill->user_id !== auth()->id()) {
+            abort(403);
+        }
+
         return [
             'bill' => $bill,
         ];
@@ -115,12 +119,13 @@ class BillEditScreen extends Screen
      */
     public function createOrUpdate(FinanceBill $bill, Request $request)
     {
+        if ($bill->exists && $bill->user_id !== auth()->id()) {
+            abort(403);
+        }
+
         $data = $request->get('bill');
         $data['currency_code'] = Currency::getCurrencyCodeWithId($data['finance_currency_id']);
-
-        if (!$bill->exists) {
-            $data['user_id'] = auth()->id();
-        }
+        $data['user_id'] = auth()->id();
 
         $bill->fill($data)->save();
 
@@ -137,6 +142,10 @@ class BillEditScreen extends Screen
      */
     public function remove(FinanceBill $bill)
     {
+        if ($bill->exists && $bill->user_id !== auth()->id()) {
+            abort(403);
+        }
+
         $bill->delete();
 
         Toast::info('Ви успішно видалили рахунок.');

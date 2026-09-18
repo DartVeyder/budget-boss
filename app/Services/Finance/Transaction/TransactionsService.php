@@ -18,7 +18,7 @@ class TransactionsService
     protected string $type ;
     public function __construct()
     {
-        $this->setUserId(Auth::user()->id);
+        $this->setUserId(Auth::id() ?? 0);
     }
 
     public  function  list($filter = null, $start = null,$end = null){
@@ -178,12 +178,12 @@ class TransactionsService
         return FinanceTransaction::where('user_id', $this->getUserId())->where('is_balance' ,1)->SumByMonths($value,  $start, $end, $dateColumn)->toChart($name);
     }
 
-    public function chartBar( string $name = null, string $start = null, string $end = null, string $dateColumn = null, string $value) :array
+    public function chartBar(?string $name = null, ?string $start = null, ?string $end = null, ?string $dateColumn = null, string $value = 'currency_amount') :array
     {
         return $this->query()->where('is_balance' ,1)->SumByMonths($value,  $start, $end, $dateColumn)->toChart($name);
     }
 
-    public function chartBarComparison( string $nameCurrent = 'Current', string $namePrev = 'Previous', string $start = null, string $end = null, string $dateColumn = null, string $value) :array
+    public function chartBarComparison(string $nameCurrent = 'Current', string $namePrev = 'Previous', ?string $start = null, ?string $end = null, ?string $dateColumn = null, string $value = 'currency_amount') :array
     {
         $currentStart = Carbon::parse($start);
         $currentEnd = Carbon::parse($end);
@@ -263,23 +263,28 @@ class TransactionsService
         return $transaction;
     }
 
-    public function updateStatusInvoice(int|null $invoice_id):void
+    public function updateStatusInvoice(int|null $invoice_id): void
     {
-        if($invoice_id){
-            $data = [];
+        if ($invoice_id) {
             $invoice = FinanceInvoice::find($invoice_id);
-            $amount_paid = FinanceTransaction::where('finance_invoice_id', $invoice_id)->sum('amount');
-            $data['amount_paid'] =  $amount_paid;
-            if($amount_paid >= $invoice->total){
+            if (!$invoice) {
+                return;
+            }
+            $amount_paid = (float) FinanceTransaction::where('finance_invoice_id', $invoice_id)->sum('amount');
+            $data = [
+                'amount_paid' => $amount_paid,
+            ];
+
+            if ($amount_paid >= (float)$invoice->total && (float)$invoice->total > 0) {
                 $data['status'] = 'paid';
-            }else if($amount_paid < $invoice->total){
+            } elseif ($amount_paid > 0) {
                 $data['status'] = 'part paid';
-            }else{
+            } else {
                 $data['status'] = 'not paid';
             }
-            FinanceInvoice::where('id', $invoice_id)->update($data);
-        }
 
+            $invoice->update($data);
+        }
     }
     public function getAmountNegative(float $amount): float{
         return  -abs($amount);

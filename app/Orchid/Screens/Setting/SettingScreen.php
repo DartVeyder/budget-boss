@@ -20,11 +20,11 @@ class SettingScreen extends Screen
      */
     public function query(): iterable
     {
-        $setting = Auth::user()->setting;
+        $setting = Auth::user()?->setting;
         return [
             'monobank' => [
-                'api_key' => $setting->monobank_api_key ?? '',
-                'active'  => $setting->monobank_active ? 1 : 2,
+                'api_key' => $setting?->monobank_api_key ?? '',
+                'active'  => $setting?->monobank_active ? 1 : 2,
             ]
         ];
     }

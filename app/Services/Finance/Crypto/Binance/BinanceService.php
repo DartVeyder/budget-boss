@@ -114,10 +114,9 @@ class BinanceService
         $rangeDate = self::getRangeDate();
         try {
             $accountSnapshot =  self::client()->accountSnapshot("SPOT",[ 'recvWindow'=> 60000, 'startTime' =>  $rangeDate['startTime'],'endTime' =>$rangeDate['endTime'] ] );
-           return   $accountSnapshot['snapshotVos'];
+           return   $accountSnapshot['snapshotVos'] ?? [];
         }catch(\Exception $e){
-
-            return  $e->getMessage();
+            return  [];
         }
     }
 
@@ -155,7 +154,7 @@ class BinanceService
     static private function getRangeDate($coin_id = null)
     {
         if($coin_id){
-            $binanceCoinHistories  = FinanceBinanceCoinHistory::where('id',$coin_id)->latest()->first();
+            $binanceCoinHistories  = FinanceBinanceCoinHistory::where('binance_coin_id',$coin_id)->latest()->first();
         }else{
             $binanceCoinHistories  = FinanceBinanceCoinHistory::latest()->first();
         }
@@ -178,7 +177,7 @@ class BinanceService
 
         $binanceCoins = FinanceBinanceCoin::all();
         foreach ( $binanceCoins as $coin){
-            $binanceCoinHistories  = FinanceBinanceCoinHistory::where('id',$coin->id)->latest()->first();
+            $binanceCoinHistories  = FinanceBinanceCoinHistory::where('binance_coin_id',$coin->id)->latest()->first();
             $to = Carbon::now()->timestamp * 1000;
             if(!$binanceCoinHistories){
                 $from = Carbon::now()->startOfYear()->timestamp * 1000;

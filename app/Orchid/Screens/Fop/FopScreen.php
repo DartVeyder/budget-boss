@@ -30,9 +30,17 @@ class FopScreen extends Screen
     public function query(): iterable
     {
         $fop = Fop::where('user_id', auth()->id())->first() ?? new Fop();
+        $this->fop = $fop;
+
+        $limitProgress = null;
+        if ($fop->exists) {
+            $taxService = new \App\Services\Finance\Fop\FopTaxService();
+            $limitProgress = $taxService->getLimitProgress($fop);
+        }
 
         return [
             'fop' => $fop,
+            'limitProgress' => $limitProgress,
         ];
     }
 
@@ -51,7 +59,7 @@ class FopScreen extends Screen
      */
     public function description(): ?string
     {
-        return 'Деталі ФОП (Фізична особа-підприємець): ІПН, рахунок, адреса.';
+        return 'Деталі ФОП (Фізична особа-підприємець): ІПН, рахунок, ліміти, адреса.';
     }
 
     /**
@@ -62,6 +70,16 @@ class FopScreen extends Screen
     public function commandBar(): iterable
     {
         return [
+            \Orchid\Screen\Actions\Link::make('Податки та Календар')
+                ->icon('bs.calculator')
+                ->route('platform.fop.tax')
+                ->canSee($this->fop->exists),
+
+            \Orchid\Screen\Actions\Link::make('Книга доходів')
+                ->icon('bs.book')
+                ->route('platform.fop.ledger')
+                ->canSee($this->fop->exists),
+
             Button::make('Зберегти')
                 ->icon('bs.check-circle')
                 ->type(Color::DEFAULT)
@@ -83,6 +101,8 @@ class FopScreen extends Screen
     public function layout(): iterable
     {
         return [
+            Layout::view('fop.limit-progress-widget')->canSee($this->fop?->exists ?? false),
+
             Layout::rows([
                 Input::make('fop.name')
                     ->title('Назва')
@@ -107,9 +127,29 @@ class FopScreen extends Screen
                     ->placeholder('Виберіть групу ФОП')
                     ->fromModel(\App\Models\FopGroup::class, 'name'),
 
+                Input::make('fop.annual_limit')
+                    ->type('number')
+                    ->step('0.01')
+                    ->title('Персональний річний ліміт доходу (грн)')
+                    ->placeholder('Використовувати ліміт групи')
+                    ->help('Залишіть порожнім, щоб автоматично застосовувався ліміт із вибраної групи ФОП.'),
+
+                Input::make('fop.custom_esv')
+                    ->type('number')
+                    ->step('0.01')
+                    ->title('Персональна щомісячна ставка ЄСВ (грн)')
+                    ->placeholder('1760.00')
+                    ->help('Залишіть порожнім, щоб брати ставку з групи ФОП.'),
+
+                CheckBox::make('fop.is_esv_exempt')
+                    ->title('Звільнення від ЄСВ')
+                    ->placeholder('Не нараховувати та не сплачувати ЄСВ (пенсіонер, особа з інвалідністю, за основним місцем роботи, або добровільна несплата у воєнний стан)')
+                    ->sendTrueOrFalse(),
+
                 Relation::make('fop.finance_bill_id')
                     ->title('Рахунок / Картка')
                     ->fromModel(FinanceBill::class, 'name')
+                    ->applyScope('user')
                     ->required(),
 
                 Relation::make('fop.transaction_category_id')

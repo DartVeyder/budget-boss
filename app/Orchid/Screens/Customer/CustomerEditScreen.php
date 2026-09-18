@@ -28,6 +28,10 @@ class CustomerEditScreen extends Screen
      */
     public function query(Customer $customer): iterable
     {
+        if ($customer->exists && $customer->user_id !== auth()->id()) {
+            abort(403);
+        }
+
         return [
             'customer' => $customer
         ];
@@ -132,6 +136,7 @@ class CustomerEditScreen extends Screen
 
                 \Orchid\Screen\Fields\Relation::make('customer.fop_id')
                     ->fromModel(\App\Models\Fop::class, 'name')
+                    ->applyScope('user')
                     ->title('Прив\'язати мій ФОП')
                     ->help('Виберіть ФОП, щоб не вказувати рахунок та податкові налаштування вручну'),
             ])
@@ -146,6 +151,10 @@ class CustomerEditScreen extends Screen
      */
     public function createOrUpdate(Customer $customer, Request $request)
     {
+        if ($customer->exists && $customer->user_id !== auth()->id()) {
+            abort(403);
+        }
+
         $customer->fill($request->get('customer'));
         $customer->user_id = auth()->id(); 
         $customer->save();
@@ -163,6 +172,10 @@ class CustomerEditScreen extends Screen
      */
     public function remove(Customer $customer)
     {
+        if ($customer->exists && $customer->user_id !== auth()->id()) {
+            abort(403);
+        }
+
         $customer->delete();
 
         Toast::info('Клієнта успішно видалено.');

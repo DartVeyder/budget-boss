@@ -82,6 +82,20 @@ class FopGroupEditScreen extends Screen
                     ->placeholder('Виберіть податки для цієї групи')
                     ->fromModel(TaxRate::class, 'name')
                     ->multiple(),
+
+                Input::make('fopGroup.annual_limit')
+                    ->type('number')
+                    ->step('0.01')
+                    ->title('Річний ліміт доходу (грн)')
+                    ->placeholder('Наприклад: 8285700')
+                    ->help('Законодавчий ліміт обсягу доходу для цієї групи за календарний рік.'),
+
+                Input::make('fopGroup.monthly_esv')
+                    ->type('number')
+                    ->step('0.01')
+                    ->title('Базовий щомісячний ЄСВ (грн)')
+                    ->placeholder('Наприклад: 1760.00')
+                    ->help('Мінімальний страховий внесок на місяць (22% від мінімальної заробітної плати).'),
             ])
         ];
     }

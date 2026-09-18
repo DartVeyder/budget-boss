@@ -19,7 +19,7 @@ class FinanceBill extends Model
 
     public function scopeUser(Builder $query)
     {
-        return $query->where('user_id',Auth::user()->id);
+        return $query->where('user_id', Auth::id());
     }
 
     public  function scopeIsTransfer(Builder $query){
@@ -28,7 +28,8 @@ class FinanceBill extends Model
 
     public  function  getBillCurrencyAttribute() : string
     {
-        return $this->name . ' ( ' . $this->currency->symbol . ' )'   ;
+        $symbol = $this->currency?->symbol ?? '';
+        return $symbol ? $this->name . ' ( ' . $symbol . ' )' : $this->name;
     }
 
     public function transactions(){

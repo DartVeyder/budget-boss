@@ -19,6 +19,7 @@ class FinanceTransaction extends Model
     use AsSource;
     use Filterable;
     use Chartable;
+    use SoftDeletes;
     use \Orchid\Attachment\Attachable;
 
     protected $guarded = [];
@@ -31,6 +32,7 @@ class FinanceTransaction extends Model
         'customer_id'  => Where::class,
         'transaction_category_id'=> Where::class,
         'finance_bill_id' => Where::class,
+        'fop_id' => Where::class,
         'created_at' => WhereDateStartEnd::class,
         'amount' => WhereMaxMin::class,
         'accrual_date'=>WhereDateStartEnd::class,
@@ -52,7 +54,7 @@ class FinanceTransaction extends Model
 
     public function getCurrencyAmountAttribute($value)
     {
-        $this->attributes['currency_amount'] = abs($value);
+        return abs((float)$value);
     }
     public function scopeTotalAmount($query)
     {
@@ -90,5 +92,9 @@ class FinanceTransaction extends Model
         return $this->belongsToMany(TaxRate::class, 'finance_transaction_tax_rate')
                     ->withPivot('amount')
                     ->withTimestamps();
+    }
+
+    public function fop(){
+        return $this->belongsTo(Fop::class, 'fop_id');
     }
 }

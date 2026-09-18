@@ -11,7 +11,16 @@ class FopGroup extends Model
 {
     use HasFactory, AsSource, Filterable;
 
-    protected $fillable = ['name'];
+    protected $fillable = [
+        'name',
+        'annual_limit',
+        'monthly_esv',
+    ];
+
+    protected $casts = [
+        'annual_limit' => 'float',
+        'monthly_esv' => 'float',
+    ];
 
     public function taxRates()
     {

@@ -11,52 +11,65 @@ use function Laravel\Prompts\select;
 
 class Currency
 {
-    private  static string $symbol;
+    private static string $symbol = '₴';
 
     private static string $urlApi = 'https://api.privatbank.ua/p24api/pubinfo?exchange&coursid=5';
-    public static  function  parseExchangeRates(){
-        $client = new Client();
+
+    public static function parseExchangeRates(): array
+    {
+        $client = new Client(['timeout' => 5]);
 
         try {
             $response = $client->get(self::$urlApi);
-
             $data = $response->getBody()->getContents();
-           return json_decode($data) ;
+            $decoded = json_decode($data);
+            return is_array($decoded) ? $decoded : [];
         } catch (\Exception $e) {
-            // Обробка помилок
-            return response()->json(['error' => $e->getMessage()], 500);
+            return [];
         }
     }
 
-    public static function updateExchangeRates(array $toCurrencies = []) :void{
-        foreach ($toCurrencies as $currency){
+    public static function updateExchangeRates(array $toCurrencies = []): void
+    {
+        foreach ($toCurrencies as $currency) {
             self::getExchangeRate($currency);
         }
     }
-    public static function getExchangeRate(string $toCurrency) :float|null{
-        $currency = FinanceCurrency::where('code',$toCurrency)->first();
 
-        self::$symbol =  $currency->symbol;
+    public static function getExchangeRate(string $toCurrency): float|null
+    {
+        $currency = FinanceCurrency::where('code', $toCurrency)->first();
 
-        if($toCurrency == 'UAH'){
+        if ($currency) {
+            self::$symbol = $currency->symbol;
+        }
+
+        if ($toCurrency === 'UAH') {
             return 1;
         }
 
-        if(self::isSameAsCurrentDate( $currency->updated_at)){
-            return $currency->value;
+        if (!$currency) {
+            return 1;
+        }
+
+        if ($currency->updated_at && self::isSameAsCurrentDate((string)$currency->updated_at)) {
+            return (float)$currency->value;
         }
 
         $exchangeRates = self::parseExchangeRates();
-
-        $data = array_column($exchangeRates, 'buy','ccy');
-
-        if(!array_key_exists( $toCurrency,$data)){
-            return 1;
+        if (empty($exchangeRates)) {
+            return (float)($currency->value ?? 1);
         }
 
-        $value =  $data[$toCurrency];
+        $data = array_column($exchangeRates, 'buy', 'ccy');
 
-        FinanceCurrency::where('code',$toCurrency)->update(['value'=>$value]);
+        if (!array_key_exists($toCurrency, $data)) {
+            return (float)($currency->value ?? 1);
+        }
+
+        $value = (float)$data[$toCurrency];
+
+        FinanceCurrency::where('code', $toCurrency)->update(['value' => $value]);
 
         return $value;
     }
@@ -86,9 +99,10 @@ class Currency
         return $currency->code;
     }
 
-    public  static  function  getCurrencyCodeUser():string{
-       $userSetting = Auth::user()->setting;
-       return $userSetting->currency;
+    public static function getCurrencyCodeUser(): string
+    {
+        $userSetting = Auth::user()?->setting;
+        return $userSetting?->currency ?? 'UAH';
     }
 
     private  static function isSameAsCurrentDate(string $date):bool{

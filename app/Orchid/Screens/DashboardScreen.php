@@ -80,6 +80,12 @@ class DashboardScreen extends Screen
 
         $data['transactions'] = $this->getTransactions($transactions);
 
+        $taxService = new \App\Services\Finance\Fop\FopTaxService();
+        $fop = $taxService->getFop($user->id);
+        if ($fop) {
+            $data['limitProgress'] = $taxService->getLimitProgress($fop, Carbon::now()->year);
+        }
+
         return $data;
     }
 
@@ -163,6 +169,7 @@ class DashboardScreen extends Screen
                 'Income for this year' => 'metrics.currentYear.income',
                 'Expenses for this year' => 'metrics.currentYear.expenses',
             ])->title('Data for the current year'),
+            Layout::view('fop.limit-progress-widget'),
             Layout::view('dashboard.category-list'),
             DashboardChartIncomeLayout::make('charts.income_year', __('Income for the year')),
             DashboardChartCapitalLayout::make('charts.capital', __('Capital Statistics')),

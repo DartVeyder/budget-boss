@@ -33,19 +33,22 @@ class TransactionEditTransferRows extends Rows
     {
         return [
             Relation::make('bills.with_bill_id')
-                ->title('Bills')
+                ->title('З рахунку')
                 ->required()
+                ->displayAppend('billCurrency')
                 ->fromModel(FinanceBill::class, 'name')
                 ->applyScope('user'),
             Relation::make('bills.to_bill_id')
-                ->title('Bills')
+                ->title('На рахунок')
                 ->required()
+                ->displayAppend('billCurrency')
                 ->fromModel(FinanceBill::class, 'name')
                 ->applyScope('user'),
             Input::make("transaction.amount")
                 ->title('Amount')
                 ->required()
-                ->type('number') ,
+                ->step(0.01)
+                ->type('number'),
             Input::make("transaction.transaction_category_id")
                 ->value(1)
                 ->hidden()

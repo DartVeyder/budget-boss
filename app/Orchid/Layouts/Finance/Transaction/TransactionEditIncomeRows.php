@@ -69,6 +69,7 @@ class TransactionEditIncomeRows extends Rows
 
             Relation::make("tax_rates")
                 ->fromModel(TaxRate::class, 'name')
+                ->multiple()
                 ->title('Tax rate'),
 
             DateTimer::make('transaction.accrual_date')

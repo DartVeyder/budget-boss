@@ -83,7 +83,8 @@ class InvoiceListScreen extends Screen
 
     public function save(Request $request, FinanceInvoice $financeInvoice)
     {
-        $invoice = $request->input('invoice');
+        $invoice = $request->input('invoice', []);
+        $invoice['user_id'] = Auth::id();
         $invoice['invoice_number'] = $this->generateInvoiceNumber();
         $financeInvoice->fill($invoice)->save();
         Toast::info(__('You have successfully created.'));
@@ -105,7 +106,8 @@ class InvoiceListScreen extends Screen
 
     public function remove(Request $request): object
     {
-        FinanceInvoice::findOrFail($request->get('id'))->delete();
+        $invoice = FinanceInvoice::where('user_id', Auth::id())->findOrFail($request->get('id'));
+        $invoice->delete();
 
         Toast::info(__('You have successfully remove'));
         return redirect()->route('platform.invoices');

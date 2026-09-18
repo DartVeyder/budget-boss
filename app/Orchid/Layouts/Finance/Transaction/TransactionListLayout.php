@@ -38,7 +38,7 @@ class TransactionListLayout extends Table
                 ->sort()
                 ->filter(
                     TD::FILTER_SELECT,
-                    FinanceTransactionCategory::where('user_id', Auth::user()->id)
+                    FinanceTransactionCategory::where('user_id', Auth::id())
                         ->pluck('name', 'id'))
                 ->render(
                      function(FinanceTransaction $transaction){
@@ -51,16 +51,16 @@ class TransactionListLayout extends Table
                 ->sort()
                 ->filter(
                     TD::FILTER_SELECT,
-                    FinanceBill::where('user_id', Auth::user()->id)
+                    FinanceBill::where('user_id', Auth::id())
                         ->pluck('name', 'id'))
                 ->render(
-                fn(FinanceTransaction $transaction) => $transaction->bill->name
+                fn(FinanceTransaction $transaction) => $transaction->bill?->name ?? '—'
             ),
             TD::make('customer_id', __('Customer'))
                 ->sort()
                 ->filter(
                     TD::FILTER_SELECT,
-                    Customer::where('user_id', Auth::user()->id)
+                    Customer::where('user_id', Auth::id())
                         ->pluck('name', 'id'))
                 ->render(
                     fn(FinanceTransaction $transaction) => ($transaction->customer)?  $transaction->customer->name: ''
@@ -80,14 +80,14 @@ class TransactionListLayout extends Table
                         [
                             'type' => $transaction['type'],
                             'amount' => $transaction['amount'],
-                            'symbol' =>  $transaction->currency->symbol
+                            'symbol' =>  $transaction->currency?->symbol ?? ''
                         ]
                     );
                 }),
             TD::make('mcc_code', 'MCC')->sort(),
             TD::make('tax_amount', __('Tax amount'))
                 ->render(
-                fn(FinanceTransaction $transaction) => $transaction->tax_amount . ' '. $transaction->currency->symbol
+                fn(FinanceTransaction $transaction) => $transaction->tax_amount . ' '. ($transaction->currency?->symbol ?? '')
             ),
             TD::make('comment', __('Comment')) ,
             TD::make('created_at', __('Created'))

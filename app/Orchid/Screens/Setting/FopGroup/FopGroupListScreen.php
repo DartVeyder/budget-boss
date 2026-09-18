@@ -62,6 +62,10 @@ class FopGroupListScreen extends Screen
                             return "{$taxRate->name} ({$taxRate->value}%)";
                         })->implode(', ');
                     }),
+                TD::make('annual_limit', 'Річний ліміт')
+                    ->render(fn (FopGroup $fopGroup) => $fopGroup->annual_limit ? number_format($fopGroup->annual_limit, 2, '.', ' ') . ' ₴' : '—'),
+                TD::make('monthly_esv', 'Щомісячний ЄСВ')
+                    ->render(fn (FopGroup $fopGroup) => $fopGroup->monthly_esv ? number_format($fopGroup->monthly_esv, 2, '.', ' ') . ' ₴' : '—'),
                 TD::make('Actions')
                     ->align(TD::ALIGN_CENTER)
                     ->width('100px')

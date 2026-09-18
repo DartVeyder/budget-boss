@@ -7,58 +7,70 @@ use App\Models\FinanceTransactionSource;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
-class TransactionExpensesService extends  TransactionsService
+class TransactionExpensesService extends TransactionsService
 {
     protected string $type = 'expenses';
-    public function __construct() {
+    public function __construct()
+    {
         $this->setType($this->type);
         parent::__construct();
     }
 
-    public function createInsertData(Request $request): array{
+    public function createInsertData(Request $request): array
+    {
         $transaction = $request->input('transaction');
-        if(!$transaction['created_at']){
+        if (!$transaction['created_at']) {
             unset($transaction['created_at']);
         }
-        $transaction['balance'] = $this->getTotalBalance() -  $transaction['amount'];
-        $transaction['balance_bill'] = $this->getBalanceToBill($transaction['finance_bill_id']) -  $transaction['amount'];
+        $transaction['balance'] = $this->getTotalBalance() - $transaction['amount'];
+        $transaction['balance_bill'] = $this->getBalanceToBill($transaction['finance_bill_id']) - $transaction['amount'];
         $transaction['amount'] = $this->getAmountNegative($transaction['amount']);
-        $transaction['user_id'] = $this->getUserId() ;
+        $transaction['user_id'] = $this->getUserId();
 
         $transaction = array_merge($transaction, $this->getCurrency($transaction['finance_bill_id'], $transaction['amount']));
 
-        return   $transaction;
+        return $transaction;
     }
 
-    public function createInsertDataMono($data):array
+    public function createInsertDataMono($data): array
     {
-        $transactions  = [];
+        $transactions = [];
         $data = array_reverse($data);
-        $balance_bill =  $this->getBalanceToBill(3) ;
+
+        $bill = \App\Models\FinanceBill::where('user_id', $this->getUserId())
+            ->where(function($q) {
+                $q->where('name', 'like', '%mono%')
+                  ->orWhere('bank_name', 'like', '%mono%');
+            })->first()
+            ?? \App\Models\FinanceBill::where('user_id', $this->getUserId())->first();
+
+        $billId = $bill ? $bill->id : 3;
+
+        $balance_bill = $this->getBalanceToBill($billId);
         $balance = $this->getTotalBalance();
-        foreach ( $data as $item){
-            if($item['amount'] > 0){
+        foreach ($data as $item) {
+            if ($item['amount'] > 0) {
                 continue;
             }
-            $source_name = str_replace("\n", " ",mb_strtolower ($item['description']));
+            $source_name = str_replace("\n", " ", mb_strtolower($item['description']));
             $transaction_source = FinanceTransactionSource::firstOrCreate(['name' => $source_name], ['name' => $source_name]);
 
             $date = $this->getDate($item['time']);
-            $balance -=   abs($this->getAmount($item['amount']));
-            $balance_bill  -= abs($this->getAmount($item['amount']));
+            $balance -= abs($this->getAmount($item['amount']));
+            $balance_bill -= abs($this->getAmount($item['amount']));
             $transaction = [
-                'created_at' =>  $date,
-                'updated_at' =>  $date,
-                'accrual_date' =>   $date,
+                'created_at' => $date,
+                'updated_at' => $date,
+                'accrual_date' => $date,
                 'transaction_category_id' => $this->getCategoryWithMcc($item['mcc']),
-                'finance_bill_id' => 3,
-                'source_name' =>$source_name ,
+                'finance_bill_id' => $billId,
+                'source_name' => $source_name,
                 'transaction_source_id' => $transaction_source->id,
-                'mcc_code'=>$item['mcc'],
+                'mcc_code' => $item['mcc'],
                 'amount' => $this->getAmount($item['amount']),
                 'mono_id' => $item['id'],
                 'balance' => $balance,
-                'balance_bill' =>  $balance_bill,
+                'balance_bill' => $balance_bill,
                 'transaction_type_id' => 1,
                 'type' => 'expenses',
                 'user_id' => $this->getUserId()
@@ -70,28 +82,28 @@ class TransactionExpensesService extends  TransactionsService
             $transactions[] = $transaction;
 
         }
-        return  $transactions;
+        return $transactions;
     }
 
-    private function getDate($time):string
+    private function getDate($time): string
     {
         $carbonDate = Carbon::createFromTimestamp($time);
         return $carbonDate->format('Y-m-d H:i:s');
 
     }
 
-    private function getAmount(int $amount):float
+    private function getAmount(int $amount): float
     {
         return $amount / 100;
     }
 
-    private function getCategoryWithMcc(int $code):int|null
+    private function getCategoryWithMcc(int $code): int|null
     {
         $mcc = FinanceTransactionMcc::where('code', $code)->first();
-        if(is_null($mcc)){
+        if (is_null($mcc)) {
             return null;
         }
-        return  $mcc->categories->first()->id  ?? null;
+        return $mcc->categories->first()->id ?? null;
     }
 
 }
