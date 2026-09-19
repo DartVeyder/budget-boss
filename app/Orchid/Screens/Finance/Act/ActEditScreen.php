@@ -24,6 +24,7 @@ use Orchid\Screen\Fields\Matrix;
 use Orchid\Screen\Fields\Relation;
 use Orchid\Screen\Fields\Select;
 use Orchid\Screen\Fields\TextArea;
+use Orchid\Screen\Fields\Upload;
 use Orchid\Screen\Screen;
 use Orchid\Support\Color;
 use Orchid\Support\Facades\Layout;
@@ -52,7 +53,16 @@ class ActEditScreen extends Screen
         $items = [];
 
         if ($act->exists) {
-            $act->loadMissing(['items', 'fop', 'customer', 'counterparty']);
+            $act->loadMissing(['items', 'fop', 'customer', 'counterparty', 'attachment', 'transaction.attachment']);
+            if ($act->attachment->isEmpty() && $act->transaction && $act->transaction->attachment->isNotEmpty()) {
+                $txActFiles = $act->transaction->attachment->filter(function ($att) {
+                    $n = mb_strtolower($att->original_name ?? '');
+                    return str_contains($n, 'акт') || str_contains($n, 'akt');
+                });
+                $suggested = $txActFiles->isNotEmpty() ? $txActFiles : $act->transaction->attachment;
+                $act->setRelation('attachment', $suggested);
+            }
+
             $items = $act->items->map(function ($item) {
                 return [
                     'name' => $item->name,
@@ -64,11 +74,14 @@ class ActEditScreen extends Screen
         } else {
             // New Act: check if prefilling from Transaction or Invoice
             if ($request->has('transaction_id')) {
-                $transaction = FinanceTransaction::where('user_id', Auth::id())->find($request->get('transaction_id'));
+                $transaction = FinanceTransaction::where('user_id', Auth::id())->with('attachment')->find($request->get('transaction_id'));
                 if ($transaction) {
                     $prepared = $documentService->prepareFromTransaction($transaction);
                     $act->fill($prepared);
                     $items = $prepared['items'] ?? [];
+                    if (!empty($prepared['attachments'])) {
+                        $act->setRelation('attachment', $transaction->attachment->whereIn('id', $prepared['attachments']));
+                    }
                 }
             } elseif ($request->has('invoice_id')) {
                 $invoice = FinanceInvoice::where('user_id', Auth::id())->find($request->get('invoice_id'));
@@ -84,6 +97,13 @@ class ActEditScreen extends Screen
                 $act->act_number = $documentService->generateActNumber();
                 $act->act_date = Carbon::now()->toDateString();
                 $act->status = 'draft';
+
+                if ($defaultFop?->contract_number) {
+                    $act->contract_number = $defaultFop->contract_number;
+                }
+                if ($defaultFop?->contract_date) {
+                    $act->contract_date = $defaultFop->contract_date->toDateString();
+                }
 
                 $items = [
                     [
@@ -102,6 +122,42 @@ class ActEditScreen extends Screen
             if ($cust && $cust->counterparties->count() === 1) {
                 $act->counterparty_id = $cust->counterparties->first()->id;
             }
+        }
+
+        $cp = $act->counterparty ?: ($act->counterparty_id ? CustomerCounterparty::find($act->counterparty_id) : null);
+        $cust = $act->customer ?: ($act->customer_id ? Customer::find($act->customer_id) : null);
+
+        $activeFop = $act->fop ?: ($act->fop_id ? Fop::find($act->fop_id) : Fop::where('user_id', Auth::id())->where('is_active', true)->first());
+        if ($activeFop) {
+            if (empty($act->fop_id)) {
+                $act->fop_id = $activeFop->id;
+            }
+        }
+
+        $targetContractNumber = $cp?->contract_number ?: $activeFop?->contract_number;
+        $targetContractDate = $cp?->contract_date ? $cp->contract_date->toDateString() : ($activeFop?->contract_date?->toDateString());
+
+        if (empty($act->contract_number) && !empty($targetContractNumber)) {
+            $act->contract_number = $targetContractNumber;
+        }
+        if (empty($act->contract_date) && !empty($targetContractDate)) {
+            $act->contract_date = $targetContractDate;
+        }
+
+        if (empty($act->customer_address)) {
+            $act->customer_address = $cp?->address ?: ($cust?->address ?: '');
+        }
+        if (empty($act->customer_phone)) {
+            $act->customer_phone = $cp?->phone ?: ($cust?->phone ?: '');
+        }
+        if (empty($act->customer_tax_group)) {
+            $act->customer_tax_group = $cp?->tax_group ?: ($cust?->tax_group ?: '');
+        }
+        if (!isset($act->customer_is_single_tax)) {
+            $act->customer_is_single_tax = $cp ? (bool)$cp->is_single_tax : ($cust ? (bool)$cust->is_single_tax : true);
+        }
+        if (!isset($act->customer_is_vat_payer)) {
+            $act->customer_is_vat_payer = $cp ? (bool)$cp->is_vat_payer : ($cust ? (bool)$cust->is_vat_payer : false);
         }
 
         return [
@@ -186,17 +242,6 @@ class ActEditScreen extends Screen
                             ->allowEmpty(),
                     ]),
 
-                    Group::make([
-                        Input::make('act.contract_number')
-                            ->title('Номер договору')
-                            ->placeholder('№ 12/2026 (необов\'язково)'),
-
-                        DateTimer::make('act.contract_date')
-                            ->title('Дата договору')
-                            ->format('Y-m-d')
-                            ->allowEmpty(),
-                    ]),
-
                     Select::make('act.status')
                         ->title('Статус акту')
                         ->options([
@@ -212,6 +257,11 @@ class ActEditScreen extends Screen
                         ->sendTrueOrFalse()
                         ->value(!(bool)($this->act?->exists))
                         ->help('Одночасно сформує офіційний Рахунок на оплату з цими ж позиціями та реквізитами ФОП'),
+
+                    Upload::make('act.attachment')
+                        ->title('Підписаний акт (скан / PDF)')
+                        ->acceptedFiles('.pdf,.docx,.doc,.jpg,.jpeg,.png')
+                        ->help('Завантажте підписану скан-копію або файл з ЕЦП/КЕП (PDF, JPG тощо)'),
 
                     TextArea::make('act.notes')
                         ->title('Додаткові примітки')
@@ -258,19 +308,53 @@ class ActEditScreen extends Screen
     public function asyncGetCustomerParties($actData = null)
     {
         $customerId = is_array($actData) ? ($actData['customer_id'] ?? null) : $actData;
+        $counterpartyId = is_array($actData) ? ($actData['counterparty_id'] ?? null) : null;
 
         $customer = $customerId ? Customer::with(['fop', 'counterparties' => fn ($q) => $q->active()])->find($customerId) : null;
 
-        $counterpartyId = null;
+        $counterparty = null;
         if ($customer && $customer->counterparties->count() === 1) {
-            $counterpartyId = $customer->counterparties->first()->id;
+            $counterparty = $customer->counterparties->first();
+            $counterpartyId = $counterparty->id;
+        } elseif ($counterpartyId && $customer) {
+            $counterparty = $customer->counterparties->firstWhere('id', $counterpartyId);
+        } elseif ($counterpartyId) {
+            $counterparty = CustomerCounterparty::find($counterpartyId);
         }
 
-        $fopId = $customer?->fop_id;
+        $fopId = is_array($actData) ? ($actData['fop_id'] ?? null) : null;
+        if (!$fopId && $customer?->fop_id) {
+            $fopId = $customer->fop_id;
+        }
+
+        $fop = $fopId ? Fop::find($fopId) : null;
+        $contractNumber = is_array($actData) ? ($actData['contract_number'] ?? null) : null;
+        $contractDate = is_array($actData) ? ($actData['contract_date'] ?? null) : null;
+
+        $targetContractNumber = $counterparty?->contract_number ?: $fop?->contract_number;
+        $targetContractDate = $counterparty?->contract_date ? $counterparty->contract_date->toDateString() : ($fop?->contract_date?->toDateString());
+
+        if (empty($contractNumber) && !empty($targetContractNumber)) {
+            $contractNumber = $targetContractNumber;
+        }
+        if (empty($contractDate) && !empty($targetContractDate)) {
+            $contractDate = $targetContractDate;
+        }
+
+        $taxGroup = $counterparty?->tax_group ?: ($customer?->tax_group ?: '');
+        $isSingleTax = $counterparty ? (bool)$counterparty->is_single_tax : ($customer ? (bool)$customer->is_single_tax : true);
+        $isVatPayer = $counterparty ? (bool)$counterparty->is_vat_payer : ($customer ? (bool)$customer->is_vat_payer : false);
 
         $actResult = [
             'customer_id' => $customerId,
             'counterparty_id' => $counterpartyId,
+            'customer_address' => $counterparty?->address ?: ($customer?->address ?: ''),
+            'customer_phone' => $counterparty?->phone ?: ($customer?->phone ?: ''),
+            'customer_tax_group' => $taxGroup,
+            'customer_is_single_tax' => $isSingleTax,
+            'customer_is_vat_payer' => $isVatPayer,
+            'contract_number' => $contractNumber,
+            'contract_date' => $contractDate,
         ];
         if ($fopId) {
             $actResult['fop_id'] = $fopId;
@@ -292,9 +376,20 @@ class ActEditScreen extends Screen
 
         $actData = $request->input('act', []);
         $itemsData = $request->input('items', []);
+        $attachments = $request->input('act.attachment', []);
+        unset($actData['attachment']);
 
         if (empty($actData['counterparty_id'])) {
             $actData['counterparty_id'] = null;
+        }
+        $cp = !empty($actData['counterparty_id']) ? CustomerCounterparty::find($actData['counterparty_id']) : null;
+        $fop = !empty($actData['fop_id']) ? Fop::find($actData['fop_id']) : null;
+
+        if (empty($actData['contract_number'])) {
+            $actData['contract_number'] = $cp?->contract_number ?: $fop?->contract_number;
+        }
+        if (empty($actData['contract_date'])) {
+            $actData['contract_date'] = $cp?->contract_date ? $cp->contract_date->toDateString() : ($fop?->contract_date?->toDateString());
         }
         if (empty($actData['contract_date'])) {
             $actData['contract_date'] = null;
@@ -335,6 +430,12 @@ class ActEditScreen extends Screen
         $act->total_amount = $totalAmount;
         $act->save();
 
+        $act->attachment()->sync($attachments);
+        if (!empty($attachments) && $act->status === 'draft') {
+            $act->status = 'signed';
+            $act->save();
+        }
+
         // Sync Act Items
         $act->items()->delete();
         foreach ($cleanItems as $cItem) {
@@ -362,6 +463,10 @@ class ActEditScreen extends Screen
             $invoice->finance_currency_id = 1; // UAH
             $invoice->status = 'not paid';
             $invoice->save();
+
+            if (!empty($attachments)) {
+                $invoice->attachment()->syncWithoutDetaching($attachments);
+            }
 
             $act->finance_invoice_id = $invoice->id;
             $act->save();

@@ -10,14 +10,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Auth;
+use Orchid\Attachment\Attachable;
 use Orchid\Filters\Filterable;
 use Orchid\Screen\AsSource;
 
 class FinanceInvoice extends Model
 {
-    use HasFactory;
-    use AsSource;
-    use Filterable;
+    use HasFactory, AsSource, Filterable, Attachable;
 
     protected $guarded = [];
 

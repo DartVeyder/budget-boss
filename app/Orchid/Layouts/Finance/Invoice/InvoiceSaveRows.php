@@ -11,6 +11,7 @@ use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Fields\Relation;
 use Orchid\Screen\Fields\Select;
 use Orchid\Screen\Fields\TextArea;
+use Orchid\Screen\Fields\Upload;
 use Orchid\Screen\Layouts\Rows;
 
 class InvoiceSaveRows extends Rows
@@ -47,6 +48,10 @@ class InvoiceSaveRows extends Rows
             Input::make('invoice.user_id')
                 ->value(Auth::user()->id)
                 ->hidden(),
+            Upload::make('invoice.attachment')
+                ->title('Підписаний рахунок / скан')
+                ->acceptedFiles('.pdf,.docx,.doc,.jpg,.jpeg,.png')
+                ->help('Завантажте підписаний рахунок або скан документа (необов\'язково)'),
             TextArea::make('invoice.comment')
                 ->title('Comment')
         ];

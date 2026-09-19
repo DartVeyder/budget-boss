@@ -65,7 +65,7 @@
             border: 1px solid #000;
         }
         .bank-box td {
-            padding: 6px 10px;
+            padding: 5px 8px;
             vertical-align: top;
         }
         .bb-left-top {
@@ -73,21 +73,33 @@
             border-right: 1px solid #000;
             border-bottom: 1px solid #000;
         }
+        .bb-right-top {
+            width: 48%;
+            border-bottom: 1px solid #000;
+        }
         .bb-left-bottom {
             width: 52%;
             border-right: 1px solid #000;
         }
-        .bb-right {
+        .bb-right-bottom {
             width: 48%;
             vertical-align: top;
         }
         .bb-label {
             font-size: 8pt;
-            color: #333;
+            color: #222;
             margin-bottom: 2px;
         }
         .bb-val {
             font-size: 9pt;
+            color: #000;
+        }
+        .bb-code-row {
+            margin-top: 6px;
+        }
+        .bb-code-row .bb-label {
+            display: inline-block;
+            margin-right: 12px;
         }
 
         /* Заголовок рахунку */
@@ -153,32 +165,47 @@
 
         .summary-count {
             font-size: 8.5pt;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
+            color: #000;
         }
         .summary-words {
             font-size: 9pt;
             font-weight: bold;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
+            color: #000;
         }
 
         .bottom-divider {
             border: none;
             border-top: 2px solid #000;
-            margin: 15px 0 25px 0;
+            margin: 12px 0 20px 0;
         }
 
-        /* Блок підпису "Виписав(ла)" */
+        /* Блок підпису "Виписав(ла)" згідно шаблону docx */
         .signature-line-block {
             margin-top: 25px;
-            font-size: 9.5pt;
             display: flex;
-            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+        }
+        .signature-inner {
+            display: flex;
+            align-items: baseline;
+            font-size: 9pt;
+        }
+        .sign-label {
+            font-weight: bold;
+            font-size: 9pt;
         }
         .sign-line {
             display: inline-block;
             border-bottom: 1px solid #000;
-            width: 180px;
+            width: 150px;
             margin: 0 10px;
+        }
+        .sign-name {
+            font-size: 8.5pt;
+            font-weight: normal;
         }
 
         @media print {
@@ -217,18 +244,23 @@
             <td class="bb-left-top">
                 <div class="bb-label">Отримувач</div>
                 <div class="bb-val"><strong>{{ $fopDetails['name_with_fop'] }}</strong></div>
-                <div class="bb-label" style="margin-top: 8px;">Код</div>
-                <div class="bb-val"><strong>{{ $fopDetails['ipn'] }}</strong></div>
+                <div class="bb-code-row">
+                    <span class="bb-label">Код</span>
+                    <span class="bb-val"><strong>{{ $fopDetails['ipn'] }}</strong></span>
+                </div>
             </td>
-            <td class="bb-right" rowspan="2">
-                <div class="bb-label">КРЕДИТ рах. №</div>
-                <div class="bb-val" style="font-size: 10pt; font-weight: bold; letter-spacing: 0.5px; margin-top: 4px;">{{ $fopDetails['iban'] }}</div>
+            <td class="bb-right-top">
+                &nbsp;
             </td>
         </tr>
         <tr>
             <td class="bb-left-bottom">
                 <div class="bb-label">Банк отримувача</div>
                 <div class="bb-val"><strong>{{ $fopDetails['bank_name'] ?: 'АТ «УНІВЕРСАЛ БАНК»' }}</strong></div>
+            </td>
+            <td class="bb-right-bottom">
+                <div class="bb-label">КРЕДИТ рах. №</div>
+                <div class="bb-val" style="font-size: 9.5pt; font-weight: bold; letter-spacing: 0.5px;">{{ $fopDetails['iban'] }}</div>
             </td>
         </tr>
     </table>
@@ -253,18 +285,15 @@
             </td>
         </tr>
         <tr>
-            <td class="party-lbl" style="padding-top: 10px;">Покупець:</td>
-            <td style="padding-top: 10px;">
+            <td class="party-lbl" style="padding-top: 12px;">Покупець:</td>
+            <td style="padding-top: 12px;">
                 <strong>{{ $customerDetails['name_with_fop'] }}</strong>
-                @if($customerDetails['full_requisites_single_line'])
-                    <br>{{ $customerDetails['full_requisites_single_line'] }}
-                @endif
             </td>
         </tr>
         @if ($invoice->contract_number || $invoice->contract_date)
         <tr>
-            <td class="party-lbl" style="padding-top: 10px;">Договір надання послуг:</td>
-            <td style="padding-top: 10px;">
+            <td class="party-lbl" style="padding-top: 12px;">Договір надання послуг:</td>
+            <td style="padding-top: 12px;">
                 {{ $invoice->contract_number }} @if($invoice->contract_date) від {{ \App\Services\Finance\Act\UkrainianNumberToWords::formatUkrainianDate($invoice->contract_date) }} @endif
             </td>
         </tr>
@@ -289,8 +318,8 @@
             <tr>
                 <th style="width: 32px;">№</th>
                 <th>Товари (роботи, послуги)</th>
-                <th style="width: 100px;">Кількість</th>
-                <th style="width: 110px;">Ціна, грн</th>
+                <th colspan="2" style="width: 120px;">Кількість</th>
+                <th style="width: 105px;">Ціна, грн</th>
                 <th style="width: 110px;">Сума, грн</th>
             </tr>
         </thead>
@@ -301,12 +330,13 @@
                     $price = (float)($item['price'] ?? 0);
                     $amt = (float)($item['amount'] ?? ($qty * $price));
                     $unit = $item['unit'] ?? 'послуга';
-                    $qtyFormatted = ($qty == (int)$qty ? (int)$qty : number_format($qty, 2, ',', ' ')) . ' ' . $unit;
+                    $qtyDisplay = ($qty == (int)$qty ? (int)$qty : number_format($qty, 2, ',', ' '));
                 @endphp
                 <tr>
                     <td class="text-center">{{ $index + 1 }}</td>
                     <td class="text-left">{{ $item['name'] ?? '' }}</td>
-                    <td class="text-center">{{ $qtyFormatted }}</td>
+                    <td class="text-right" style="width: 50px;">{{ $qtyDisplay }}</td>
+                    <td class="text-center" style="width: 70px;">{{ $unit }}</td>
                     <td class="text-right">{{ number_format($price, 2, ',', ' ') }}</td>
                     <td class="text-right">{{ number_format($amt, 2, ',', ' ') }}</td>
                 </tr>
@@ -331,7 +361,11 @@
 
     <!-- Підпис -->
     <div class="signature-line-block">
-        <strong>Виписав(ла):</strong> <span class="sign-line"></span> {{ $fopDetails['clean_name'] }}
+        <div class="signature-inner">
+            <span class="sign-label">Виписав(ла):</span>
+            <span class="sign-line"></span>
+            <span class="sign-name">{{ $fopDetails['clean_name'] }}</span>
+        </div>
     </div>
 
 </div>

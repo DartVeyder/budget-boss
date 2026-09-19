@@ -4,12 +4,16 @@ namespace App\Orchid\Screens\Fop;
 
 use App\Models\FinanceBill;
 use App\Models\Fop;
+use App\Services\Finance\Act\DocumentGenerationService;
 use Illuminate\Http\Request;
 use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Fields\CheckBox;
+use Orchid\Screen\Fields\DateTimer;
+use Orchid\Screen\Fields\Group;
 use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Fields\Relation;
 use Orchid\Screen\Fields\Select;
+use Orchid\Screen\Fields\Upload;
 use Orchid\Screen\Screen;
 use Orchid\Support\Facades\Alert;
 use Orchid\Support\Facades\Layout;
@@ -34,6 +38,13 @@ class FopScreen extends Screen
 
         $limitProgress = null;
         if ($fop->exists) {
+            $fop->loadMissing(['attachment', 'bill', 'fopGroup']);
+            if (empty($fop->iban) && !empty($fop->bill?->iban)) {
+                $fop->iban = $fop->bill->iban;
+            }
+            if (empty($fop->bank_name) && !empty($fop->bill?->bank_name)) {
+                $fop->bank_name = $fop->bill->bank_name;
+            }
             $taxService = new \App\Services\Finance\Fop\FopTaxService();
             $limitProgress = $taxService->getLimitProgress($fop);
         }
@@ -122,6 +133,21 @@ class FopScreen extends Screen
                     ->title('Адреса')
                     ->placeholder('Введіть адресу'),
 
+                Input::make('fop.phone')
+                    ->title('Телефон')
+                    ->placeholder('+38 (098) 000-00-00')
+                    ->help('Відображається в реквізитах актів та рахунків на оплату'),
+
+                Input::make('fop.iban')
+                    ->title('IBAN рахунок')
+                    ->placeholder('UA853220010000026005340151590')
+                    ->help('Розрахунковий рахунок у форматі IBAN для актів та рахунків на оплату'),
+
+                Input::make('fop.bank_name')
+                    ->title('Назва банку')
+                    ->placeholder('АТ «УНІВЕРСАЛ БАНК»')
+                    ->help('Офіційна назва банку для рахунків та договорів'),
+
                 Relation::make('fop.fop_group_id')
                     ->title('Група ФОП')
                     ->placeholder('Виберіть групу ФОП')
@@ -170,6 +196,25 @@ class FopScreen extends Screen
                     ->title('Директор')
                     ->placeholder('Введіть ім\'я директора (необов\'язково)'),
 
+                Group::make([
+                    Input::make('fop.contract_number')
+                        ->title('Номер договору за замовчуванням')
+                        ->placeholder('наприклад: МД18092026-01 або № 12/2026')
+                        ->help('Автоматично підтягується в Акти та Рахунки на оплату'),
+
+                    DateTimer::make('fop.contract_date')
+                        ->title('Дата договору')
+                        ->format('Y-m-d')
+                        ->allowEmpty()
+                        ->help('Дата укладання договору'),
+                ]),
+
+                Upload::make('fop.attachment')
+                    ->title('Документ договору (файл)')
+                    ->maxFiles(1)
+                    ->acceptedFiles('.pdf,.docx,.doc,.jpg,.jpeg,.png')
+                    ->help('Завантажте файл договору (PDF, DOCX). Якщо номер або дата не вказані, вони автоматично підтягнуться з документа'),
+
                 CheckBox::make('fop.is_active')
                     ->title('Активний')
                     ->sendTrueOrFalse(),
@@ -189,7 +234,46 @@ class FopScreen extends Screen
         $data = $request->get('fop');
         $data['user_id'] = auth()->id();
 
+        $attachments = $request->input('fop.attachment', []);
+        unset($data['attachment']);
+
         $fop->fill($data)->save();
+
+        if (!empty($attachments)) {
+            $fop->attachment()->syncWithoutDetaching($attachments);
+
+            // Auto-extract contract number and date from document if not provided
+            if (empty($fop->contract_number) || empty($fop->contract_date)) {
+                $fop->load('attachment');
+                $att = $fop->attachment->first();
+                if ($att) {
+                    $docService = app(DocumentGenerationService::class);
+                    $extracted = $docService->extractContractDetailsFromAttachment($att);
+                    $updated = false;
+                    if (empty($fop->contract_number) && !empty($extracted['number'])) {
+                        $fop->contract_number = $extracted['number'];
+                        $updated = true;
+                    }
+                    if (empty($fop->contract_date) && !empty($extracted['date'])) {
+                        $fop->contract_date = $extracted['date'];
+                        $updated = true;
+                    }
+                    if ($updated) {
+                        $fop->save();
+                    }
+                }
+            }
+        }
+
+        if ($fop->finance_bill_id && $fop->bill) {
+            if (!empty($fop->iban)) {
+                $fop->bill->iban = $fop->iban;
+            }
+            if (!empty($fop->bank_name)) {
+                $fop->bill->bank_name = $fop->bank_name;
+            }
+            $fop->bill->save();
+        }
 
         Alert::info('ФОП успішно збережено.');
 

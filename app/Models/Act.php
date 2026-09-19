@@ -9,12 +9,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
+use Orchid\Attachment\Attachable;
 use Orchid\Filters\Filterable;
 use Orchid\Screen\AsSource;
 
 class Act extends Model
 {
-    use HasFactory, AsSource, Filterable;
+    use HasFactory, AsSource, Filterable, Attachable;
 
     protected $fillable = [
         'user_id',
@@ -27,6 +28,12 @@ class Act extends Model
         'act_date',
         'contract_number',
         'contract_date',
+        'customer_address',
+        'customer_phone',
+        'customer_tax_group',
+        'customer_is_single_tax',
+        'customer_is_vat_payer',
+        'customer_tax_info',
         'total_amount',
         'currency_code',
         'status',
@@ -36,6 +43,8 @@ class Act extends Model
     protected $casts = [
         'act_date' => 'date',
         'contract_date' => 'date',
+        'customer_is_single_tax' => 'boolean',
+        'customer_is_vat_payer' => 'boolean',
         'total_amount' => 'float',
     ];
 

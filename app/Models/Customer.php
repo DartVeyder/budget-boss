@@ -20,6 +20,8 @@ class Customer extends Model
 
     protected $casts = [
         'is_fop' => 'boolean',
+        'is_single_tax' => 'boolean',
+        'is_vat_payer' => 'boolean',
     ];
 
     public function scopeUser(Builder $query)

@@ -8,12 +8,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
+use Orchid\Attachment\Attachable;
 use Orchid\Filters\Filterable;
 use Orchid\Screen\AsSource;
 
 class CustomerCounterparty extends Model
 {
-    use HasFactory, AsSource, Filterable;
+    use HasFactory, AsSource, Filterable, Attachable;
 
     protected $fillable = [
         'customer_id',
@@ -22,12 +23,23 @@ class CustomerCounterparty extends Model
         'ipn',
         'iban',
         'bank_name',
+        'address',
+        'phone',
+        'contract_number',
+        'contract_date',
+        'contract_name',
+        'tax_group',
+        'is_single_tax',
+        'is_vat_payer',
         'notes',
         'is_active',
     ];
 
     protected $casts = [
+        'is_single_tax' => 'boolean',
+        'is_vat_payer' => 'boolean',
         'is_active' => 'boolean',
+        'contract_date' => 'date',
     ];
 
     public function scopeUser(Builder $query): Builder

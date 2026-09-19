@@ -11,6 +11,7 @@ use Orchid\Screen\Actions\ModalToggle;
 use Orchid\Screen\Fields\CheckBox;
 use Orchid\Screen\Fields\Group;
 use Orchid\Screen\Fields\Input;
+use Orchid\Screen\Fields\Select;
 use Orchid\Screen\Fields\TextArea;
 use Orchid\Screen\Screen;
 use Orchid\Support\Color;
@@ -118,6 +119,31 @@ class CustomerEditScreen extends Screen
                     CheckBox::make('customer.is_fop')
                         ->title('Це ФОП?')
                         ->sendTrueOrFalse(),
+
+                    Group::make([
+                        Select::make('customer.tax_group')
+                            ->title('Група єдиного податку')
+                            ->options([
+                                '' => 'Без групи',
+                                '1 група' => '1 група',
+                                '2 група' => '2 група',
+                                '3 група' => '3 група',
+                                '4 група' => '4 група',
+                            ])
+                            ->empty('Не вказано')
+                            ->help('Вкажіть групу ФОП'),
+
+                        CheckBox::make('customer.is_single_tax')
+                            ->title('Платник єдиного податку')
+                            ->sendTrueOrFalse()
+                            ->value(true),
+
+                        CheckBox::make('customer.is_vat_payer')
+                            ->title('Платник ПДВ')
+                            ->sendTrueOrFalse()
+                            ->value(false)
+                            ->placeholder('Платник ПДВ (інакше Не платник ПДВ)'),
+                    ]),
 
                     Group::make([
                         Input::make('customer.ipn')
@@ -245,7 +271,7 @@ class CustomerEditScreen extends Screen
     {
         $counterpartyId = $request->input('counterparty');
         $counterparty = $counterpartyId
-            ? CustomerCounterparty::where('user_id', auth()->id())->find($counterpartyId)
+            ? CustomerCounterparty::where('user_id', auth()->id())->with('attachment')->find($counterpartyId)
             : new CustomerCounterparty(['is_active' => true]);
 
         return [
@@ -271,6 +297,13 @@ class CustomerEditScreen extends Screen
             'counterparty.ipn' => 'nullable|string|max:20',
             'counterparty.iban' => 'nullable|string|max:34',
             'counterparty.bank_name' => 'nullable|string|max:255',
+            'counterparty.phone' => 'nullable|string|max:50',
+            'counterparty.address' => 'nullable|string|max:1000',
+            'counterparty.tax_group' => 'nullable|string|max:50',
+            'counterparty.contract_number' => 'nullable|string|max:255',
+            'counterparty.contract_date' => 'nullable|date',
+            'counterparty.is_single_tax' => 'boolean',
+            'counterparty.is_vat_payer' => 'boolean',
             'counterparty.notes' => 'nullable|string|max:1000',
             'counterparty.is_active' => 'boolean',
         ]);
@@ -278,6 +311,13 @@ class CustomerEditScreen extends Screen
         $data = $request->input('counterparty', []);
         $counterpartyId = $data['id'] ?? null;
         unset($data['id']);
+
+        $attachments = $data['attachment'] ?? [];
+        unset($data['attachment']);
+
+        if (empty($data['contract_date'])) {
+            $data['contract_date'] = null;
+        }
 
         $counterparty = $counterpartyId
             ? CustomerCounterparty::where('user_id', auth()->id())->findOrFail($counterpartyId)
@@ -287,6 +327,32 @@ class CustomerEditScreen extends Screen
         $counterparty->customer_id = $customer->id;
         $counterparty->user_id = auth()->id();
         $counterparty->save();
+
+        if (!empty($attachments)) {
+            $counterparty->attachment()->syncWithoutDetaching($attachments);
+
+            // Auto-extract contract details from document if empty
+            if (empty($counterparty->contract_number) || empty($counterparty->contract_date)) {
+                $counterparty->load('attachment');
+                $att = $counterparty->attachment->first();
+                if ($att) {
+                    $docService = app(\App\Services\Finance\Act\DocumentGenerationService::class);
+                    $extracted = $docService->extractContractDetailsFromAttachment($att);
+                    $updated = false;
+                    if (empty($counterparty->contract_number) && !empty($extracted['number'])) {
+                        $counterparty->contract_number = $extracted['number'];
+                        $updated = true;
+                    }
+                    if (empty($counterparty->contract_date) && !empty($extracted['date'])) {
+                        $counterparty->contract_date = $extracted['date'];
+                        $updated = true;
+                    }
+                    if ($updated) {
+                        $counterparty->save();
+                    }
+                }
+            }
+        }
 
         Toast::info('ФОП контрагента успішно збережено.');
 

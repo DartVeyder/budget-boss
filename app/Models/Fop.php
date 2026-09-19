@@ -6,12 +6,13 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Orchid\Attachment\Attachable;
 use Orchid\Filters\Filterable;
 use Orchid\Screen\AsSource;
 
 class Fop extends Model
 {
-    use HasFactory, AsSource, Filterable;
+    use HasFactory, AsSource, Filterable, Attachable;
 
     public function scopeUser(Builder $query)
     {
@@ -26,7 +27,12 @@ class Fop extends Model
         'ipn',
         'ewn',
         'address',
+        'iban',
+        'bank_name',
         'phone',
+        'contract_number',
+        'contract_date',
+        'contract_name',
 
         'director',
         'is_active',
@@ -43,6 +49,7 @@ class Fop extends Model
         'is_esv_exempt' => 'boolean',
         'annual_limit' => 'float',
         'custom_esv' => 'float',
+        'contract_date' => 'date',
     ];
 
     /**

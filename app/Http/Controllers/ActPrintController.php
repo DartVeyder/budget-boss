@@ -26,7 +26,7 @@ class ActPrintController extends Controller
         $act->loadMissing(['fop.bill', 'fop.fopGroup', 'customer', 'counterparty', 'invoice', 'items']);
 
         $fopDetails = $this->documentService->getFopDetails($act->fop);
-        $customerDetails = $this->documentService->getCustomerDetails($act->customer, $act->counterparty);
+        $customerDetails = $this->documentService->getCustomerDetails($act->customer, $act->counterparty, $act);
 
         return view('finance.act.print', [
             'act' => $act,
@@ -48,8 +48,15 @@ class ActPrintController extends Controller
 
         $fop = $invoice->fop ?: ($invoice->customer?->fop ?: \App\Models\Fop::where('user_id', $invoice->user_id)->first());
 
+        if (empty($invoice->contract_number)) {
+            $invoice->contract_number = $invoice->counterparty?->contract_number ?: $fop?->contract_number;
+        }
+        if (empty($invoice->contract_date)) {
+            $invoice->contract_date = $invoice->counterparty?->contract_date ?: $fop?->contract_date;
+        }
+
         $fopDetails = $this->documentService->getFopDetails($fop);
-        $customerDetails = $this->documentService->getCustomerDetails($invoice->customer, $invoice->counterparty);
+        $customerDetails = $this->documentService->getCustomerDetails($invoice->customer, $invoice->counterparty, $invoice->act);
 
         return view('finance.invoice.print', [
             'invoice' => $invoice,

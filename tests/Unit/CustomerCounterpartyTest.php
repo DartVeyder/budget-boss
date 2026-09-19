@@ -210,4 +210,94 @@ class CustomerCounterpartyTest extends TestCase
         $layouts = $screen->layout();
         $this->assertNotEmpty($layouts);
     }
+
+    public function test_counterparty_contract_fields_and_auto_fill_in_act(): void
+    {
+        $user = User::first() ?? User::factory()->create();
+        $this->actingAs($user);
+
+        $bill = FinanceBill::first() ?? FinanceBill::create([
+            'user_id' => $user->id,
+            'name' => 'Рахунок ' . uniqid(),
+            'finance_currency_id' => 1,
+            'currency_code' => '980',
+            'is_active' => true,
+        ]);
+
+        $fop = Fop::create([
+            'user_id' => $user->id,
+            'name' => 'ФОП Виконавець ' . uniqid(),
+            'ipn' => '1234567890',
+            'finance_bill_id' => $bill->id,
+            'contract_number' => 'ФОП-ДОГ-001',
+            'contract_date' => '2026-01-01',
+            'is_active' => true,
+        ]);
+
+        $customer = Customer::create([
+            'user_id' => $user->id,
+            'name' => 'Клієнт ' . uniqid(),
+        ]);
+
+        $counterparty = CustomerCounterparty::create([
+            'customer_id' => $customer->id,
+            'user_id' => $user->id,
+            'name' => 'ФОП Контрагент ' . uniqid(),
+            'contract_number' => 'КП-ДОГ-777',
+            'contract_date' => '2026-06-15',
+            'is_active' => true,
+        ]);
+
+        // 1. Check model fields and casts
+        $this->assertEquals('КП-ДОГ-777', $counterparty->contract_number);
+        $this->assertEquals('2026-06-15', $counterparty->contract_date->toDateString());
+
+        // 2. DocumentGenerationService getCustomerDetails
+        $docService = app(\App\Services\Finance\Act\DocumentGenerationService::class);
+        $details = $docService->getCustomerDetails($customer, $counterparty);
+        $this->assertEquals('КП-ДОГ-777', $details['contract_number']);
+        $this->assertEquals('2026-06-15', $details['contract_date']);
+
+        // 3. ActPartiesListener auto-selects counterparty contract over FOP contract
+        $listener = new \App\Orchid\Layouts\Finance\Act\ActPartiesListener();
+        $repository = new \Orchid\Screen\Repository(['act' => []]);
+        $request = new \Illuminate\Http\Request([
+            'act' => [
+                'fop_id' => $fop->id,
+                'customer_id' => $customer->id,
+                'counterparty_id' => $counterparty->id,
+            ],
+        ]);
+
+        $updatedRepo = $listener->handle($repository, $request);
+        $actData = $updatedRepo->get('act');
+        $this->assertEquals('КП-ДОГ-777', $actData['contract_number']);
+        $this->assertEquals('2026-06-15', $actData['contract_date']);
+
+        // 4. ActEditScreen asyncGetCustomerParties
+        $screen = new \App\Orchid\Screens\Finance\Act\ActEditScreen();
+        $asyncRes = $screen->asyncGetCustomerParties([
+            'fop_id' => $fop->id,
+            'customer_id' => $customer->id,
+            'counterparty_id' => $counterparty->id,
+        ]);
+        $this->assertEquals('КП-ДОГ-777', $asyncRes['act']['contract_number']);
+        $this->assertEquals('2026-06-15', $asyncRes['act']['contract_date']);
+
+        // 5. Fallback to FOP contract when counterparty has no contract
+        $counterpartyNoContract = CustomerCounterparty::create([
+            'customer_id' => $customer->id,
+            'user_id' => $user->id,
+            'name' => 'ФОП Без Договору ' . uniqid(),
+            'is_active' => true,
+        ]);
+
+        $asyncResFallback = $screen->asyncGetCustomerParties([
+            'fop_id' => $fop->id,
+            'customer_id' => $customer->id,
+            'counterparty_id' => $counterpartyNoContract->id,
+        ]);
+        $this->assertEquals('ФОП-ДОГ-001', $asyncResFallback['act']['contract_number']);
+        $this->assertEquals('2026-01-01', $asyncResFallback['act']['contract_date']);
+    }
 }

@@ -349,7 +349,9 @@
         <tr>
             <td>
                 <div class="req-title">{{ $fopDetails['name_with_fop'] }}</div>
-                @if($fopDetails['address'])<div>{{ $fopDetails['address'] }}</div>@endif
+                @if($fopDetails['address'])
+                    <div>{{ \Illuminate\Support\Str::startsWith($fopDetails['address'], ['Адреса:', 'адреса:']) ? $fopDetails['address'] : 'Адреса: ' . $fopDetails['address'] }}</div>
+                @endif
                 @if($fopDetails['iban'])<div>{{ $fopDetails['iban'] }},</div>@endif
                 @if($fopDetails['ipn'])<div>ІПН {{ $fopDetails['ipn'] }},</div>@endif
                 @if($fopDetails['phone'])<div>Тел.: {{ $fopDetails['phone'] }},</div>@endif
@@ -358,11 +360,26 @@
             </td>
             <td>
                 <div class="req-title">{{ $customerDetails['name_with_fop'] }}</div>
-                @if($customerDetails['address'])<div>Адреса: {{ $customerDetails['address'] }}</div>@endif
+                @if($customerDetails['address'])
+                    <div>{{ \Illuminate\Support\Str::startsWith($customerDetails['address'], ['Адреса:', 'адреса:']) ? $customerDetails['address'] : 'Адреса: ' . $customerDetails['address'] }}</div>
+                @endif
                 @if($customerDetails['iban'])<div>{{ $customerDetails['iban'] }}</div>@endif
                 @if($customerDetails['code'])<div>ІПН: {{ $customerDetails['code'] }},</div>@endif
-                @if($customerDetails['phone'])<div>Тел.: {{ $customerDetails['phone'] }},</div>@endif
-                <div>{{ $customerDetails['tax_info'] }}</div>
+                @if($customerDetails['phone'])
+                    <div>{{ \Illuminate\Support\Str::startsWith($customerDetails['phone'], ['Тел', 'тел']) ? $customerDetails['phone'] : 'Тел.: ' . $customerDetails['phone'] }},</div>
+                @endif
+                @php
+                    $taxInfo = $customerDetails['tax_info'] ?? '';
+                    if (preg_match('/^(.*),\s*(Не платник ПДВ|Платник ПДВ|без ПДВ|з ПДВ)$/ui', $taxInfo, $taxMatches)) {
+                        $taxLine1 = trim($taxMatches[1]) . ',';
+                        $taxLine2 = trim($taxMatches[2]);
+                    } else {
+                        $taxLine1 = $taxInfo;
+                        $taxLine2 = null;
+                    }
+                @endphp
+                @if($taxLine1)<div>{{ $taxLine1 }}</div>@endif
+                @if($taxLine2)<div>{{ $taxLine2 }}</div>@endif
             </td>
         </tr>
     </table>

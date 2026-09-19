@@ -4,9 +4,12 @@ namespace App\Orchid\Layouts\Customer;
 
 use Orchid\Screen\Field;
 use Orchid\Screen\Fields\CheckBox;
+use Orchid\Screen\Fields\DateTimer;
 use Orchid\Screen\Fields\Group;
 use Orchid\Screen\Fields\Input;
+use Orchid\Screen\Fields\Select;
 use Orchid\Screen\Fields\TextArea;
+use Orchid\Screen\Fields\Upload;
 use Orchid\Screen\Layouts\Rows;
 
 class CustomerCounterpartyEditLayout extends Rows
@@ -43,6 +46,64 @@ class CustomerCounterpartyEditLayout extends Rows
                 ->title('IBAN платника')
                 ->placeholder('UA000000000000000000000000000')
                 ->help('Розрахунковий рахунок у форматі IBAN (необов\'язково)'),
+
+            Group::make([
+                Input::make('counterparty.phone')
+                    ->title('Номер телефону')
+                    ->placeholder('+38 (067) 123-45-67')
+                    ->help('Контактний номер телефону для актів та рахунків'),
+
+                TextArea::make('counterparty.address')
+                    ->title('Юридична / фактична адреса')
+                    ->placeholder('Україна, 80106, Львівська обл...')
+                    ->rows(2)
+                    ->help('Адреса для реквізитів у первинних документах'),
+            ]),
+
+            Group::make([
+                Select::make('counterparty.tax_group')
+                    ->title('Група платника єдиного податку')
+                    ->options([
+                        '' => 'Без групи',
+                        '1 група' => '1 група',
+                        '2 група' => '2 група',
+                        '3 група' => '3 група',
+                        '4 група' => '4 група',
+                    ])
+                    ->empty('Не вказано')
+                    ->help('Наприклад: 2 група, 3 група'),
+
+                CheckBox::make('counterparty.is_single_tax')
+                    ->title('Платник єдиного податку')
+                    ->placeholder('Платник єдиного податку')
+                    ->sendTrueOrFalse()
+                    ->value(true),
+
+                CheckBox::make('counterparty.is_vat_payer')
+                    ->title('Платник ПДВ')
+                    ->placeholder('Платник ПДВ (якщо не обрано — Не платник ПДВ)')
+                    ->sendTrueOrFalse()
+                    ->value(false),
+            ]),
+
+            Group::make([
+                Input::make('counterparty.contract_number')
+                    ->title('Номер договору')
+                    ->placeholder('наприклад: МД18092026-01 або № 12/2026')
+                    ->help('Автоматично підтягується в Акти та Рахунки на оплату для цього контрагента'),
+
+                DateTimer::make('counterparty.contract_date')
+                    ->title('Дата договору')
+                    ->format('Y-m-d')
+                    ->allowEmpty()
+                    ->help('Дата укладання договору'),
+            ]),
+
+            Upload::make('counterparty.attachment')
+                ->title('Документ договору (файл)')
+                ->maxFiles(1)
+                ->acceptedFiles('.pdf,.docx,.doc,.jpg,.jpeg,.png')
+                ->help('Завантажте файл договору (PDF, DOCX). Якщо номер або дата не вказані, вони автоматично підтягнуться з документа'),
 
             TextArea::make('counterparty.notes')
                 ->title('Примітки')

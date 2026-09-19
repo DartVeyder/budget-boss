@@ -22,7 +22,9 @@ class ActPartiesListener extends Listener
      * @var string[]
      */
     protected $targets = [
+        'act.fop_id',
         'act.customer_id',
+        'act.counterparty_id',
     ];
 
     /**
@@ -38,7 +40,9 @@ class ActPartiesListener extends Listener
      */
     public function handle(Repository $repository, Request $request): Repository
     {
+        $fopId = $request->input('act.fop_id');
         $customerId = $request->input('act.customer_id');
+        $counterpartyId = $request->input('act.counterparty_id');
         $customer = $customerId ? Customer::with(['fop', 'counterparties' => fn ($q) => $q->active()])->find($customerId) : null;
 
         $act = $repository->get('act', []);
@@ -46,21 +50,75 @@ class ActPartiesListener extends Listener
             $act = $act->toArray();
         }
 
-        $act['customer_id'] = $customerId;
+        if ($customerId) {
+            $act['customer_id'] = $customerId;
+        }
+        if ($fopId) {
+            $act['fop_id'] = $fopId;
+        }
 
         // Auto-select counterparty if customer has exactly 1 counterparty
+        $counterparty = null;
         if ($customer && $customer->counterparties->count() === 1) {
-            $act['counterparty_id'] = $customer->counterparties->first()->id;
+            $counterparty = $customer->counterparties->first();
+            $act['counterparty_id'] = $counterparty->id;
         } else {
-            $currentCpId = $act['counterparty_id'] ?? null;
+            $currentCpId = $counterpartyId ?: ($act['counterparty_id'] ?? null);
             if ($currentCpId && $customer && !$customer->counterparties->pluck('id')->contains($currentCpId)) {
                 $act['counterparty_id'] = null;
+            } elseif ($currentCpId && $customer) {
+                $counterparty = $customer->counterparties->firstWhere('id', $currentCpId);
+                $act['counterparty_id'] = $currentCpId;
+            } elseif ($currentCpId) {
+                $counterparty = CustomerCounterparty::find($currentCpId);
+                $act['counterparty_id'] = $currentCpId;
             }
+        }
+
+        // Auto-fill address and phone from counterparty or customer
+        $resolvedAddress = $counterparty?->address ?: ($customer?->address ?: '');
+        $resolvedPhone = $counterparty?->phone ?: ($customer?->phone ?: '');
+        if ($resolvedAddress || empty($act['customer_address'])) {
+            $act['customer_address'] = $resolvedAddress;
+        }
+        if ($resolvedPhone || empty($act['customer_phone'])) {
+            $act['customer_phone'] = $resolvedPhone;
+        }
+
+        // Auto-fill tax status from counterparty or customer
+        $resolvedTaxGroup = $counterparty?->tax_group ?: ($customer?->tax_group ?: '');
+        $resolvedIsSingleTax = $counterparty ? (bool)$counterparty->is_single_tax : ($customer ? (bool)$customer->is_single_tax : true);
+        $resolvedIsVatPayer = $counterparty ? (bool)$counterparty->is_vat_payer : ($customer ? (bool)$customer->is_vat_payer : false);
+        if ($resolvedTaxGroup || !isset($act['customer_tax_group'])) {
+            $act['customer_tax_group'] = $resolvedTaxGroup;
+        }
+        if (!isset($act['customer_is_single_tax'])) {
+            $act['customer_is_single_tax'] = $resolvedIsSingleTax;
+        }
+        if (!isset($act['customer_is_vat_payer'])) {
+            $act['customer_is_vat_payer'] = $resolvedIsVatPayer;
         }
 
         // Auto-select FOP if customer has a linked FOP and no FOP was manually selected
         if ($customer?->fop_id && empty($act['fop_id'])) {
             $act['fop_id'] = $customer->fop_id;
+            $fopId = $customer->fop_id;
+        }
+
+        // Auto-fill contract details (priority: counterparty contract -> fallback to FOP contract)
+        $resolvedFopId = $act['fop_id'] ?? $fopId;
+        $fop = $resolvedFopId ? Fop::find($resolvedFopId) : null;
+
+        $targetContractNumber = $counterparty?->contract_number ?: $fop?->contract_number;
+        $targetContractDate = $counterparty?->contract_date ? $counterparty->contract_date->toDateString() : ($fop?->contract_date?->toDateString());
+
+        $partiesChanged = $request->has('act.counterparty_id') || $request->has('act.customer_id') || $request->has('act.fop_id');
+
+        if ($targetContractNumber && (empty($act['contract_number']) || $partiesChanged)) {
+            $act['contract_number'] = $targetContractNumber;
+        }
+        if ($targetContractDate && (empty($act['contract_date']) || $partiesChanged)) {
+            $act['contract_date'] = $targetContractDate;
         }
 
         $repository->set('act', $act);
@@ -140,10 +198,60 @@ class ActPartiesListener extends Listener
                             ->empty('Не обрано (документ на основного клієнта)', '')
                             ->help($helpText),
                     ]),
+
+                    Group::make([
+                        \Orchid\Screen\Fields\Input::make('act.customer_phone')
+                            ->title('Телефон замовника')
+                            ->placeholder('+38 (067) 123-45-67')
+                            ->help('Відображається в колонці "Від Замовника" в акті'),
+
+                        \Orchid\Screen\Fields\Input::make('act.customer_address')
+                            ->title('Адреса замовника')
+                            ->placeholder('Україна, 80106, Львівська обл...')
+                            ->help('Відображається в колонці "Від Замовника" в акті'),
+                    ]),
+
+                    Group::make([
+                        Select::make('act.customer_tax_group')
+                            ->title('Група єдиного податку замовника')
+                            ->options([
+                                '' => 'Без групи',
+                                '1 група' => '1 група',
+                                '2 група' => '2 група',
+                                '3 група' => '3 група',
+                                '4 група' => '4 група',
+                            ])
+                            ->empty('Не вказано')
+                            ->help('Вкажіть групу ФОП замовника'),
+
+                        \Orchid\Screen\Fields\CheckBox::make('act.customer_is_single_tax')
+                            ->title('Платник єдиного податку')
+                            ->sendTrueOrFalse()
+                            ->value(true)
+                            ->placeholder('Платник єдиного податку'),
+
+                        \Orchid\Screen\Fields\CheckBox::make('act.customer_is_vat_payer')
+                            ->title('Платник ПДВ')
+                            ->sendTrueOrFalse()
+                            ->value(false)
+                            ->placeholder('Платник ПДВ (якщо не обрано — Не платник ПДВ)'),
+                    ]),
+
+                    Group::make([
+                        \Orchid\Screen\Fields\Input::make('act.contract_number')
+                            ->title('Номер договору')
+                            ->placeholder('наприклад: МД18092026-01 (підтягнуто з контрагента або ФОП)'),
+
+                        \Orchid\Screen\Fields\DateTimer::make('act.contract_date')
+                            ->title('Дата договору')
+                            ->format('Y-m-d')
+                            ->allowEmpty()
+                            ->help('Автоматично підтягується з обраного контрагента або ФОПа'),
+                    ]),
                 ])
             )
-            ->title('Сторони документа')
-            ->description('Вибір вашого ФОПа та замовника для автоматичного заповнення реквізитів'),
+            ->title('Сторони документа та Договір')
+            ->description('Вибір вашого ФОПа та замовника, реквізитів і договору для документа'),
         ];
     }
 }

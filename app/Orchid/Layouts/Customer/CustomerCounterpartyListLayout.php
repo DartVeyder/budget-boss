@@ -45,6 +45,21 @@ class CustomerCounterpartyListLayout extends Table
             TD::make('bank_name', 'Банк')
                 ->render(fn (CustomerCounterparty $counterparty) => $counterparty->bank_name ?: '—'),
 
+            TD::make('contract', 'Договір')
+                ->render(function (CustomerCounterparty $counterparty) {
+                    if (!$counterparty->contract_number && !$counterparty->contract_date) {
+                        return '<span class="text-muted">—</span>';
+                    }
+                    $lines = [];
+                    if ($counterparty->contract_number) {
+                        $lines[] = '№ ' . e($counterparty->contract_number);
+                    }
+                    if ($counterparty->contract_date) {
+                        $lines[] = '<small class="text-muted">від ' . $counterparty->contract_date->format('d.m.Y') . '</small>';
+                    }
+                    return implode('<br>', $lines);
+                }),
+
             TD::make('notes', 'Примітки')
                 ->render(fn (CustomerCounterparty $counterparty) => $counterparty->notes ?: '—'),
 

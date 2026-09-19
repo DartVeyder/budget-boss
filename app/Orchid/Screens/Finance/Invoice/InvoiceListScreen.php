@@ -9,6 +9,9 @@ use App\Orchid\Layouts\Finance\Invoice\InvoiceSaveRows;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Orchid\Screen\Actions\ModalToggle;
+use Orchid\Screen\Fields\Input;
+use Orchid\Screen\Fields\Select;
+use Orchid\Screen\Fields\Upload;
 use Orchid\Screen\Screen;
 use Orchid\Support\Facades\Layout;
 use Orchid\Support\Facades\Toast;
@@ -24,7 +27,8 @@ class InvoiceListScreen extends Screen
     {
         return [
             "invoices" =>
-                FinanceInvoice::filters()
+                FinanceInvoice::with(['customer', 'fop', 'counterparty', 'currency', 'attachment'])
+                    ->filters()
                     ->where('user_id', Auth::user()->id)
                     ->defaultSort('id', 'desc')
                     ->paginate()
@@ -38,7 +42,7 @@ class InvoiceListScreen extends Screen
      */
     public function name(): ?string
     {
-        return 'Invoices';
+        return 'Рахунки на оплату';
     }
 
     /**
@@ -49,11 +53,13 @@ class InvoiceListScreen extends Screen
     public function commandBar(): iterable
     {
         return [
-            ModalToggle::make(__('Add'))
+            ModalToggle::make('Створити рахунок')
+                ->icon('bs.plus-circle')
                 ->modal('createInvoice')
                 ->method('save'),
 
-            ModalToggle::make(__('Create customer'))
+            ModalToggle::make('Створити клієнта')
+                ->icon('bs.person-plus')
                 ->modal('createCustomer')
                 ->method('saveCustomer'),
         ];
@@ -70,26 +76,91 @@ class InvoiceListScreen extends Screen
             InvoiceListLayout::class,
             Layout::modal('createInvoice', [
                 InvoiceSaveRows::class
-            ])->applyButton(__('Save'))->title(__('New invoice')),
+            ])->applyButton('Зберегти')->title('Новий рахунок на оплату'),
             Layout::modal('createCustomer', [
                 CustomerSaveRows::class
-            ])->applyButton(__('Save'))->title(__('New customer')),
+            ])->applyButton('Зберегти')->title('Новий клієнт'),
+
+            Layout::modal('asyncUploadInvoiceModal', Layout::rows([
+                Input::make('invoice.id')->type('hidden'),
+
+                Upload::make('invoice.attachment')
+                    ->title('Підписаний рахунок (скан / PDF)')
+                    ->acceptedFiles('.pdf,.docx,.doc,.jpg,.jpeg,.png')
+                    ->help('Завантажте підписану скан-копію або PDF документ'),
+
+                Select::make('invoice.status')
+                    ->title('Статус рахунку')
+                    ->options([
+                        'not_paid' => 'Не оплачено',
+                        'part paid' => 'Оплачено частково',
+                        'paid' => 'Оплачено',
+                        'cancelled' => 'Скасовано',
+                    ])
+                    ->help('Статус оплати за цим рахунком'),
+            ]))
+            ->async('asyncGetInvoice')
+            ->applyButton('Зберегти')
+            ->title('Підписаний рахунок'),
         ];
     }
-    public function  saveCustomer(Request $request){
+
+    /**
+     * Async get invoice data for upload modal.
+     */
+    public function asyncGetInvoice(Request $request): iterable
+    {
+        $invoiceId = $request->input('invoice');
+        $invoice = FinanceInvoice::where('user_id', Auth::id())->with('attachment')->findOrFail($invoiceId);
+
+        return [
+            'invoice' => $invoice,
+        ];
+    }
+
+    /**
+     * Save signed invoice attachment and status.
+     */
+    public function saveSignedInvoice(Request $request)
+    {
+        $invoiceId = $request->input('invoice.id');
+        $invoice = FinanceInvoice::where('user_id', Auth::id())->findOrFail($invoiceId);
+
+        $attachments = $request->input('invoice.attachment', []);
+        $invoice->attachment()->sync($attachments);
+
+        if ($request->has('invoice.status')) {
+            $invoice->status = $request->input('invoice.status');
+        }
+        $invoice->save();
+
+        Toast::info('Підписаний рахунок успішно збережено.');
+
+        return redirect()->route('platform.invoices');
+    }
+
+    public function saveCustomer(Request $request)
+    {
         Auth::user()->customers()->create($request->all());
-        Toast::info(__('You have successfully created.'));
+        Toast::info('Клієнта успішно створено.');
     }
 
     public function save(Request $request, FinanceInvoice $financeInvoice)
     {
         $invoice = $request->input('invoice', []);
+        $attachments = $request->input('invoice.attachment', []);
+        unset($invoice['attachment']);
+
         $invoice['user_id'] = Auth::id();
         $invoice['invoice_number'] = $this->generateInvoiceNumber();
         $financeInvoice->fill($invoice)->save();
-        Toast::info(__('You have successfully created.'));
-    }
 
+        if (!empty($attachments)) {
+            $financeInvoice->attachment()->sync($attachments);
+        }
+
+        Toast::info('Рахунок успішно збережено.');
+    }
 
     public function generateInvoiceNumber(): string
     {
@@ -109,7 +180,8 @@ class InvoiceListScreen extends Screen
         $invoice = FinanceInvoice::where('user_id', Auth::id())->findOrFail($request->get('id'));
         $invoice->delete();
 
-        Toast::info(__('You have successfully remove'));
+        Toast::info('Рахунок успішно видалено.');
         return redirect()->route('platform.invoices');
     }
 }
+
