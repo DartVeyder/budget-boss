@@ -2,6 +2,7 @@
 
 namespace App\Orchid\Filters\Analytic\Finance;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Orchid\Filters\Filter;
 use Orchid\Screen\Field;
@@ -38,7 +39,17 @@ class CreatedFilter extends Filter
      */
     public function run(Builder $builder): Builder
     {
-       return $builder->whereBetween('created_at', [$this->request->get('created_at')['start'], $this->request->get('created_at')['end']]);
+        $dates = $this->request->get('created_at');
+        $start = $dates['start'] ?? null;
+        $end   = $dates['end']   ?? null;
+
+        if ($start && $end) {
+            $startFormatted = strlen($start) === 10 ? Carbon::parse($start)->startOfDay()->toDateTimeString() : $start;
+            $endFormatted   = strlen($end) === 10 ? Carbon::parse($end)->endOfDay()->toDateTimeString() : $end;
+            return $builder->whereBetween('created_at', [$startFormatted, $endFormatted]);
+        }
+
+        return $builder;
     }
 
     /**
@@ -50,7 +61,7 @@ class CreatedFilter extends Filter
     {
         return [
             DateRange::make('created_at')
-            ->title('Date'),
+                ->title('Дата'),
         ];
     }
 }

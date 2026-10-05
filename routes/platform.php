@@ -281,6 +281,20 @@ Route::screen('fop/ledger', \App\Orchid\Screens\Fop\FopLedgerScreen::class)
         ->parent('platform.fops')
         ->push('Книга обліку доходів', route('platform.fop.ledger')));
 
+// Platform > FOP > Analytic
+Route::screen('fop/analytic', \App\Orchid\Screens\Fop\FopAnalyticScreen::class)
+    ->name('platform.fop.analytic')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.fops')
+        ->push('Аналітика ФОП', route('platform.fop.analytic')));
+
+// Platform > Analytic > FOP
+Route::screen('analytic/fop', \App\Orchid\Screens\Fop\FopAnalyticScreen::class)
+    ->name('platform.analytic.fop')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.analytic')
+        ->push('Аналітика ФОП', route('platform.fop.analytic')));
+
 // Platform > FOP > Actions (Export, Print, Pay Tax)
 Route::get('fop/ledger-export', [\App\Http\Controllers\FopTaxController::class, 'exportLedger'])
     ->name('platform.fop.ledger.export');
@@ -354,6 +368,13 @@ Route::get('acts/{act}/print', [\App\Http\Controllers\ActPrintController::class,
 
 Route::get('invoices/{invoice}/print', [\App\Http\Controllers\ActPrintController::class, 'printInvoice'])
     ->name('platform.invoices.print');
+
+// Analytic finance category transactions quick view
+Route::get('analytic/finance/category-transactions', [\App\Http\Controllers\AnalyticCategoryTransactionsController::class, 'getTransactions'])
+    ->name('platform.analytic.finance.category-transactions');
+
+Route::get('analytic/finance/source-monthly', [\App\Http\Controllers\AnalyticCategoryTransactionsController::class, 'getSourceMonthly'])
+    ->name('platform.analytic.finance.source-monthly');
 
 
 //Route::screen('idea', Idea::class, 'platform.screens.idea');

@@ -97,6 +97,10 @@ class FopLedgerScreen extends Screen
         $quarter = request()->get('quarter', '');
 
         return [
+            Link::make('Аналітика ФОП')
+                ->icon('bs.graph-up')
+                ->route('platform.fop.analytic'),
+
             Link::make('Експорт в Excel (CSV)')
                 ->icon('bs.file-earmark-spreadsheet')
                 ->route('platform.fop.ledger.export', ['year' => $year, 'quarter' => $quarter]),

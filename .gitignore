@@ -1,9 +1,16 @@
 /.phpunit.cache
 /node_modules
+/dist
+/build
 /public/build
 /public/hot
 /public/storage
 /storage/*.key
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/logs/*.log
+/scratch
 /vendor
 .env
 .env.backup
@@ -19,3 +26,4 @@ yarn-error.log
 /.vscode
 /.htaccess
 /.osp/
+

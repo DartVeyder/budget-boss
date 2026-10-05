@@ -465,6 +465,10 @@ class DocumentGenerationService
         $userId = $userId ?: \Illuminate\Support\Facades\Auth::id();
         $transactions = FinanceTransaction::where('user_id', $userId)
             ->where('type', 'income')
+            ->where(function($q) {
+                $q->whereNull('transaction_type_id')
+                  ->orWhere('transaction_type_id', '!=', 3);
+            })
             ->whereDoesntHave('act')
             ->has('attachment')
             ->with(['attachment', 'customer.fop', 'counterparty', 'fop'])

@@ -1,822 +1,1177 @@
-<div class="mb-4 position-relative">
-    <!-- Trigger Button -->
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-2">
-        <div class="position-relative">
-            <button type="button" id="date-picker-trigger" class="btn btn-white bg-white border rounded shadow-sm px-4 py-2 fw-semibold text-dark d-flex align-items-center gap-2" style="font-size: 0.95rem; cursor: pointer; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-calendar3 text-primary" viewBox="0 0 16 16">
-                    <path d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM1 3.857C1 3.384 1.448 3 2 3h12c.552 0 1 .384 1 .857v10.286c0 .473-.448.857-1 .857H2c-.552 0-1-.384-1-.857V3.857z"/>
-                    <path d="M6.5 7a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-9 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-9 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
-                </svg>
-                <span id="date-picker-display-text">{{ __('Loading date range...') }}</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-chevron-down text-muted ms-1" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
-                </svg>
-            </button>
-        </div>
-    </div>
+@php
+    $createdAt  = request()->get('created_at', []);
+    $startParam = $createdAt['start'] ?? null;
+    $endParam   = $createdAt['end']   ?? null;
+    $hasFilter  = !empty($startParam) && !empty($endParam);
 
-    <!-- Dropdown Panel (Pixel Perfect recreation with premium modern UI/UX) -->
-    <div id="date-picker-panel" class="bg-white rounded-4 border shadow-lg d-none position-absolute" style="z-index: 1050; width: 680px; max-width: 95vw; font-family: system-ui, -apple-system, sans-serif; overflow: hidden; animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);">
-        
-        <!-- Header / Tabs & Inputs -->
-        <div class="px-4 pt-3 pb-2 border-bottom">
-            <!-- Upper Tabs Row -->
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div class="d-flex gap-1 bg-light p-1 rounded-3" style="font-size: 0.85rem;">
-                    <button type="button" class="btn btn-sm fw-bold px-3 py-1 text-primary bg-white shadow-sm rounded-2 border-0" style="font-size: 0.8rem;">{{ __('Date Range') }}</button>
-                    <button type="button" id="compare-dates-tab" class="btn btn-sm fw-medium px-2 py-1 text-muted rounded-2 border-0 bg-transparent transition-all" style="cursor: pointer;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2Z"/>
-                        </svg>
-                    </button>
-                </div>
-                <div id="compare-text-indicator" class="text-muted small fw-bold text-uppercase d-flex align-items-center gap-1 transition-all" style="font-size: 0.72rem; letter-spacing: 0.5px; opacity: 0.5;">
-                    <span class="status-dot bg-secondary rounded-circle" style="width: 6px; height: 6px; display: inline-block;"></span>
-                    {{ __('Compare Dates') }}
-                </div>
-            </div>
+    $startDateObj   = null;
+    $endDateObj     = null;
+    $formattedRange = '';
+    $presetBadge    = null;
+    $startVal       = '';
+    $endVal         = '';
 
-            <!-- Inputs & Exclusion Row -->
-            <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
-                <!-- Dropdown unit -->
-                <select id="date-picker-unit" class="form-select form-select-sm border rounded-3 fw-semibold text-dark select-premium-hover" style="width: 85px; font-size: 0.8rem; height: 36px; cursor: pointer;">
-                    <option value="days">{{ __('Days') }}</option>
-                    <option value="weeks">{{ __('Weeks') }}</option>
-                    <option value="months">{{ __('Months') }}</option>
-                </select>
+    if ($hasFilter) {
+        try {
+            $startDateObj   = \Carbon\Carbon::parse($startParam);
+            $endDateObj     = \Carbon\Carbon::parse($endParam);
+            $formattedRange = $startDateObj->format('d.m.Y') . ' — ' . $endDateObj->format('d.m.Y');
+            $startVal       = $startDateObj->format('Y-m-d');
+            $endVal         = $endDateObj->format('Y-m-d');
 
-                <!-- Inputs start and end -->
-                <div class="d-flex align-items-center gap-1 border rounded-3 px-3 py-1 bg-white flex-grow-1 transition-all" style="height: 36px;" id="input-range-container">
-                    <input type="text" id="start-date-input" readonly class="border-0 p-0 text-center fw-bold text-dark bg-transparent" style="width: 95px; font-size: 0.8rem; outline: none; cursor: pointer;">
-                    
-                    <!-- Animating Start Time -->
-                    <div id="start-time-container" class="time-container-anim animate-collapse">
-                        <span class="text-muted text-separator">@</span>
-                        <input type="text" id="start-time-input" class="border-0 p-0 text-primary bg-transparent time-input-field fw-semibold" style="width: 45px; font-size: 0.78rem; outline: none; text-align: center;" placeholder="00:00">
-                    </div>
-                    
-                    <span class="text-muted px-1 fw-medium" style="font-size: 0.8rem;">to</span>
-                    
-                    <input type="text" id="end-date-input" readonly class="border-0 p-0 text-center fw-bold text-dark bg-transparent" style="width: 95px; font-size: 0.8rem; outline: none; cursor: pointer;">
-                    
-                    <!-- Animating End Time -->
-                    <div id="end-time-container" class="time-container-anim animate-collapse">
-                        <span class="text-muted text-separator">@</span>
-                        <input type="text" id="end-time-input" class="border-0 p-0 text-primary bg-transparent time-input-field fw-semibold" style="width: 45px; font-size: 0.78rem; outline: none; text-align: center;" placeholder="23:59">
-                    </div>
-                </div>
+            $today = \Carbon\Carbon::today();
+            if ($startVal === $today->format('Y-m-d') && $endVal === $today->format('Y-m-d')) {
+                $presetBadge = 'Сьогодні';
+            } elseif ($startVal === $today->copy()->subDay()->format('Y-m-d') && $endVal === $today->copy()->subDay()->format('Y-m-d')) {
+                $presetBadge = 'Вчора';
+            } elseif ($startVal === $today->copy()->subDays(6)->format('Y-m-d') && $endVal === $today->format('Y-m-d')) {
+                $presetBadge = 'Останні 7 днів';
+            } elseif ($startVal === $today->copy()->subDays(29)->format('Y-m-d') && $endVal === $today->format('Y-m-d')) {
+                $presetBadge = 'Останні 30 днів';
+            } elseif ($startVal === $today->copy()->startOfMonth()->format('Y-m-d') && $endVal === $today->copy()->endOfMonth()->format('Y-m-d')) {
+                $presetBadge = 'Цей місяць';
+            } elseif ($startVal === $today->copy()->subMonth()->startOfMonth()->format('Y-m-d') && $endVal === $today->copy()->subMonth()->endOfMonth()->format('Y-m-d')) {
+                $presetBadge = 'Минулий місяць';
+            } elseif ($startVal === $today->copy()->startOfYear()->format('Y-m-d') && $endVal === $today->copy()->endOfYear()->format('Y-m-d')) {
+                $presetBadge = 'Цей рік';
+            } elseif ($startVal === $today->copy()->subYear()->startOfYear()->format('Y-m-d') && $endVal === $today->copy()->subYear()->endOfYear()->format('Y-m-d')) {
+                $presetBadge = 'Минулий рік';
+            }
+        } catch (\Exception $e) {
+            $formattedRange = 'Некоректний період';
+        }
+    } else {
+        $formattedRange = 'Останній рік (за замовчуванням)';
+        $startVal = \Carbon\Carbon::now()->subYear()->format('Y-m-d');
+        $endVal   = \Carbon\Carbon::now()->format('Y-m-d');
+    }
 
-                <!-- Exclusion Button (Now fully interactive) -->
-                <button type="button" id="exclusion-toggle-btn" class="btn btn-sm btn-white border rounded-3 d-flex align-items-center gap-1 text-muted fw-bold transition-all" style="height: 36px; font-size: 0.8rem; cursor: pointer;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" class="bi bi-exclude" viewBox="0 0 16 16">
-                        <path d="M0 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2z"/>
-                    </svg>
-                    <span>{{ __('Exclusion') }}</span>
-                    <span id="exclusion-status-badge" class="badge bg-danger rounded-circle p-1 d-none" style="width: 6px; height: 6px;"></span>
-                </button>
-            </div>
-        </div>
+    $baseUrl = request()->url();
 
-        <!-- Main Body: Quick Select (Left) & Calendar (Right) -->
-        <div class="d-flex flex-row-responsive" style="height: 330px;" id="picker-body-wrapper">
-            <!-- Left Panel: Quick Selection -->
-            <div id="quick-select-panel" class="border-end py-2 px-1 bg-light-subtle d-flex flex-column gap-1 scroll-horizontal-mobile" style="width: 175px; overflow-y: auto;">
-                <button type="button" class="quick-select-btn" data-range="this-week">{{ __('This week') }}</button>
-                <button type="button" class="quick-select-btn" data-range="next-week">{{ __('Next week') }}</button>
-                <button type="button" class="quick-select-btn" data-range="last-week">{{ __('Last week') }}</button>
-                <button type="button" class="quick-select-btn" data-range="today">{{ __('Today') }}</button>
-                <button type="button" class="quick-select-btn" data-range="last-7-days">{{ __('Last 7 days') }}</button>
-                <button type="button" class="quick-select-btn" data-range="last-15-days">{{ __('Last 15 days') }}</button>
-                <button type="button" class="quick-select-btn active-indigo" data-range="last-30-days">{{ __('Last 30 days') }}</button>
-                <button type="button" class="quick-select-btn" data-range="this-month">{{ __('This month') }}</button>
-                <button type="button" class="quick-select-btn" data-range="this-year">{{ __('This year') }}</button>
-                <button type="button" class="quick-select-btn" data-range="custom">{{ __('Custom') }}</button>
-            </div>
+    // Accounts / Bills data
+    $billIdParam = request()->get('bill_id');
+    $billIdParam = (!empty($billIdParam) && is_numeric($billIdParam)) ? (int)$billIdParam : null;
 
-            <!-- Right Panel: Calendar Container -->
-            <div class="flex-grow-1 p-3 d-flex flex-column" style="min-width: 0;">
-                <!-- Month & Year Selector -->
-                <div class="d-flex justify-content-between align-items-center mb-2 px-1">
-                    <button type="button" id="prev-month-btn" class="btn btn-sm btn-light border-0 rounded-circle d-flex align-items-center justify-content-center transition-all" style="width: 28px; height: 28px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-chevron-left" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l-6-6a.5.5 0 0 1 .708 0z"/>
-                        </svg>
-                    </button>
-                    
-                    <div class="d-flex align-items-center gap-1">
-                        <select id="calendar-month-select" class="form-select form-select-sm border-0 bg-transparent fw-bold text-dark p-0 pe-4 select-premium-hover" style="font-size: 0.9rem; width: auto; cursor: pointer;">
-                            <option value="0">{{ __('January') }}</option>
-                            <option value="1">{{ __('February') }}</option>
-                            <option value="2">{{ __('March') }}</option>
-                            <option value="3">{{ __('April') }}</option>
-                            <option value="4">{{ __('May') }}</option>
-                            <option value="5">{{ __('June') }}</option>
-                            <option value="6">{{ __('July') }}</option>
-                            <option value="7">{{ __('August') }}</option>
-                            <option value="8">{{ __('September') }}</option>
-                            <option value="9">{{ __('October') }}</option>
-                            <option value="10">{{ __('November') }}</option>
-                            <option value="11">{{ __('December') }}</option>
-                        </select>
-                        <select id="calendar-year-select" class="form-select form-select-sm border-0 bg-transparent fw-bold text-dark p-0 pe-4 select-premium-hover" style="font-size: 0.9rem; width: auto; cursor: pointer;">
-                            <!-- Will be populated dynamically by JS -->
-                        </select>
-                    </div>
+    $billsList = $bills ?? (\App\Models\FinanceBill::where('user_id', auth()->id() ?? 0)->with('currency')->orderBy('name')->get());
+    $activeBill = $selectedBill ?? ($billIdParam ? $billsList->firstWhere('id', $billIdParam) : null);
 
-                    <button type="button" id="next-month-btn" class="btn btn-sm btn-light border-0 rounded-circle d-flex align-items-center justify-content-center transition-all" style="width: 28px; height: 28px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-chevron-right" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
-                        </svg>
-                    </button>
-                </div>
+    if (!function_exists('bbGetBillIconInfo')) {
+        function bbGetBillIconInfo($billName) {
+            $lower = mb_strtolower($billName);
+            if (str_contains($lower, 'готівка') || str_contains($lower, 'наличные') || str_contains($lower, 'cash')) {
+                return ['icon' => '💵', 'bg' => '#ecfdf5', 'color' => '#059669', 'label' => 'Готівка'];
+            }
+            if (str_contains($lower, 'моно') || str_contains($lower, 'mono')) {
+                return ['icon' => '🐱', 'bg' => '#f3f4f6', 'color' => '#111827', 'label' => 'Монобанк'];
+            }
+            if (str_contains($lower, 'приват') || str_contains($lower, 'privat')) {
+                return ['icon' => '💚', 'bg' => '#f0fdf4', 'color' => '#16a34a', 'label' => 'ПриватБанк'];
+            }
+            if (str_contains($lower, 'львів') || str_contains($lower, 'lviv')) {
+                return ['icon' => '🏛️', 'bg' => '#eff6ff', 'color' => '#2563eb', 'label' => 'Банк Львів'];
+            }
+            if (str_contains($lower, 'фоп') || str_contains($lower, 'fop')) {
+                return ['icon' => '💼', 'bg' => '#fef3c7', 'color' => '#d97706', 'label' => 'ФОП'];
+            }
+            return ['icon' => '💳', 'bg' => '#f8fafc', 'color' => '#475569', 'label' => 'Рахунок'];
+        }
+    }
+@endphp
 
-                <!-- Calendar Weekdays -->
-                <div class="calendar-grid weekdays mb-1">
-                    <div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div>
-                </div>
-
-                <!-- Calendar Days Grid -->
-                <div id="calendar-days-grid" class="calendar-grid days flex-grow-1" style="min-height: 200px;">
-                    <!-- Populated dynamically by JS -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Footer / Enable Time Switch & Actions -->
-        <div class="px-4 py-3 border-top bg-light d-flex justify-content-between align-items-center">
-            <!-- Set Time Toggle (iOS style) -->
-            <div class="form-check form-switch d-flex align-items-center gap-2 p-0 m-0">
-                <input class="form-check-input ms-0 m-0 ios-switch-style" type="checkbox" id="set-time-toggle" style="cursor: pointer; width: 38px; height: 21px;">
-                <label class="form-check-label fw-bold text-muted transition-all" id="set-time-label" for="set-time-toggle" style="font-size: 0.8rem; cursor: pointer; user-select: none; padding-left: 5px;">{{ __('Set Time') }}</label>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="d-flex gap-2">
-                <button type="button" id="date-picker-cancel-btn" class="btn btn-sm btn-white border px-3 py-1.5 fw-bold text-muted rounded-3 transition-all" style="font-size: 0.8rem;">{{ __('Cancel') }}</button>
-                <button type="button" id="date-picker-generate-btn" class="btn btn-sm btn-primary px-3 py-1.5 fw-bold text-white rounded-3 bg-indigo border-0 transition-all btn-generate-premium" style="font-size: 0.8rem; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);">{{ __('Generate') }}</button>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Flatpickr CSS: Local with CDN fallback -->
+<link rel="stylesheet" href="/vendor/flatpickr/flatpickr.min.css" onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css';">
 
 <style>
-    /* Premium visual styling and transitions */
-    #date-picker-trigger:hover {
-        border-color: #4f46e5 !important;
-        background-color: #f8fafc !important;
-        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.08) !important;
+    .bb-filter-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+        position: relative;
+        z-index: 1020;
     }
-    
-    #date-picker-panel {
-        box-shadow: 0 24px 50px rgba(15, 23, 42, 0.15) !important;
-        border: 1px solid rgba(226, 232, 240, 0.8) !important;
-        backdrop-filter: blur(10px);
-        margin-top: 6px;
-    }
-
-    #input-range-container:focus-within {
-        border-color: #4f46e5 !important;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-    }
-
-    .quick-select-btn {
-        width: 100%;
-        text-align: left;
-        padding: 8px 14px;
-        background: transparent;
-        border: 0;
-        font-size: 0.78rem;
-        font-weight: 650;
-        color: #64748b;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .quick-select-btn:hover {
-        background-color: #f1f5f9;
-        color: #0f172a;
-        transform: translateX(2px);
-    }
-    .quick-select-btn.active-indigo {
-        background-color: #eef2ff !important;
-        color: #4f46e5 !important;
-        box-shadow: inset 2px 0 0 #4f46e5;
-    }
-
-    /* Select elements styling */
-    .select-premium-hover {
-        transition: all 0.2s ease;
-    }
-    .select-premium-hover:hover {
-        background-color: #f8fafc;
-        border-color: #cbd5e1;
-    }
-    
-    /* Calendar grid and day buttons */
-    .calendar-grid {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        text-align: center;
+    .bb-date-picker-wrap,
+    .bb-bill-picker-wrap {
+        position: relative;
+        display: inline-flex;
         align-items: center;
     }
-    .calendar-grid.weekdays {
-        font-size: 0.65rem;
-        font-weight: 800;
+    .bb-date-trigger-btn,
+    .bb-bill-trigger-btn {
+        background-color: #ffffff;
+        color: #2b3445;
+        border: 1px solid #d8e2ef;
+        border-radius: 8px;
+        padding: 0.55rem 1rem;
+        font-size: 0.925rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.65rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        user-select: none;
+    }
+    .bb-date-trigger-btn:hover,
+    .bb-bill-trigger-btn:hover {
+        border-color: #4f46e5;
+        background-color: #fbfbfe;
+        color: #1e293b;
+        box-shadow: 0 3px 8px rgba(79,70,229,0.12);
+    }
+    .bb-date-trigger-btn.active,
+    .bb-bill-trigger-btn.active {
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    }
+    .bb-bill-trigger-btn.has-filter {
+        border-color: #059669;
+        background-color: #f0fdf4;
+        color: #065f46;
+        box-shadow: 0 1px 3px rgba(5,150,105,0.1);
+    }
+    .bb-bill-trigger-btn.has-filter:hover {
+        border-color: #047857;
+        background-color: #ecfdf5;
+        box-shadow: 0 3px 8px rgba(5,150,105,0.18);
+    }
+    .bb-bill-trigger-btn.has-filter.active {
+        box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2);
+    }
+    .bb-bill-currency-badge {
+        background-color: #dcfce7;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+        font-size: 0.725rem;
+        font-weight: 700;
+        padding: 0.18rem 0.45rem;
+        border-radius: 4px;
+        letter-spacing: 0.02em;
+    }
+    .bb-bill-clear-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background-color: #bbf7d0;
+        color: #166534;
+        font-size: 0.75rem;
+        font-weight: bold;
+        line-height: 1;
+        transition: all 0.15s ease;
+        margin-left: -0.15rem;
+    }
+    .bb-bill-clear-btn:hover {
+        background-color: #ef4444;
+        color: #ffffff;
+    }
+    .bb-date-panel {
+        display: none;
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.14), 0 5px 15px rgba(0, 0, 0, 0.06);
+        padding: 1.15rem;
+        z-index: 99999;
+        min-width: 820px;
+        max-width: 95vw;
+        box-sizing: border-box;
+    }
+    .bb-date-panel.show,
+    .bb-bill-panel.show {
+        display: block;
+        animation: bbFadeIn 0.18s ease-out forwards;
+    }
+    @keyframes bbFadeIn {
+        from { opacity: 0; transform: translateY(-6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .bb-picker-body {
+        display: flex;
+        gap: 1.25rem;
+    }
+    .bb-presets-col {
+        width: 170px;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        border-right: 1px solid #edf2f7;
+        padding-right: 1rem;
+    }
+    .bb-presets-header {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
         color: #94a3b8;
-        letter-spacing: 0.8px;
-        height: 24px;
+        margin-bottom: 0.35rem;
+        padding-left: 0.5rem;
     }
-    .calendar-grid.days {
-        grid-gap: 3px 0px;
+    .bb-preset-btn {
+        background: transparent;
+        border: none;
+        border-radius: 6px;
+        padding: 0.45rem 0.65rem;
+        text-align: left;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
-    
-    .calendar-day {
-        font-size: 0.8rem;
-        font-weight: 650;
+    .bb-preset-btn:hover {
+        background-color: #f1f5f9;
+        color: #0f172a;
+    }
+    .bb-preset-btn.active {
+        background-color: #eef2ff;
+        color: #4f46e5;
+        font-weight: 600;
+    }
+    .bb-calendar-col {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        direction: ltr !important;
+        text-align: left !important;
+        overflow: visible;
+    }
+    .bb-footer-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 1rem;
+        padding-top: 0.85rem;
+        border-top: 1px solid #edf2f7;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    .bb-date-inputs {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+        color: #64748b;
+    }
+    .bb-date-input {
+        width: 115px;
+        padding: 0.35rem 0.6rem;
+        font-size: 0.85rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        background-color: #f8fafc;
+        text-align: center;
+        color: #1e293b;
+        font-family: monospace;
+    }
+    .bb-date-input:focus {
+        border-color: #4f46e5;
+        outline: none;
+        background-color: #fff;
+    }
+    .bb-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .bb-btn-reset {
+        padding: 0.45rem 0.9rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #64748b;
+        background: transparent;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .bb-btn-reset:hover {
+        background-color: #f1f5f9;
         color: #334155;
-        height: 32px;
+    }
+    .bb-btn-apply {
+        padding: 0.45rem 1.15rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #ffffff;
+        background-color: #4f46e5;
+        border: 1px solid #4f46e5;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s;
+        box-shadow: 0 1px 2px rgba(79, 70, 229, 0.2);
+    }
+    .bb-btn-apply:hover {
+        background-color: #4338ca;
+        border-color: #4338ca;
+        box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);
+    }
+
+    /* Bill panel styling */
+    .bb-bill-panel {
+        display: none;
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.14), 0 5px 15px rgba(0, 0, 0, 0.06);
+        padding: 0.85rem;
+        z-index: 99999;
+        min-width: 320px;
+        max-width: 380px;
+        box-sizing: border-box;
+    }
+    .bb-bill-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.65rem;
+        padding: 0 0.25rem;
+    }
+    .bb-bill-panel-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #64748b;
+    }
+    .bb-bill-panel-count {
+        font-size: 0.725rem;
+        color: #94a3b8;
+        font-weight: 500;
+    }
+    .bb-bill-search-box {
+        position: relative;
+        margin-bottom: 0.65rem;
+    }
+    .bb-bill-search-input {
+        width: 100%;
+        padding: 0.45rem 0.75rem 0.45rem 2.1rem;
+        font-size: 0.85rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        background: #f8fafc;
+        outline: none;
+        box-sizing: border-box;
+        transition: all 0.15s ease;
+    }
+    .bb-bill-search-input:focus {
+        border-color: #4f46e5;
+        background: #ffffff;
+        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.12);
+    }
+    .bb-bill-search-icon {
+        position: absolute;
+        left: 0.7rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        pointer-events: none;
+    }
+    .bb-bill-list {
+        max-height: 290px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        padding-right: 0.15rem;
+    }
+    .bb-bill-divider {
+        height: 1px;
+        background-color: #f1f5f9;
+        margin: 0.35rem 0;
+    }
+    .bb-bill-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.5rem 0.65rem;
+        border-radius: 7px;
+        cursor: pointer;
+        text-decoration: none;
+        color: #334155;
+        transition: all 0.15s ease;
+        user-select: none;
+    }
+    .bb-bill-item:hover {
+        background-color: #f8fafc;
+        color: #0f172a;
+    }
+    .bb-bill-item.active {
+        background-color: #eef2ff;
+        color: #4f46e5;
+        font-weight: 600;
+    }
+    .bb-bill-item-left {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        min-width: 0;
+    }
+    .bb-bill-item-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 6px;
         display: flex;
         align-items: center;
         justify-content: center;
-        cursor: pointer;
-        user-select: none;
-        position: relative;
-        transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-        border-radius: 6px;
+        font-size: 1rem;
+        flex-shrink: 0;
     }
-    .calendar-day:hover:not(.empty-day) {
+    .bb-bill-item-info {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.25;
+        min-width: 0;
+    }
+    .bb-bill-item-name {
+        font-size: 0.865rem;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .bb-bill-item.active .bb-bill-item-name {
+        color: #4f46e5;
+        font-weight: 600;
+    }
+    .bb-bill-item-sub {
+        font-size: 0.725rem;
+        color: #94a3b8;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .bb-bill-item-badge {
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        flex-shrink: 0;
+    }
+    .badge-curr-uah {
         background-color: #f1f5f9;
-        color: #0f172a;
+        color: #475569;
+        border: 1px solid #e2e8f0;
     }
-    .calendar-day.empty-day {
-        cursor: default;
+    .badge-curr-usd {
+        background-color: #ecfdf5;
+        color: #059669;
+        border: 1px solid #a7f3d0;
     }
-    
-    /* Range Selection Highlight concepts matching SaaS premium */
-    .calendar-day.selected-start {
-        background-color: #4f46e5 !important;
-        color: #ffffff !important;
-        border-radius: 0px !important;
-        border-top-left-radius: 50% !important;
-        border-bottom-left-radius: 50% !important;
-        font-weight: 800;
+    .badge-curr-eur {
+        background-color: #eff6ff;
+        color: #2563eb;
+        border: 1px solid #bfdbfe;
     }
-    .calendar-day.selected-end {
-        background-color: #4f46e5 !important;
-        color: #ffffff !important;
-        border-radius: 0px !important;
-        border-top-right-radius: 50% !important;
-        border-bottom-right-radius: 50% !important;
-        font-weight: 800;
+    .bb-bill-check {
+        color: #4f46e5;
+        flex-shrink: 0;
     }
-    .calendar-day.selected-start.selected-end {
-        border-radius: 50% !important;
+    .bb-btn-reset-all {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.825rem;
+        font-weight: 500;
+        color: #64748b;
+        background-color: #ffffff;
+        border: 1px dashed #cbd5e1;
+        border-radius: 8px;
+        padding: 0.55rem 0.85rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
     }
-    .calendar-day.in-range {
-        background-color: #eef2ff !important;
-        color: #4f46e5 !important;
-        border-radius: 0px !important;
+    .bb-btn-reset-all:hover {
+        background-color: #f8fafc;
+        border-color: #ef4444;
+        color: #ef4444;
     }
 
-    /* REALTIME HOVER PREVIEW RANGE STYLES */
-    .calendar-day.in-range-hover {
-        background-color: #f0f3ff !important;
-        color: #6366f1 !important;
-        border-radius: 0px !important;
+    /* Flatpickr core resets & styling inside calendar column */
+    .bb-calendar-col .flatpickr-calendar {
+        box-shadow: none !important;
+        border: none !important;
+        background: transparent !important;
+        font-family: inherit !important;
+        width: auto !important;
+        display: inline-block !important;
+        direction: ltr !important;
+        position: relative !important;
+        top: 0 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        margin: 0 !important;
     }
-    .calendar-day.selected-end-hover {
-        background-color: #818cf8 !important;
+    .bb-calendar-col .flatpickr-months {
+        display: flex !important;
+        align-items: center !important;
+        position: relative !important;
+        height: 38px !important;
+    }
+    .bb-calendar-col .flatpickr-month {
+        flex: 1 !important;
+        color: #1e293b !important;
+        fill: #1e293b !important;
+        height: 38px !important;
+        overflow: visible !important;
+        position: relative !important;
+    }
+    .bb-calendar-col .flatpickr-current-month {
+        font-size: 1rem !important;
+        font-weight: 600 !important;
+        padding-top: 4px !important;
+        color: #1e293b !important;
+        position: relative !important;
+        width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        left: 0 !important;
+        right: 0 !important;
+        transform: none !important;
+    }
+    .bb-calendar-col .flatpickr-current-month .flatpickr-monthDropdown-months,
+    .bb-calendar-col .flatpickr-current-month input.cur-year {
+        font-weight: 600 !important;
+        color: #1e293b !important;
+    }
+    .bb-calendar-col .flatpickr-prev-month,
+    .bb-calendar-col .flatpickr-next-month {
+        position: absolute !important;
+        top: 2px !important;
+        height: 32px !important;
+        width: 32px !important;
+        padding: 8px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 6px !important;
+        cursor: pointer !important;
+        color: #475569 !important;
+        fill: #475569 !important;
+        z-index: 10 !important;
+    }
+    .bb-calendar-col .flatpickr-prev-month:hover,
+    .bb-calendar-col .flatpickr-next-month:hover {
+        background-color: #f1f5f9 !important;
+        color: #1e293b !important;
+    }
+    .bb-calendar-col .flatpickr-innerContainer {
+        display: flex !important;
+        overflow: visible !important;
+        direction: ltr !important;
+    }
+    .bb-calendar-col .flatpickr-rContainer {
+        display: inline-block !important;
+        padding: 0 !important;
+        overflow: visible !important;
+    }
+    .bb-calendar-col .flatpickr-weekdays {
+        display: flex !important;
+        align-items: center !important;
+        height: 28px !important;
+    }
+    .bb-calendar-col span.flatpickr-weekday {
+        color: #94a3b8 !important;
+        font-size: 0.75rem !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+    }
+    .bb-calendar-col .flatpickr-days {
+        width: auto !important;
+        display: flex !important;
+        overflow: visible !important;
+    }
+    .bb-calendar-col .dayContainer {
+        width: 300px !important;
+        min-width: 300px !important;
+        max-width: 300px !important;
+        padding: 0 4px !important;
+        display: inline-grid !important;
+        grid-template-columns: repeat(7, 1fr) !important;
+        justify-items: center !important;
+        box-sizing: border-box !important;
+    }
+    .bb-calendar-col .flatpickr-day {
+        border-radius: 6px !important;
+        color: #334155 !important;
+        font-size: 0.85rem !important;
+        font-weight: 500 !important;
+        height: 36px !important;
+        line-height: 36px !important;
+        margin: 1px 0 !important;
+        width: 36px !important;
+        max-width: 36px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        box-sizing: border-box !important;
+    }
+    .bb-calendar-col .flatpickr-day:hover {
+        background: #f1f5f9 !important;
+        border-color: #f1f5f9 !important;
+    }
+    .bb-calendar-col .flatpickr-day.selected,
+    .bb-calendar-col .flatpickr-day.startRange,
+    .bb-calendar-col .flatpickr-day.endRange {
+        background: #4f46e5 !important;
+        border-color: #4f46e5 !important;
         color: #ffffff !important;
-        border-radius: 0px !important;
-        border-top-right-radius: 50% !important;
-        border-bottom-right-radius: 50% !important;
-        font-weight: 800;
+        font-weight: 600 !important;
     }
-    
-    /* Switch Style (iOS Concept) */
-    .ios-switch-style:checked {
-        background-color: #4f46e5 !important;
+    .bb-calendar-col .flatpickr-day.inRange {
+        background: #eef2ff !important;
+        border-color: #eef2ff !important;
+        box-shadow: -5px 0 0 #eef2ff, 5px 0 0 #eef2ff !important;
+        color: #3730a3 !important;
+        border-radius: 0 !important;
+    }
+    .bb-calendar-col .flatpickr-day.today {
         border-color: #4f46e5 !important;
     }
-    
-    /* Smooth collapse animation for Time fields */
-    .time-container-anim {
-        display: flex;
-        align-items: center;
-        opacity: 1;
-        max-width: 120px;
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        overflow: hidden;
-        white-space: nowrap;
-    }
-    .time-container-anim.animate-collapse {
-        opacity: 0;
-        max-width: 0px;
-        pointer-events: none;
-    }
-    .text-separator {
-        font-size: 0.75rem;
-        margin: 0 2px;
-    }
 
-    /* Cancel & Generate premium hovers */
-    #date-picker-cancel-btn:hover {
-        background-color: #f8fafc;
-        border-color: #cbd5e1;
-        color: #0f172a !important;
-    }
-    .btn-generate-premium:hover {
-        background-color: #4338ca !important;
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(99, 102, 241, 0.35) !important;
-    }
-    .btn-generate-premium:active {
-        transform: translateY(0);
-    }
-
-    /* Compare and Exclusion fully interactive hover and click states */
-    #compare-dates-tab.active-compare {
-        background-color: #eef2ff !important;
-        color: #4f46e5 !important;
-        border: 1px solid rgba(99, 102, 241, 0.3) !important;
-    }
-    #exclusion-toggle-btn.active-exclusion {
-        background-color: #fef2f2 !important;
-        border-color: #fca5a5 !important;
-        color: #dc2626 !important;
-    }
-
-    /* Dynamic Responsive Media Query Adapter (Tablet & Mobile UX) */
-    @media (max-width: 680px) {
-        #date-picker-panel {
-            width: 95vw !important;
-            left: 2.5vw !important;
+    @media (max-width: 860px) {
+        .bb-date-panel {
+            min-width: 320px;
+            width: 95vw;
+            padding: 0.75rem;
         }
-        .flex-row-responsive {
-            flex-direction: column !important;
-            height: auto !important;
+        .bb-picker-body {
+            flex-direction: column;
         }
-        #quick-select-panel {
-            width: 100% !important;
-            flex-direction: row !important;
-            border-end: 0 !important;
-            border-bottom: 1px solid #e2e8f0;
-            padding: 8px 12px !important;
-            height: 48px !important;
-            overflow-x: auto !important;
-            overflow-y: hidden !important;
-            white-space: nowrap !important;
-            -webkit-overflow-scrolling: touch;
+        .bb-presets-col {
+            width: 100%;
+            border-right: none;
+            border-bottom: 1px solid #edf2f7;
+            padding-right: 0;
+            padding-bottom: 0.75rem;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
         }
-        .quick-select-btn {
-            width: auto !important;
-            display: inline-block !important;
-            padding: 4px 12px !important;
-            font-size: 0.75rem !important;
+        .bb-presets-header {
+            grid-column: span 2;
         }
-        .quick-select-btn.active-indigo {
-            box-shadow: none !important;
-            border: 1px solid #4f46e5 !important;
-        }
-        .quick-select-btn:hover {
-            transform: none !important;
-        }
-    }
-    
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-10px) scale(0.98);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
+        .bb-calendar-col .dayContainer {
+            min-width: 280px !important;
+            max-width: 280px !important;
+            width: 280px !important;
         }
     }
 </style>
 
+<div class="bb-filter-toolbar">
+    <!-- 1. Flatpickr Date Range Picker -->
+    <div class="bb-date-picker-wrap" id="bb-date-picker-component">
+        <button type="button" class="bb-date-trigger-btn {{ $hasFilter ? 'has-filter' : '' }}" id="bb-trigger-btn" title="Натисніть для вибору періоду">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="color: #4f46e5;">
+                <path d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM1 3.857C1 3.384 1.448 3 2 3h12c.552 0 1 .384 1 .857v10.286c0 .473-.448.857-1 .857H2c-.552 0-1-.384-1-.857V3.857z"/>
+                <path d="M6.5 7a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-9 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-9 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
+            </svg>
+            <span id="bb-btn-text">{{ $formattedRange }}</span>
+            @if($presetBadge)
+                <span class="badge" style="background-color: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 4px;">{{ $presetBadge }}</span>
+            @endif
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" style="color: #94a3b8;" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+            </svg>
+        </button>
+
+        @if($hasFilter)
+            <button type="button" class="btn btn-sm btn-link text-decoration-none ms-1 text-muted" id="bb-date-clear-link" style="font-size: 0.85rem; padding: 0.25rem 0.45rem;" title="Скинути фільтр дат">
+                ✕ Скинути
+            </button>
+        @endif
+
+        <!-- Flatpickr Dropdown Panel -->
+        <div class="bb-date-panel" id="bb-date-panel">
+            <div class="bb-picker-body">
+                <!-- Left: Quick presets column -->
+                <div class="bb-presets-col">
+                    <div class="bb-presets-header">Швидкий період</div>
+                    <button type="button" class="bb-preset-btn" data-preset="today">Сьогодні</button>
+                    <button type="button" class="bb-preset-btn" data-preset="yesterday">Вчора</button>
+                    <button type="button" class="bb-preset-btn" data-preset="last-7-days">Останні 7 днів</button>
+                    <button type="button" class="bb-preset-btn" data-preset="last-30-days">Останні 30 днів</button>
+                    <button type="button" class="bb-preset-btn" data-preset="this-week">Цей тиждень</button>
+                    <button type="button" class="bb-preset-btn" data-preset="last-week">Минулий тиждень</button>
+                    <button type="button" class="bb-preset-btn" data-preset="this-month">Цей місяць</button>
+                    <button type="button" class="bb-preset-btn" data-preset="last-month">Минулий місяць</button>
+                    <button type="button" class="bb-preset-btn" data-preset="this-quarter">Цей квартал</button>
+                    <button type="button" class="bb-preset-btn" data-preset="this-year">Цей рік</button>
+                    <button type="button" class="bb-preset-btn" data-preset="last-year">Минулий рік</button>
+                    <button type="button" class="bb-preset-btn" data-preset="all-time" style="color: #64748b; border-top: 1px solid #f1f5f9; margin-top: 0.25rem;">Весь час</button>
+                </div>
+
+                <!-- Right: Flatpickr Calendar -->
+                <div class="bb-calendar-col">
+                    <div id="bb-flatpickr-inline-calendar"></div>
+                </div>
+            </div>
+
+            <!-- Footer: Inputs & Action buttons -->
+            <div class="bb-footer-bar">
+                <div class="bb-date-inputs">
+                    <span>Період:</span>
+                    <input type="text" id="bb-input-start" class="bb-date-input" placeholder="РРРР-ММ-ДД" value="{{ $startVal }}" readonly>
+                    <span>—</span>
+                    <input type="text" id="bb-input-end" class="bb-date-input" placeholder="РРРР-ММ-ДД" value="{{ $endVal }}" readonly>
+                </div>
+                <div class="bb-actions">
+                    <button type="button" class="bb-btn-reset" id="bb-btn-clear">Скинути</button>
+                    <button type="button" class="bb-btn-apply" id="bb-btn-apply">Застосувати</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Account / Bank Filter beside Date Picker -->
+    <div class="bb-bill-picker-wrap" id="bb-bill-picker-component">
+        @php
+            $activeIconInfo = $activeBill ? bbGetBillIconInfo($activeBill->name) : null;
+        @endphp
+        <button type="button" class="bb-bill-trigger-btn {{ $activeBill ? 'has-filter active-bill' : '' }}" id="bb-bill-trigger-btn" title="Фільтр за рахунком або банком">
+            <span class="bb-bill-trigger-icon">
+                @if($activeBill)
+                    {{ $activeIconInfo['icon'] }}
+                @else
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="color: #059669;">
+                        <path d="m8 0 6.61 3h.89a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5H15v7a.5.5 0 0 1 .485.382l.5 2a.498.498 0 0 1-.485.618H.5a.5.5 0 0 1-.485-.618l.5-2A.5.5 0 0 1 1 13V6H.5a.5.5 0 0 1-.5-.5v-2A.5.5 0 0 1 .5 3h.89L8 0ZM3.777 3h8.447L8 1.056 3.777 3ZM2 6v7h1V6H2Zm2 0v7h2.5V6H4Zm3.5 0v7h1V6h-1Zm2 0v7H12V6H9.5ZM13 6v7h1V6h-1Zm2-1V4H1v1h14Zm-.39 9H1.39l-.25 1h13.72l-.25-1Z"/>
+                    </svg>
+                @endif
+            </span>
+            <span class="bb-bill-btn-text">
+                {{ $activeBill ? $activeBill->name : 'Всі рахунки та банки' }}
+            </span>
+            @if($activeBill)
+                <span class="bb-bill-currency-badge">{{ $activeBill->currency?->code ?? 'UAH' }}</span>
+                <span class="bb-bill-clear-btn" id="bb-bill-clear-quick" title="Очистити фільтр рахунку">✕</span>
+            @endif
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" style="color: #94a3b8;" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+            </svg>
+        </button>
+
+        <!-- Dropdown menu panel -->
+        <div class="bb-bill-panel" id="bb-bill-panel">
+            <div class="bb-bill-panel-header">
+                <span class="bb-bill-panel-title">Оберіть рахунок або банк</span>
+                <span class="bb-bill-panel-count">{{ $billsList->count() }} рахунків</span>
+            </div>
+
+            <div class="bb-bill-search-box">
+                <svg class="bb-bill-search-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                </svg>
+                <input type="text" id="bb-bill-search-input" class="bb-bill-search-input" placeholder="Швидкий пошук рахунку..." autocomplete="off">
+            </div>
+
+            <div class="bb-bill-list" id="bb-bill-list">
+                <!-- All accounts option -->
+                <div class="bb-bill-item {{ !$activeBill ? 'active' : '' }}" data-bill-id="" data-bill-name="Всі рахунки та банки" data-bill-bank="">
+                    <div class="bb-bill-item-left">
+                        <div class="bb-bill-item-icon" style="background-color: #ecfdf5; color: #059669;">
+                            🏛️
+                        </div>
+                        <div class="bb-bill-item-info">
+                            <span class="bb-bill-item-name">Усі рахунки та банки</span>
+                            <span class="bb-bill-item-sub">Загальна статистика за всіма рахунками</span>
+                        </div>
+                    </div>
+                    @if(!$activeBill)
+                        <svg class="bb-bill-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425a.247.247 0 0 1 .02-.022Z"/>
+                        </svg>
+                    @endif
+                </div>
+
+                <div class="bb-bill-divider"></div>
+
+                <!-- List of individual bills -->
+                @foreach($billsList as $bill)
+                    @php
+                        $iconInfo = bbGetBillIconInfo($bill->name);
+                        $isCurrent = ($activeBill && $activeBill->id === $bill->id);
+                        $currCode = $bill->currency?->code ?? 'UAH';
+                    @endphp
+                    <div class="bb-bill-item {{ $isCurrent ? 'active' : '' }}" 
+                         data-bill-id="{{ $bill->id }}" 
+                         data-bill-name="{{ $bill->name }}" 
+                         data-bill-bank="{{ $bill->bank_name ?? '' }}">
+                        <div class="bb-bill-item-left">
+                            <div class="bb-bill-item-icon" style="background-color: {{ $iconInfo['bg'] }}; color: {{ $iconInfo['color'] }};">
+                                {{ $iconInfo['icon'] }}
+                            </div>
+                            <div class="bb-bill-item-info">
+                                <span class="bb-bill-item-name">{{ $bill->name }}</span>
+                                <span class="bb-bill-item-sub">{{ $bill->bank_name ?: ($iconInfo['label'] . ' (' . $currCode . ')') }}</span>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="bb-bill-item-badge badge-curr-{{ strtolower($currCode) }}">
+                                {{ $currCode }}
+                            </span>
+                            @if($isCurrent)
+                                <svg class="bb-bill-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425a.247.247 0 0 1 .02-.022Z"/>
+                                </svg>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Global Reset Button if both or either filter is set -->
+    @if($hasFilter || $activeBill)
+        <a href="{{ $baseUrl }}" class="bb-btn-reset-all" title="Скинути всі встановлені фільтри">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+            </svg>
+            <span>Скинути все</span>
+        </a>
+    @endif
+</div>
+
+<!-- Load Flatpickr library (local with CDN fallback) -->
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const trigger = document.getElementById('date-picker-trigger');
-    const panel = document.getElementById('date-picker-panel');
-    const displayText = document.getElementById('date-picker-display-text');
-    
-    // Inputs & selectors
-    const startDateInput = document.getElementById('start-date-input');
-    const startTimeInput = document.getElementById('start-time-input');
-    const endDateInput = document.getElementById('end-date-input');
-    const endTimeInput = document.getElementById('end-time-input');
-    const setTimeToggle = document.getElementById('set-time-toggle');
-    const setTimeLabel = document.getElementById('set-time-label');
-    const unitSelect = document.getElementById('date-picker-unit');
-    
-    const startTimeContainer = document.getElementById('start-time-container');
-    const endTimeContainer = document.getElementById('end-time-container');
-    
-    const monthSelect = document.getElementById('calendar-month-select');
-    const yearSelect = document.getElementById('calendar-year-select');
-    const prevMonthBtn = document.getElementById('prev-month-btn');
-    const nextMonthBtn = document.getElementById('next-month-btn');
-    const daysGrid = document.getElementById('calendar-days-grid');
-    
-    const cancelBtn = document.getElementById('date-picker-cancel-btn');
-    const generateBtn = document.getElementById('date-picker-generate-btn');
-    const quickSelectButtons = document.querySelectorAll('.quick-select-btn');
-
-    // Compare and Exclusion elements
-    const compareTabBtn = document.getElementById('compare-dates-tab');
-    const compareIndicator = document.getElementById('compare-text-indicator');
-    const exclusionBtn = document.getElementById('exclusion-toggle-btn');
-    const exclusionBadge = document.getElementById('exclusion-status-badge');
-
-    // Parse URL params for pre-selecting dates
-    const urlParams = new URLSearchParams(window.location.search);
-    let startVal = urlParams.get('created_at[start]');
-    let endVal = urlParams.get('created_at[end]');
-    
-    let activeStart = startVal ? new Date(startVal) : new Date(new Date().setDate(new Date().getDate() - 30));
-    let activeEnd = endVal ? new Date(endVal) : new Date();
-
-    // Check if time is enabled in URL parameters
-    const hasTime = (startVal && startVal.includes(' ')) || (endVal && endVal.includes(':'));
-    setTimeToggle.checked = hasTime;
-    
-    // Initial State of month display
-    let displayMonth = activeStart.getMonth();
-    let displayYear = activeStart.getFullYear();
-
-    // Setup Year Selector Dropdown
-    const currentYear = new Date().getFullYear();
-    for (let y = currentYear - 6; y <= currentYear + 2; y++) {
-        const opt = document.createElement('option');
-        opt.value = y;
-        opt.textContent = y;
-        yearSelect.appendChild(opt);
-    }
-
-    // Toggle panel view
-    trigger.addEventListener('click', function(e) {
-        e.stopPropagation();
-        const rect = trigger.getBoundingClientRect();
-        panel.style.top = (rect.bottom + window.scrollY) + 'px';
-        panel.style.left = (rect.left + window.scrollX) + 'px';
-        panel.classList.toggle('d-none');
-    });
-
-    // Close panel when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!panel.contains(e.target) && e.target !== trigger && !trigger.contains(e.target)) {
-            panel.classList.add('d-none');
-        }
-    });
-
-    cancelBtn.addEventListener('click', () => panel.classList.add('d-none'));
-
-    // Format dates to display beautifully inside triggers & inputs
-    function formatDisplayDate(date) {
-        const options = { month: 'short', day: 'numeric', year: 'numeric' };
-        return date.toLocaleDateString('uk-UA', options);
-    }
-    
-    function formatInputDate(date) {
-        const options = { month: 'short', day: 'numeric', year: 'numeric' };
-        return date.toLocaleDateString('uk-UA', options);
-    }
-
-    function formatTime(date) {
-        const h = String(date.getHours()).padStart(2, '0');
-        const m = String(date.getMinutes()).padStart(2, '0');
-        return `${h}:${m}`;
-    }
-
-    function syncInputs() {
-        startDateInput.value = formatInputDate(activeStart);
-        if (activeEnd) {
-            endDateInput.value = formatInputDate(activeEnd);
-        } else {
-            endDateInput.value = '—';
-        }
-        startTimeInput.value = formatTime(activeStart);
-        endTimeInput.value = activeEnd ? formatTime(activeEnd) : '23:59';
-        
-        // Handle collapse animations for Time Containers
-        if (setTimeToggle.checked) {
-            startTimeContainer.classList.remove('animate-collapse');
-            endTimeContainer.classList.remove('animate-collapse');
-            setTimeLabel.classList.add('text-primary');
-            setTimeLabel.classList.remove('text-muted');
-        } else {
-            startTimeContainer.classList.add('animate-collapse');
-            endTimeContainer.classList.add('animate-collapse');
-            setTimeLabel.classList.remove('text-primary');
-            setTimeLabel.classList.add('text-muted');
-        }
-
-        // Update triggering button text
-        let displayStr = `${formatDisplayDate(activeStart)}`;
-        if (setTimeToggle.checked) displayStr += `, ${formatTime(activeStart)}`;
-        
-        if (activeEnd) {
-            displayStr += ` — ${formatDisplayDate(activeEnd)}`;
-            if (setTimeToggle.checked) displayStr += `, ${formatTime(activeEnd)}`;
-        }
-        displayText.textContent = displayStr;
-    }
-
-    // Interactive Hover States variables
-    let hoveredDate = null;
-
-    // Render Calendar days
-    function renderCalendar() {
-        monthSelect.value = displayMonth;
-        yearSelect.value = displayYear;
-        daysGrid.innerHTML = '';
-
-        const firstDayIndex = new Date(displayYear, displayMonth, 1).getDay();
-        const totalDays = new Date(displayYear, displayMonth + 1, 0).getDate();
-
-        // Empty cells padding
-        for (let i = 0; i < firstDayIndex; i++) {
-            const emptyCell = document.createElement('div');
-            emptyCell.classList.add('calendar-day', 'empty-day');
-            daysGrid.appendChild(emptyCell);
-        }
-
-        // Add Month days
-        for (let day = 1; day <= totalDays; day++) {
-            const dayCell = document.createElement('div');
-            dayCell.classList.add('calendar-day');
-            dayCell.textContent = day;
-
-            const thisDate = new Date(displayYear, displayMonth, day);
-            dayCell.dataset.dateStr = thisDate.toDateString();
-            
-            // Check selection states
-            const isStart = activeStart && thisDate.toDateString() === activeStart.toDateString();
-            const isEnd = activeEnd && thisDate.toDateString() === activeEnd.toDateString();
-            const inRange = activeStart && activeEnd && thisDate > activeStart && thisDate < activeEnd;
-
-            if (isStart) dayCell.classList.add('selected-start');
-            if (isEnd) dayCell.classList.add('selected-end');
-            if (inRange) dayCell.classList.add('in-range');
-
-            // --- UX ENHANCEMENT: REAL-TIME DYNAMIC HOVER PREVIEW ---
-            dayCell.addEventListener('mouseenter', function() {
-                if (activeStart && !activeEnd) {
-                    hoveredDate = thisDate;
-                    updateHoverHighlight();
+    (function() {
+        function loadScript(src, fallback, callback) {
+            var s = document.createElement('script');
+            s.src = src;
+            s.onload = callback;
+            s.onerror = function() {
+                if (fallback) {
+                    var fb = document.createElement('script');
+                    fb.src = fallback;
+                    fb.onload = callback;
+                    document.head.appendChild(fb);
                 }
-            });
+            };
+            document.head.appendChild(s);
+        }
 
-            // Handle date cell clicks
-            dayCell.addEventListener('click', function() {
-                if (activeStart && activeEnd && activeStart.toDateString() !== activeEnd.toDateString()) {
-                    activeStart = new Date(displayYear, displayMonth, day, 0, 0, 0);
-                    activeEnd = null;
-                } else if (activeStart && !activeEnd) {
-                    const chosen = new Date(displayYear, displayMonth, day, 23, 59, 59);
-                    if (chosen < activeStart) {
-                        activeEnd = activeStart;
-                        activeStart = new Date(displayYear, displayMonth, day, 0, 0, 0);
-                    } else {
-                        activeEnd = chosen;
+        function initFlatpickrLibrary() {
+            if (typeof flatpickr === 'undefined') {
+                loadScript('/vendor/flatpickr/flatpickr.min.js', 'https://cdn.jsdelivr.net/npm/flatpickr', function() {
+                    loadScript('/vendor/flatpickr/uk.js', 'https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/uk.js', function() {
+                        setupBBFilters();
+                    });
+                });
+            } else {
+                setupBBFilters();
+            }
+        }
+
+        function setupBBFilters() {
+            var dateComponent = document.getElementById('bb-date-picker-component');
+            var billComponent = document.getElementById('bb-bill-picker-component');
+
+            if (!dateComponent || dateComponent.dataset.initialized === 'true') return;
+            dateComponent.dataset.initialized = 'true';
+
+            var triggerBtn = document.getElementById('bb-trigger-btn');
+            var panel = document.getElementById('bb-date-panel');
+            var calendarEl = document.getElementById('bb-flatpickr-inline-calendar');
+            var inputStart = document.getElementById('bb-input-start');
+            var inputEnd = document.getElementById('bb-input-end');
+            var applyBtn = document.getElementById('bb-btn-apply');
+            var clearBtn = document.getElementById('bb-btn-clear');
+            var presetBtns = dateComponent.querySelectorAll('.bb-preset-btn');
+            var dateClearLink = document.getElementById('bb-date-clear-link');
+
+            var initialStart = "{{ $startVal }}";
+            var initialEnd   = "{{ $endVal }}";
+            var fp = null;
+
+            function initFp() {
+                if (fp) return;
+                var fpLocale = (typeof flatpickr !== 'undefined' && flatpickr.l10ns && flatpickr.l10ns.uk) ? flatpickr.l10ns.uk : 'default';
+                var showCount = window.innerWidth > 860 ? 2 : 1;
+
+                fp = flatpickr(calendarEl, {
+                    mode: 'range',
+                    inline: true,
+                    showMonths: showCount,
+                    locale: fpLocale,
+                    dateFormat: 'Y-m-d',
+                    defaultDate: (initialStart && initialEnd) ? [initialStart, initialEnd] : [],
+                    onChange: function(selectedDates, dateStr, instance) {
+                        if (selectedDates.length === 1) {
+                            inputStart.value = instance.formatDate(selectedDates[0], 'Y-m-d');
+                            inputEnd.value   = instance.formatDate(selectedDates[0], 'Y-m-d');
+                        } else if (selectedDates.length >= 2) {
+                            inputStart.value = instance.formatDate(selectedDates[0], 'Y-m-d');
+                            inputEnd.value   = instance.formatDate(selectedDates[1], 'Y-m-d');
+                        }
+                        clearActivePresetClass();
                     }
-                } else {
-                    activeStart = new Date(displayYear, displayMonth, day, 0, 0, 0);
-                }
+                });
+            }
 
-                syncInputs();
-                renderCalendar();
-                setActiveQuickSelect('custom');
+            // Toggle date panel
+            triggerBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var isOpen = panel.classList.contains('show');
+                if (isOpen) {
+                    closeDatePanel();
+                } else {
+                    openDatePanel();
+                }
             });
 
-            daysGrid.appendChild(dayCell);
-        }
-    }
-
-    // Helper to draw live hover selections
-    function updateHoverHighlight() {
-        if (!activeStart || activeEnd || !hoveredDate) return;
-
-        const allDayCells = daysGrid.querySelectorAll('.calendar-day:not(.empty-day)');
-        allDayCells.forEach(cell => {
-            const cellDate = new Date(cell.dataset.dateStr);
-            cell.classList.remove('in-range-hover', 'selected-end-hover');
-
-            if (hoveredDate > activeStart) {
-                if (cellDate > activeStart && cellDate < hoveredDate) {
-                    cell.classList.add('in-range-hover');
-                } else if (cellDate.toDateString() === hoveredDate.toDateString()) {
-                    cell.classList.add('selected-end-hover');
-                }
-            } else {
-                if (cellDate < activeStart && cellDate > hoveredDate) {
-                    cell.classList.add('in-range-hover');
-                } else if (cellDate.toDateString() === hoveredDate.toDateString()) {
-                    cell.classList.add('selected-start'); // Draw start visual on hover-start
+            function openDatePanel() {
+                closeBillPanel();
+                panel.classList.add('show');
+                triggerBtn.classList.add('active');
+                if (!fp) {
+                    initFp();
+                } else {
+                    fp.redraw();
                 }
             }
-        });
-    }
 
-    // Clear hover previews when leaving grid
-    daysGrid.addEventListener('mouseleave', function() {
-        hoveredDate = null;
-        const allDayCells = daysGrid.querySelectorAll('.calendar-day');
-        allDayCells.forEach(cell => {
-            cell.classList.remove('in-range-hover', 'selected-end-hover');
-        });
-    });
-
-    // Quick range selector implementation
-    function selectRange(rangeType) {
-        const today = new Date();
-        
-        switch (rangeType) {
-            case 'today':
-                activeStart = new Date(today.setHours(0,0,0,0));
-                activeEnd = new Date(today.setHours(23,59,59,999));
-                break;
-            case 'this-week':
-                const first = today.getDate() - today.getDay();
-                activeStart = new Date(new Date(today).setDate(first));
-                activeStart.setHours(0,0,0,0);
-                activeEnd = new Date(new Date(today).setDate(first + 6));
-                activeEnd.setHours(23,59,59,999);
-                break;
-            case 'next-week':
-                const nextFirst = today.getDate() - today.getDay() + 7;
-                activeStart = new Date(new Date(today).setDate(nextFirst));
-                activeStart.setHours(0,0,0,0);
-                activeEnd = new Date(new Date(today).setDate(nextFirst + 6));
-                activeEnd.setHours(23,59,59,999);
-                break;
-            case 'last-week':
-                const lastFirst = today.getDate() - today.getDay() - 7;
-                activeStart = new Date(new Date(today).setDate(lastFirst));
-                activeStart.setHours(0,0,0,0);
-                activeEnd = new Date(new Date(today).setDate(lastFirst + 6));
-                activeEnd.setHours(23,59,59,999);
-                break;
-            case 'last-7-days':
-                activeStart = new Date(new Date().setDate(today.getDate() - 7));
-                activeStart.setHours(0,0,0,0);
-                activeEnd = new Date();
-                activeEnd.setHours(23,59,59,999);
-                break;
-            case 'last-15-days':
-                activeStart = new Date(new Date().setDate(today.getDate() - 15));
-                activeStart.setHours(0,0,0,0);
-                activeEnd = new Date();
-                activeEnd.setHours(23,59,59,999);
-                break;
-            case 'last-30-days':
-                activeStart = new Date(new Date().setDate(today.getDate() - 30));
-                activeStart.setHours(0,0,0,0);
-                activeEnd = new Date();
-                activeEnd.setHours(23,59,59,999);
-                break;
-            case 'this-month':
-                activeStart = new Date(today.getFullYear(), today.getMonth(), 1, 0,0,0);
-                activeEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23,59,59);
-                break;
-            case 'this-year':
-                activeStart = new Date(today.getFullYear(), 0, 1, 0,0,0);
-                activeEnd = new Date(today.getFullYear(), 11, 31, 23,59,59);
-                break;
-        }
-
-        displayMonth = activeStart.getMonth();
-        displayYear = activeStart.getFullYear();
-        
-        syncInputs();
-        renderCalendar();
-        setActiveQuickSelect(rangeType);
-    }
-
-    function setActiveQuickSelect(range) {
-        quickSelectButtons.forEach(btn => {
-            if (btn.getAttribute('data-range') === range) {
-                btn.classList.add('active-indigo');
-            } else {
-                btn.classList.remove('active-indigo');
+            function closeDatePanel() {
+                panel.classList.remove('show');
+                triggerBtn.classList.remove('active');
             }
-        });
-    }
 
-    // Attach navigation events
-    prevMonthBtn.addEventListener('click', () => {
-        if (displayMonth === 0) {
-            displayMonth = 11;
-            displayYear--;
+            // Close on click outside
+            document.addEventListener('click', function(e) {
+                if (!dateComponent.contains(e.target) && !e.target.closest('.flatpickr-calendar')) {
+                    closeDatePanel();
+                }
+            });
+
+            panel.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+
+            function clearActivePresetClass() {
+                presetBtns.forEach(function(b) { b.classList.remove('active'); });
+            }
+
+            function formatDateISO(d) {
+                var month = '' + (d.getMonth() + 1);
+                var day = '' + d.getDate();
+                var year = d.getFullYear();
+                if (month.length < 2) month = '0' + month;
+                if (day.length < 2) day = '0' + day;
+                return [year, month, day].join('-');
+            }
+
+            // Presets click handling
+            presetBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    clearActivePresetClass();
+                    btn.classList.add('active');
+
+                    if (!fp) initFp();
+
+                    var preset = btn.getAttribute('data-preset');
+                    var now = new Date();
+                    var s = new Date();
+                    var e = new Date();
+
+                    if (preset === 'today') {
+                        // s and e are today
+                    } else if (preset === 'yesterday') {
+                        s.setDate(now.getDate() - 1);
+                        e.setDate(now.getDate() - 1);
+                    } else if (preset === 'last-7-days') {
+                        s.setDate(now.getDate() - 6);
+                    } else if (preset === 'last-30-days') {
+                        s.setDate(now.getDate() - 29);
+                    } else if (preset === 'this-week') {
+                        var day = now.getDay() || 7; // 1 = Monday
+                        s.setDate(now.getDate() - day + 1);
+                        e.setDate(s.getDate() + 6);
+                    } else if (preset === 'last-week') {
+                        var day = now.getDay() || 7;
+                        s.setDate(now.getDate() - day - 6);
+                        e.setDate(s.getDate() + 6);
+                    } else if (preset === 'this-month') {
+                        s = new Date(now.getFullYear(), now.getMonth(), 1);
+                        e = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                    } else if (preset === 'last-month') {
+                        s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                        e = new Date(now.getFullYear(), now.getMonth(), 0);
+                    } else if (preset === 'this-quarter') {
+                        var quarter = Math.floor(now.getMonth() / 3);
+                        s = new Date(now.getFullYear(), quarter * 3, 1);
+                        e = new Date(now.getFullYear(), quarter * 3 + 3, 0);
+                    } else if (preset === 'this-year') {
+                        s = new Date(now.getFullYear(), 0, 1);
+                        e = new Date(now.getFullYear(), 11, 31);
+                    } else if (preset === 'last-year') {
+                        s = new Date(now.getFullYear() - 1, 0, 1);
+                        e = new Date(now.getFullYear() - 1, 11, 31);
+                    } else if (preset === 'all-time') {
+                        applyFilter('', '');
+                        return;
+                    }
+
+                    var sStr = formatDateISO(s);
+                    var eStr = formatDateISO(e);
+
+                    inputStart.value = sStr;
+                    inputEnd.value   = eStr;
+
+                    if (fp) fp.setDate([sStr, eStr], true);
+                });
+            });
+
+            // Apply date filter (preserves bill_id)
+            function applyFilter(start, end) {
+                var url = new URL(window.location.href);
+                if (start && end) {
+                    url.searchParams.set('created_at[start]', start);
+                    url.searchParams.set('created_at[end]', end);
+                } else {
+                    url.searchParams.delete('created_at[start]');
+                    url.searchParams.delete('created_at[end]');
+                }
+                url.searchParams.delete('page');
+                window.location.href = url.toString();
+            }
+
+            applyBtn.addEventListener('click', function() {
+                var s = inputStart.value.trim();
+                var e = inputEnd.value.trim();
+                if (!s || !e) {
+                    alert('Будь ласка, оберіть діапазон дат у календарі');
+                    return;
+                }
+                applyFilter(s, e);
+            });
+
+            clearBtn.addEventListener('click', function() {
+                applyFilter('', '');
+            });
+
+            if (dateClearLink) {
+                dateClearLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    applyFilter('', '');
+                });
+            }
+
+            // ----------------------------------------------------
+            // Account / Bank Filter interactions
+            // ----------------------------------------------------
+            var billTriggerBtn = document.getElementById('bb-bill-trigger-btn');
+            var billPanel = document.getElementById('bb-bill-panel');
+            var billSearchInput = document.getElementById('bb-bill-search-input');
+            var billItems = document.querySelectorAll('.bb-bill-item');
+            var billClearQuick = document.getElementById('bb-bill-clear-quick');
+
+            function selectBill(billId) {
+                var url = new URL(window.location.href);
+                if (billId) {
+                    url.searchParams.set('bill_id', billId);
+                } else {
+                    url.searchParams.delete('bill_id');
+                }
+                url.searchParams.delete('page');
+                window.location.href = url.toString();
+            }
+
+            function openBillPanel() {
+                closeDatePanel();
+                if (billPanel && billTriggerBtn) {
+                    billPanel.classList.add('show');
+                    billTriggerBtn.classList.add('active');
+                    if (billSearchInput) {
+                        setTimeout(function() { billSearchInput.focus(); }, 50);
+                    }
+                }
+            }
+
+            function closeBillPanel() {
+                if (billPanel && billTriggerBtn) {
+                    billPanel.classList.remove('show');
+                    billTriggerBtn.classList.remove('active');
+                }
+            }
+
+            if (billTriggerBtn && billPanel) {
+                billTriggerBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (billPanel.classList.contains('show')) {
+                        closeBillPanel();
+                    } else {
+                        openBillPanel();
+                    }
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (billComponent && !billComponent.contains(e.target)) {
+                        closeBillPanel();
+                    }
+                });
+
+                billPanel.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            }
+
+            if (billClearQuick) {
+                billClearQuick.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    selectBill(null);
+                });
+            }
+
+            billItems.forEach(function(item) {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var bId = item.getAttribute('data-bill-id');
+                    selectBill(bId);
+                });
+            });
+
+            if (billSearchInput) {
+                billSearchInput.addEventListener('input', function(e) {
+                    var q = (e.target.value || '').toLowerCase().trim();
+                    billItems.forEach(function(item) {
+                        var name = (item.getAttribute('data-bill-name') || '').toLowerCase();
+                        var bank = (item.getAttribute('data-bill-bank') || '').toLowerCase();
+                        if (!q || name.indexOf(q) !== -1 || bank.indexOf(q) !== -1) {
+                            item.style.display = 'flex';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                });
+            }
+        }
+
+        // Initialize on DOM ready and Turbo/Turbolinks navigation
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initFlatpickrLibrary);
         } else {
-            displayMonth--;
+            initFlatpickrLibrary();
         }
-        renderCalendar();
-    });
-
-    nextMonthBtn.addEventListener('click', () => {
-        if (displayMonth === 11) {
-            displayMonth = 0;
-            displayYear++;
-        } else {
-            displayMonth++;
-        }
-        renderCalendar();
-    });
-
-    monthSelect.addEventListener('change', (e) => {
-        displayMonth = parseInt(e.target.value);
-        renderCalendar();
-    });
-
-    yearSelect.addEventListener('change', (e) => {
-        displayYear = parseInt(e.target.value);
-        renderCalendar();
-    });
-
-    // Time Toggle handler
-    setTimeToggle.addEventListener('change', syncInputs);
-
-    // Bind Quick Select Click Listeners
-    quickSelectButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            selectRange(btn.getAttribute('data-range'));
-        });
-    });
-
-    // Compare Dates Fully Interactive click logic
-    compareTabBtn.addEventListener('click', function() {
-        const isActive = compareTabBtn.classList.toggle('active-compare');
-        if (isActive) {
-            compareIndicator.style.opacity = '1';
-            compareIndicator.classList.remove('text-muted');
-            compareIndicator.classList.add('text-primary');
-            compareIndicator.querySelector('.status-dot').classList.replace('bg-secondary', 'bg-primary');
-        } else {
-            compareIndicator.style.opacity = '0.5';
-            compareIndicator.classList.add('text-muted');
-            compareIndicator.classList.remove('text-primary');
-            compareIndicator.querySelector('.status-dot').classList.replace('bg-primary', 'bg-secondary');
-        }
-    });
-
-    // Exclusion Button Fully Interactive click logic
-    exclusionBtn.addEventListener('click', function() {
-        const isActive = exclusionBtn.classList.toggle('active-exclusion');
-        if (isActive) {
-            exclusionBadge.classList.remove('d-none');
-            exclusionBtn.querySelector('span').textContent = '{{ __('Excluded') }}';
-        } else {
-            exclusionBadge.classList.add('d-none');
-            exclusionBtn.querySelector('span').textContent = '{{ __('Exclusion') }}';
-        }
-    });
-
-    // Generate Button Click Redirects with proper URL parameters
-    generateBtn.addEventListener('click', function() {
-        if (!activeStart) return;
-        const end = activeEnd || activeStart;
-        
-        // Parse time inputs if toggled
-        if (setTimeToggle.checked) {
-            const startT = startTimeInput.value.split(':');
-            const endT = endTimeInput.value.split(':');
-            
-            if(startT.length === 2) activeStart.setHours(parseInt(startT[0]), parseInt(startT[1]));
-            if(endT.length === 2) end.setHours(parseInt(endT[0]), parseInt(endT[1]));
-        }
-
-        // Format to YYYY-MM-DD or YYYY-MM-DD HH:mm:ss
-        function pad(num) { return String(num).padStart(2, '0'); }
-        function formatDb(date, includeTime) {
-            const y = date.getFullYear();
-            const m = pad(date.getMonth() + 1);
-            const d = pad(date.getDate());
-            if (!includeTime) return `${y}-${m}-${d}`;
-            
-            const hh = pad(date.getHours());
-            const mm = pad(date.getMinutes());
-            const ss = pad(date.getSeconds());
-            return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
-        }
-
-        const startStr = formatDb(activeStart, setTimeToggle.checked);
-        const endStr = formatDb(end, setTimeToggle.checked);
-
-        // Redirect browser with filter params
-        const newUrl = `${window.location.pathname}?created_at[start]=${encodeURIComponent(startStr)}&created_at[end]=${encodeURIComponent(endStr)}`;
-        window.location.href = newUrl;
-    });
-
-    // Initial load runs
-    syncInputs();
-    renderCalendar();
-    
-    // Set initial quick select state based on active dates
-    const diffTime = Math.abs(activeEnd - activeStart);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays >= 28 && diffDays <= 32) setActiveQuickSelect('last-30-days');
-    else setActiveQuickSelect('custom');
-});
+        document.addEventListener('turbo:load', initFlatpickrLibrary);
+        document.addEventListener('turbolinks:load', initFlatpickrLibrary);
+    })();
 </script>

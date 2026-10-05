@@ -73,7 +73,7 @@ class TransactionEditScreen extends Screen
             Link::make('Сформувати Акт')
                 ->icon('bs.file-earmark-plus')
                 ->route('platform.acts.create', ['transaction_id' => $this->transaction->id])
-                ->canSee($this->transaction->exists && $this->transaction->type === 'income'),
+                ->canSee($this->transaction->exists && $this->transaction->type === 'income' && (int)$this->transaction->transaction_type_id !== 3),
 
             Button::make(__('Back'))
                 ->method('back'),

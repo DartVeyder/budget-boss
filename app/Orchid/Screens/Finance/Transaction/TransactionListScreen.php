@@ -233,6 +233,15 @@ class TransactionListScreen extends Screen
         $transaction = FinanceTransaction::findOrFail($request->get('id'));
         $transaction->delete();
 
+        if ($transaction->mono_id) {
+            $pairMonoId = str_ends_with($transaction->mono_id, '_fop')
+                ? substr($transaction->mono_id, 0, -4)
+                : $transaction->mono_id . '_fop';
+            FinanceTransaction::where('user_id', Auth::id())
+                ->where('mono_id', $pairMonoId)
+                ->delete();
+        }
+
         if($transaction->finance_invoice_id){
             $transactionsService->updateStatusInvoice($transaction->finance_invoice_id);
         }
@@ -251,33 +260,35 @@ class TransactionListScreen extends Screen
 
         $token = $setting->monobank_api_key;
 
-        $transactions = FinanceTransaction::where('user_id', Auth::id())
+        $latestTransaction = FinanceTransaction::where('user_id', Auth::id())
             ->whereNotNull('mono_id')
-            ->orderBy('id', 'DESC')
+            ->orderBy('created_at', 'DESC')
             ->first();
 
-
-        if( is_null($transactions)){
+        if (is_null($latestTransaction)) {
             $from = Carbon::now()->startOfMonth();
-        }else{
-            $from = $transactions->created_at;
+        } else {
+            // Check back up to 30 days (or last transaction minus 7 days) to catch any delayed/skipped refunds
+            $from = Carbon::parse($latestTransaction->created_at)->subDays(7);
+            $maxLookback = Carbon::now()->subDays(30);
+            if ($from->lt($maxLookback)) {
+                $from = $maxLookback;
+            }
         }
 
         $to = Carbon::now();
 
-
-        $statement = Monobank::getStatement($from,  $to, $token);
-        if($statement){
+        $statement = Monobank::getStatement($from, $to, $token);
+        if ($statement) {
             $data = $transactionExpensesService->createInsertDataMono($statement);
-            if(FinanceTransaction::insert($data)){
-                Toast::info(__('Успішно імпортовано '. count($data) .' транзакцій з Моно'));
+            if (!empty($data) && FinanceTransaction::insert($data)) {
+                Toast::info(__('Успішно імпортовано ' . count($data) . ' транзакцій з Моно'));
+            } else {
+                Toast::info(__('Нема нових транзакцій з Моно'));
             }
-        }else{
+        } else {
             Toast::info(__('Нема нових транзакцій з Моно'));
         }
-
-
-
-
     }
+
 }

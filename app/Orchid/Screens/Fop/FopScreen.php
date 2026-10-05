@@ -81,6 +81,11 @@ class FopScreen extends Screen
     public function commandBar(): iterable
     {
         return [
+            \Orchid\Screen\Actions\Link::make('Аналітика ФОП')
+                ->icon('bs.graph-up')
+                ->route('platform.fop.analytic')
+                ->canSee($this->fop->exists),
+
             \Orchid\Screen\Actions\Link::make('Податки та Календар')
                 ->icon('bs.calculator')
                 ->route('platform.fop.tax')

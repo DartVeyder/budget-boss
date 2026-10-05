@@ -150,7 +150,7 @@ class TransactionListLayout extends Table
                         Link::make('Сформувати Акт')
                             ->icon('bs.file-earmark-plus')
                             ->route('platform.acts.create', ['transaction_id' => $transaction->id])
-                            ->canSee($transaction->type === 'income'),
+                            ->canSee($transaction->type === 'income' && (int)$transaction->transaction_type_id !== 3),
 
                         Button::make(__('Delete'))
                             ->icon('bs.trash3')

@@ -88,6 +88,10 @@ class FopTaxScreen extends Screen
     public function commandBar(): iterable
     {
         return [
+            Link::make('Аналітика ФОП')
+                ->icon('bs.graph-up')
+                ->route('platform.fop.analytic'),
+
             Link::make('Профіль ФОП')
                 ->icon('bs.person-gear')
                 ->route('platform.fops'),

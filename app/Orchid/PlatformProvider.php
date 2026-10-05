@@ -60,6 +60,9 @@ class PlatformProvider extends OrchidServiceProvider
                 ->list([
                     Menu::make('Finance')
                         ->route('platform.analytic.finance'),
+                    Menu::make('ФОП')
+                        ->icon('bs.briefcase')
+                        ->route('platform.fop.analytic'),
                 ]),
             Menu::make('Settings')
                 ->list([
@@ -76,6 +79,9 @@ class PlatformProvider extends OrchidServiceProvider
                 ->list([
                     Menu::make('Профіль ФОП')
                         ->route('platform.fops'),
+                    Menu::make('Аналітика ФОП')
+                        ->icon('bs.graph-up')
+                        ->route('platform.fop.analytic'),
                     Menu::make('Податки та Календар')
                         ->route('platform.fop.tax'),
                     Menu::make('Книга доходів')
