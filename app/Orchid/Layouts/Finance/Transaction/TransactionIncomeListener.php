@@ -27,6 +27,7 @@ class TransactionIncomeListener extends Listener
      */
     protected $targets = [
         'transaction.customer_id',
+        'transaction.counterparty_id',
     ];
 
     /**
@@ -48,12 +49,22 @@ class TransactionIncomeListener extends Listener
     public function handle(\Orchid\Screen\Repository $repository, \Illuminate\Http\Request $request): \Orchid\Screen\Repository
     {
         $customerId = $request->input('transaction.customer_id');
-        $customer = $customerId ? Customer::with(['fop.fopGroup.taxRates', 'counterparties' => fn ($q) => $q->active()])->find($customerId) : null;
+        $counterpartyId = $request->input('transaction.counterparty_id');
 
         $transaction = $repository->get('transaction', []);
         if ($transaction instanceof FinanceTransaction) {
             $transaction = $transaction->toArray();
         }
+
+        // If counterparty was selected but no customer yet, auto-set customer from counterparty
+        if ($counterpartyId && !$customerId) {
+            $cp = CustomerCounterparty::find($counterpartyId);
+            if ($cp?->customer_id) {
+                $customerId = $cp->customer_id;
+            }
+        }
+
+        $customer = $customerId ? Customer::with(['fop.fopGroup.taxRates', 'counterparties' => fn ($q) => $q->active()])->find($customerId) : null;
 
         $transaction['customer_id'] = $customerId;
         if ($customer?->fop?->finance_bill_id) {
@@ -63,11 +74,14 @@ class TransactionIncomeListener extends Listener
             $transaction['transaction_category_id'] = $customer->fop->transaction_category_id;
         }
 
-        if ($customer && $customer->counterparties->count() === 1) {
+        // Resolve counterparty: prioritize explicit selection matching customer, or auto-pick if customer has exactly 1 counterparty
+        if ($counterpartyId && $customer && $customer->counterparties->pluck('id')->contains((int)$counterpartyId)) {
+            $transaction['counterparty_id'] = (int)$counterpartyId;
+        } elseif ($customer && $customer->counterparties->count() === 1) {
             $transaction['counterparty_id'] = $customer->counterparties->first()->id;
         } else {
             $currentCpId = $transaction['counterparty_id'] ?? null;
-            if ($currentCpId && $customer && !$customer->counterparties->pluck('id')->contains($currentCpId)) {
+            if ($currentCpId && $customer && !$customer->counterparties->pluck('id')->contains((int)$currentCpId)) {
                 $transaction['counterparty_id'] = null;
             }
         }
@@ -89,19 +103,25 @@ class TransactionIncomeListener extends Listener
     protected function layouts(): iterable
     {
         $customerId = null;
+        $selectedCounterpartyId = null;
+
         if ($this->query) {
             $customerId = $this->query->get('transaction.customer_id');
-            if (!$customerId) {
-                $tx = $this->query->get('transaction');
-                if (is_array($tx)) {
-                    $customerId = $tx['customer_id'] ?? null;
-                } elseif ($tx instanceof FinanceTransaction) {
-                    $customerId = $tx->customer_id;
-                }
+            $selectedCounterpartyId = $this->query->get('transaction.counterparty_id');
+
+            $tx = $this->query->get('transaction');
+            if (is_array($tx)) {
+                $customerId = $customerId ?: ($tx['customer_id'] ?? null);
+                $selectedCounterpartyId = $selectedCounterpartyId ?: ($tx['counterparty_id'] ?? null);
+            } elseif ($tx instanceof FinanceTransaction) {
+                $customerId = $customerId ?: $tx->customer_id;
+                $selectedCounterpartyId = $selectedCounterpartyId ?: $tx->counterparty_id;
             }
         }
 
         $counterpartyOptions = [];
+        $helpText = 'Якщо оплата надійшла від конкретного ФОП контрагента клієнта';
+
         if ($customerId) {
             $counterparties = CustomerCounterparty::where('customer_id', $customerId)
                 ->active()
@@ -109,6 +129,22 @@ class TransactionIncomeListener extends Listener
 
             foreach ($counterparties as $cp) {
                 $counterpartyOptions[$cp->id] = $cp->full_title;
+            }
+
+            if (empty($counterpartyOptions)) {
+                $helpText = 'У цього замовника немає зареєстрованих ФОП контрагентів';
+            } elseif (count($counterpartyOptions) === 1) {
+                $helpText = '✓ ФОП контрагента автоматично підтягнуто з профілю замовника';
+            }
+        } else {
+            $allCounterparties = CustomerCounterparty::where('user_id', \Illuminate\Support\Facades\Auth::id())
+                ->active()
+                ->with('customer')
+                ->get();
+
+            foreach ($allCounterparties as $cp) {
+                $custName = $cp->customer?->name ? " [{$cp->customer->name}]" : '';
+                $counterpartyOptions[$cp->id] = $cp->name . $custName . ($cp->ipn ? " (ІПН: {$cp->ipn})" : '');
             }
         }
 
@@ -134,7 +170,8 @@ class TransactionIncomeListener extends Listener
                     ->title('ФОП контрагент (платник)')
                     ->options($counterpartyOptions)
                     ->empty('Не обрано (оплата від основного клієнта)', '')
-                    ->help('Якщо оплата надійшла від конкретного ФОП контрагента клієнта'),
+                    ->value($selectedCounterpartyId)
+                    ->help($helpText),
 
                 Relation::make('transaction.finance_bill_id')
                     ->title('Bills')

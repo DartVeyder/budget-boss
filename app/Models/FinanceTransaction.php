@@ -127,6 +127,11 @@ class FinanceTransaction extends Model
         return $this->belongsTo(FinanceTransactionType::class);
     }
 
+    public function transactionType()
+    {
+        return $this->belongsTo(FinanceTransactionType::class, 'transaction_type_id');
+    }
+
     public function user(){
         return $this->belongsTo(User::class);
     }

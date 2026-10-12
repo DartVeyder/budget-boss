@@ -101,6 +101,13 @@ class TransactionIncomeService extends  TransactionsService
             $transaction['counterparty_id'] = !empty($transaction['counterparty_id']) ? (int)$transaction['counterparty_id'] : null;
         }
 
+        if (empty($transaction['counterparty_id']) && !empty($transaction['customer_id'])) {
+            $customerWithCp = \App\Models\Customer::with(['counterparties' => fn ($q) => $q->active()])->find($transaction['customer_id']);
+            if ($customerWithCp && $customerWithCp->counterparties->count() === 1) {
+                $transaction['counterparty_id'] = $customerWithCp->counterparties->first()->id;
+            }
+        }
+
         $transaction['user_id'] = $this->getUserId();
 
         return $transaction;

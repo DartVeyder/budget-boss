@@ -10,6 +10,7 @@ use App\Orchid\Layouts\Finance\Transaction\TransactionEditAuditRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditExpensesRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditIncomeRows;
 use App\Orchid\Layouts\Finance\Transaction\TransactionEditTransferRows;
+use App\Orchid\Layouts\Finance\Transaction\TransactionIncomeListener;
 use App\Orchid\Layouts\Finance\Transaction\TransactionListLayout;
 use App\Orchid\Layouts\Finance\Transaction\TransactionSelection;
 use App\Services\Api\Monobank\Monobank;
@@ -40,7 +41,7 @@ class TransactionListScreen extends Screen
 
         return [
             "transactions" =>
-                FinanceTransaction::with(['attachment', 'customer', 'counterparty', 'bill', 'category', 'currency'])->filters(TransactionSelection::class)
+                FinanceTransaction::with(['attachment', 'customer', 'counterparty', 'bill', 'category', 'currency', 'transactionType'])->filters(TransactionSelection::class)
                     ->where('user_id' , Auth::user()->id)
                     ->defaultSort('created_at', 'desc')
                     ->paginate()
@@ -93,7 +94,7 @@ class TransactionListScreen extends Screen
             TransactionSelection::class,
             TransactionListLayout::class,
             Layout::modal('income', [
-                TransactionEditIncomeRows::class
+                TransactionIncomeListener::class
             ])->title(__('New income')),
             Layout::modal('expenses', [
                 TransactionEditExpensesRows::class
@@ -291,4 +292,26 @@ class TransactionListScreen extends Screen
         }
     }
 
+    public function asyncGetCustomerDefaults($customerData = null): iterable
+    {
+        $customerId = is_array($customerData) ? ($customerData['customer_id'] ?? null) : $customerData;
+
+        $customer = \App\Models\Customer::with(['fop.fopGroup.taxRates', 'counterparties' => fn ($q) => $q->active()])->find($customerId);
+
+        $counterpartyId = null;
+        if ($customer && $customer->counterparties->count() === 1) {
+            $counterpartyId = $customer->counterparties->first()->id;
+        }
+
+        return [
+            'transaction' => [
+                'customer_id' => $customerId,
+                'counterparty_id' => $counterpartyId,
+                'finance_bill_id' => $customer?->fop?->finance_bill_id,
+                'transaction_category_id' => $customer?->fop?->transaction_category_id,
+            ],
+            'tax_status' => $customer?->fop?->tax_status,
+            'tax_rates' => $customer?->fop?->fopGroup?->taxRates?->pluck('id')->toArray(),
+        ];
+    }
 }

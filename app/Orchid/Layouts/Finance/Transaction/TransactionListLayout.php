@@ -33,7 +33,40 @@ class TransactionListLayout extends Table
     public function columns(): array
     {
         return [
-            TD::make('id', __('ID')),
+            TD::make('id', __('ID'))
+                ->sort()
+                ->width('95px')
+                ->class('text-nowrap'),
+
+            TD::make('transaction_type_id', __('Тип'))
+                ->sort()
+                ->width('120px')
+                ->class('text-nowrap')
+                ->filter(
+                    TD::FILTER_SELECT,
+                    FinanceTransactionType::where('active', 1)->pluck('name', 'id')
+                )
+                ->render(function (FinanceTransaction $transaction) {
+                    $typeName = $transaction->transactionType?->name ?? match ($transaction->type) {
+                        'income' => 'Дохід',
+                        'expenses' => 'Витрати',
+                        'transfer' => 'Переказ',
+                        default => $transaction->type ?? '—',
+                    };
+
+                    return match ((int)$transaction->transaction_type_id) {
+                        1 => "<span class='badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1'><i class='bi bi-arrow-up-right me-1'></i> " . e($typeName) . "</span>",
+                        2 => "<span class='badge bg-success-subtle text-success border border-success-subtle px-2 py-1'><i class='bi bi-arrow-down-left me-1'></i> " . e($typeName) . "</span>",
+                        3 => "<span class='badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1'><i class='bi bi-arrow-left-right me-1'></i> " . e($typeName) . "</span>",
+                        4 => "<span class='badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1'><i class='bi bi-clipboard-check me-1'></i> " . e($typeName) . "</span>",
+                        default => match ($transaction->type) {
+                            'income' => "<span class='badge bg-success-subtle text-success border border-success-subtle px-2 py-1'><i class='bi bi-arrow-down-left me-1'></i> " . e($typeName) . "</span>",
+                            'expenses' => "<span class='badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1'><i class='bi bi-arrow-up-right me-1'></i> " . e($typeName) . "</span>",
+                            default => "<span class='badge bg-secondary-subtle text-secondary px-2 py-1'>" . e($typeName) . "</span>",
+                        },
+                    };
+                }),
+
             TD::make('transaction_category_id', __('Category'))
                 ->sort()
                 ->filter(
@@ -80,6 +113,8 @@ class TransactionListLayout extends Table
                 ),
             TD::make('amount', __('Amount'))
                 ->sort()
+                ->width('140px')
+                ->class('text-nowrap')
                 ->filter(
                     TD::FILTER_NUMBER_RANGE
                 )
