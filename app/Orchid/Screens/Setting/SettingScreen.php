@@ -39,6 +39,13 @@ class SettingScreen extends Screen
         return 'Setting';
     }
 
+    public function permission(): ?iterable
+    {
+        return [
+            'platform.setting',
+        ];
+    }
+
     /**
      * The screen's action buttons.
      *
@@ -47,6 +54,10 @@ class SettingScreen extends Screen
     public function commandBar(): iterable
     {
         return [
+            \Orchid\Screen\Actions\Link::make('Спільний бюджет')
+                ->icon('bs.people-fill')
+                ->route('platform.setting.budget-shares'),
+
             Button::make(__('Save'))
                 ->icon('bs.check-circle')
                 ->method('save'),

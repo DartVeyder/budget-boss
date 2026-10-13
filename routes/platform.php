@@ -150,6 +150,13 @@ Route::screen('/setting', SettingScreen::class)
         ->parent('platform.index')
         ->push(__('Setting'), route('platform.setting')));
 
+//Platform > Setting > Budget Shares
+Route::screen('setting/budget-shares', \App\Orchid\Screens\Setting\BudgetShare\BudgetShareScreen::class)
+    ->name('platform.setting.budget-shares')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.setting')
+        ->push('Спільний бюджет', route('platform.setting.budget-shares')));
+
 //Platform > Setting > Tax Rates
 Route::screen('setting/tax-rates', \App\Orchid\Screens\Setting\TaxRate\TaxRateListScreen::class)
     ->name('platform.setting.tax-rates')

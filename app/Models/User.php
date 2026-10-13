@@ -67,6 +67,9 @@ class User extends Authenticatable
         'created_at',
     ];
 
+    public function bills(): object{
+        return $this->hasMany(FinanceBill::class);
+    }
     public function transactions(): object{
         return $this->hasMany(FinanceTransaction::class);
     }
@@ -76,7 +79,72 @@ class User extends Authenticatable
     public function invoices(): object{
         return $this->hasMany(FinanceInvoice::class);
     }
-    public  function  setting(): object{
+    public function setting(): object{
         return $this->hasOne(UserSetting::class);
     }
+    public function budgetShares(): object{
+        return $this->hasMany(BudgetShare::class, 'user_id');
+    }
+    public function inverseBudgetShares(): object{
+        return $this->hasMany(BudgetShare::class, 'partner_id');
+    }
+
+    /**
+     * Get all user IDs participating in the shared budget (self + partners).
+     *
+     * @return int[]
+     */
+    public function getSharedUserIds(): array
+    {
+        $partnerIds1 = BudgetShare::where('user_id', $this->id)->pluck('partner_id')->all();
+        $partnerIds2 = BudgetShare::where('partner_id', $this->id)->pluck('user_id')->all();
+
+        return array_values(array_unique(array_merge([$this->id], $partnerIds1, $partnerIds2)));
+    }
+
+    /**
+     * Get all users in the shared budget (self + partners).
+     */
+    public function getSharedUsers(): \Illuminate\Database\Eloquent\Collection
+    {
+        return self::whereIn('id', $this->getSharedUserIds())->get();
+    }
+
+    /**
+     * Check if user is sharing budget with at least one other user.
+     */
+    public function isSharingBudget(): bool
+    {
+        return count($this->getSharedUserIds()) > 1;
+    }
+
+    /**
+     * Get share record between this user and another user.
+     */
+    public function getBudgetShareWith(int $partnerId): ?BudgetShare
+    {
+        return BudgetShare::where(function ($q) use ($partnerId) {
+            $q->where('user_id', $this->id)->where('partner_id', $partnerId);
+        })->orWhere(function ($q) use ($partnerId) {
+            $q->where('user_id', $partnerId)->where('partner_id', $this->id);
+        })->first();
+    }
+
+    /**
+     * Check if this user has editor rights in shared budget with partner.
+     */
+    public function canEditSharedBudgetWith(int $partnerId): bool
+    {
+        if ($this->id === $partnerId) {
+            return true;
+        }
+
+        $share = $this->getBudgetShareWith($partnerId);
+        if (!$share) {
+            return false;
+        }
+
+        return $share->role === BudgetShare::ROLE_EDITOR && $share->can_create_transactions;
+    }
 }
+
