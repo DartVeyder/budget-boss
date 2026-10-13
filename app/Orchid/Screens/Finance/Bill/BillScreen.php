@@ -26,12 +26,16 @@ class BillScreen extends Screen
      *
      * @return array
      */
-    public function query(): iterable
+    public function query(Request $request): iterable
     {
-        return [
-            "bills" => $this->generateMetricsToBill()
-            ];
+        $filterUserId = $request->get('user_id');
+        $filterUserId = ($filterUserId && is_numeric($filterUserId)) ? (int)$filterUserId : null;
 
+        return [
+            "bills" => $this->generateMetricsToBill($filterUserId),
+            "groupedData" => $this->getGroupedBillsData($filterUserId),
+            "filter_user_id" => $filterUserId,
+        ];
     }
     /**
      * The name of the screen displayed in the header.
@@ -43,6 +47,13 @@ class BillScreen extends Screen
         return 'Рахунки';
     }
 
+    public function permission(): ?iterable
+    {
+        return [
+            'platform.finance.bills',
+        ];
+    }
+
     /**
      * The screen's action buttons.
      *
@@ -50,11 +61,39 @@ class BillScreen extends Screen
      */
     public function commandBar(): iterable
     {
-        return [
-            \Orchid\Screen\Actions\Link::make(__('Додати'))
-                ->icon('bs.plus-circle')
-                ->route('platform.bills.create'),
-        ];
+        $actions = [];
+
+        if (Auth::user()?->isSharingBudget()) {
+            $filterUserId = request()->get('user_id');
+            $activeLabel = 'Всі рахунки (Спільно)';
+            if ($filterUserId) {
+                $target = \App\Models\User::find($filterUserId);
+                $activeLabel = $target ? ($target->id === Auth::id() ? "Мої рахунки (Я)" : "Рахунки: {$target->name}") : $activeLabel;
+            }
+
+            $userLinks = [
+                \Orchid\Screen\Actions\Link::make('Всі рахунки (Спільно)')
+                    ->icon('bs.people')
+                    ->route('platform.bills'),
+            ];
+
+            foreach (Auth::user()->getSharedUsers() as $u) {
+                $lbl = $u->id === Auth::id() ? "Мої рахунки ({$u->name})" : "Рахунки: {$u->name}";
+                $userLinks[] = \Orchid\Screen\Actions\Link::make($lbl)
+                    ->icon('bs.person')
+                    ->route('platform.bills', ['user_id' => $u->id]);
+            }
+
+            $actions[] = \Orchid\Screen\Actions\DropDown::make('Фільтр: ' . $activeLabel)
+                ->icon('bs.funnel')
+                ->list($userLinks);
+        }
+
+        $actions[] = \Orchid\Screen\Actions\Link::make(__('Додати'))
+            ->icon('bs.plus-circle')
+            ->route('platform.bills.create');
+
+        return $actions;
     }
 
     /**
