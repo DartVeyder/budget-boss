@@ -41,7 +41,19 @@ class TransactionEditExpensesRows extends Rows
      */
     protected function fields(): iterable
     {
+        $sharedUserIds = Auth::user()?->getSharedUserIds() ?? [Auth::id()];
+        $userOptions = count($sharedUserIds) > 1
+            ? \App\Models\User::whereIn('id', $sharedUserIds)->pluck('name', 'id')->toArray()
+            : [];
+
         return [
+            Select::make('transaction.user_id')
+                ->title('Користувач')
+                ->options($userOptions)
+                ->value(Auth::id())
+                ->help('Хто з учасників бюджету здійснив витрату')
+                ->canSee(count($sharedUserIds) > 1),
+
             Relation::make('transaction.transaction_category_id')
                 ->title('Category')
                 ->required()

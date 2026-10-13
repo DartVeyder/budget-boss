@@ -38,13 +38,58 @@ class TransactionListScreen extends Screen
      */
     public function query(): iterable
     {
+        $authUser = Auth::user();
+        $sharedIds = $authUser?->getSharedUserIds() ?? [Auth::id()];
+
+        $selectedUserId = request()->get('transaction_user_id') ?: request()->get('user_id');
+        $selectedUserId = (!empty($selectedUserId) && is_numeric($selectedUserId)) ? (int)$selectedUserId : null;
+        if ($selectedUserId && !in_array($selectedUserId, $sharedIds, true)) {
+            $selectedUserId = null;
+        }
+
+        $transactionsQuery = FinanceTransaction::with(['attachment', 'customer', 'counterparty', 'bill', 'category', 'currency', 'transactionType', 'user'])
+            ->filters(TransactionSelection::class);
+
+        if ($selectedUserId) {
+            $transactionsQuery->where('finance_transactions.user_id', $selectedUserId);
+        } else {
+            $transactionsQuery->whereIn('finance_transactions.user_id', $sharedIds);
+        }
+
+        // Calculate separated summary per user for the summary card
+        $userSummary = [];
+        if ($authUser && $authUser->isSharingBudget()) {
+            foreach ($authUser->getSharedUsers() as $su) {
+                $suInc = (float)FinanceTransaction::where('user_id', $su->id)
+                    ->where('is_balance', 1)
+                    ->where('type', 'income')
+                    ->sum('currency_amount');
+                $suExp = abs((float)FinanceTransaction::where('user_id', $su->id)
+                    ->where('is_balance', 1)
+                    ->where('type', 'expenses')
+                    ->sum('currency_amount'));
+                $suCount = FinanceTransaction::where('user_id', $su->id)->count();
+
+                $userSummary[] = [
+                    'user' => $su,
+                    'is_me' => ($su->id === $authUser->id),
+                    'income' => $suInc,
+                    'expenses' => $suExp,
+                    'net' => $suInc - $suExp,
+                    'count' => $suCount,
+                    'is_active' => ($selectedUserId === $su->id),
+                ];
+            }
+        }
 
         return [
-            "transactions" =>
-                FinanceTransaction::with(['attachment', 'customer', 'counterparty', 'bill', 'category', 'currency', 'transactionType'])->filters(TransactionSelection::class)
-                    ->where('user_id' , Auth::user()->id)
-                    ->defaultSort('created_at', 'desc')
-                    ->paginate()
+            "transactions" => $transactionsQuery
+                ->defaultSort('created_at', 'desc')
+                ->paginate(),
+            "user_summary" => $userSummary,
+            "is_sharing_budget" => $authUser?->isSharingBudget() ?? false,
+            "selected_user_id" => $selectedUserId,
+            "shared_users" => $authUser?->getSharedUsers() ?? collect(),
         ];
     }
 
@@ -56,6 +101,13 @@ class TransactionListScreen extends Screen
     public function name(): ?string
     {
         return 'Transactions';
+    }
+
+    public function permission(): ?iterable
+    {
+        return [
+            'platform.finance.transactions',
+        ];
     }
 
     /**
@@ -91,6 +143,7 @@ class TransactionListScreen extends Screen
     public function layout(): iterable
     {
         return [
+            Layout::view('finance.transaction.user-pills'),
             TransactionSelection::class,
             TransactionListLayout::class,
             Layout::modal('income', [
@@ -114,6 +167,14 @@ class TransactionListScreen extends Screen
     public function  saveIncome(Request $request, FinanceTransaction $transaction,TransactionIncomeService $transactionIncomeService):void
     {
         $data = $transactionIncomeService->createInsertData($request);
+        if (!empty($data['finance_bill_id'])) {
+            $bill = FinanceBill::find($data['finance_bill_id']);
+            if ($bill && $bill->user_id !== Auth::id() && !Auth::user()->canEditSharedBudgetWith($bill->user_id)) {
+                Toast::error(__('У вас немає прав редактора для цього спільного рахунку (тільки перегляд).'));
+                return;
+            }
+        }
+
         $taxDetails = $data['tax_details'] ?? [];
         unset($data['attachment'], $data['tax_details']);
         
@@ -138,6 +199,14 @@ class TransactionListScreen extends Screen
     public function  saveExpenses(Request $request, FinanceTransaction $transaction, TransactionExpensesService $transactionExpensesService ):void
     {
         $data = $transactionExpensesService->createInsertData($request);
+        if (!empty($data['finance_bill_id'])) {
+            $bill = FinanceBill::find($data['finance_bill_id']);
+            if ($bill && $bill->user_id !== Auth::id() && !Auth::user()->canEditSharedBudgetWith($bill->user_id)) {
+                Toast::error(__('У вас немає прав редактора для цього спільного рахунку (тільки перегляд).'));
+                return;
+            }
+        }
+
         unset($data['attachment']);
         $transaction->fill($data)->save($data);
         $transaction->attachment()->syncWithoutDetaching(
@@ -159,11 +228,22 @@ class TransactionListScreen extends Screen
             return;
         }
 
-        $withBill = FinanceBill::where('user_id', Auth::id())->find($bills['with_bill_id']);
-        $toBill = FinanceBill::where('user_id', Auth::id())->find($bills['to_bill_id']);
+        $sharedIds = Auth::user()?->getSharedUserIds() ?? [Auth::id()];
+        $withBill = FinanceBill::whereIn('user_id', $sharedIds)->find($bills['with_bill_id']);
+        $toBill = FinanceBill::whereIn('user_id', $sharedIds)->find($bills['to_bill_id']);
 
         if (!$withBill || !$toBill) {
             Toast::error(__('Рахунок не знайдено'));
+            return;
+        }
+
+        if ($withBill->user_id !== Auth::id() && !Auth::user()->canEditSharedBudgetWith($withBill->user_id)) {
+            Toast::error(__('У вас немає прав редактора для списання з рахунку партнера.'));
+            return;
+        }
+
+        if ($toBill->user_id !== Auth::id() && !Auth::user()->canEditSharedBudgetWith($toBill->user_id)) {
+            Toast::error(__('У вас немає прав редактора для зарахування на рахунок партнера.'));
             return;
         }
 
@@ -208,7 +288,7 @@ class TransactionListScreen extends Screen
         $transaction = $request->input('transaction');
         $attachments = $transaction['attachment'] ?? [];
         unset($transaction['attachment']);
-        $total =  Auth::user()->transactions()->where('finance_bill_id',  $transaction['bill_id'])->sum('amount') ;
+        $total = FinanceTransaction::where('finance_bill_id', $transaction['bill_id'])->sum('amount');
 
         $diffTotal = $transaction['current_balance'] - $total;
         $data['amount'] =  $diffTotal ;
@@ -232,6 +312,11 @@ class TransactionListScreen extends Screen
     public function remove(Request $request,TransactionsService  $transactionsService): object
     {
         $transaction = FinanceTransaction::findOrFail($request->get('id'));
+        if ($transaction->user_id !== Auth::id() && !Auth::user()->canEditSharedBudgetWith($transaction->user_id)) {
+            Toast::error(__('У вас немає прав для видалення транзакцій іншого учасника бюджету.'));
+            return redirect()->back();
+        }
+
         $transaction->delete();
 
         if ($transaction->mono_id) {

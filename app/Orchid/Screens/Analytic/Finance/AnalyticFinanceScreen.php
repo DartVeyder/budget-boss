@@ -62,9 +62,26 @@ class AnalyticFinanceScreen extends Screen
         $categoryId = $request->get('category_id') ?? $request->get('transaction_category_id');
         $categoryId = (!empty($categoryId) && is_numeric($categoryId)) ? (int)$categoryId : null;
 
+        $filterUserId = $request->get('user_id') ?: $request->get('analytic_user_id');
+        $filterUserId = (!empty($filterUserId) && is_numeric($filterUserId)) ? (int)$filterUserId : null;
+
+        $authUser = auth()->user();
+        $allSharedIds = $authUser?->getSharedUserIds() ?? [auth()->id()];
+        if ($filterUserId && !in_array($filterUserId, $allSharedIds)) {
+            $filterUserId = null;
+        }
+
+        $effectiveUserIds = $filterUserId ? [$filterUserId] : $allSharedIds;
+
         $transaction = new TransactionsService();
         $transactionIncome = new TransactionIncomeService();
         $transactionExpenses = new TransactionExpensesService();
+
+        if ($filterUserId) {
+            $transaction->setTargetUserId($filterUserId);
+            $transactionIncome->setTargetUserId($filterUserId);
+            $transactionExpenses->setTargetUserId($filterUserId);
+        }
 
         if ($billId) {
             $transaction->setBillId($billId);
@@ -83,8 +100,7 @@ class AnalyticFinanceScreen extends Screen
         $balancePrev = (float)$transaction->getTotalAmount('currency_amount', false, null, $prevStart, $prevEnd, $billId);
 
         // Transaction counts and stats
-        $userId = $transaction->getUserId();
-        $incomeCountQ = \App\Models\FinanceTransaction::where('user_id', $userId)
+        $incomeCountQ = \App\Models\FinanceTransaction::whereIn('user_id', $effectiveUserIds)
             ->where('is_balance', 1)
             ->where('type', 'income')
             ->whereBetween('created_at', [$start, $end]);
@@ -93,7 +109,7 @@ class AnalyticFinanceScreen extends Screen
         }
         $incomeCount = $incomeCountQ->count();
 
-        $expensesCountQ = \App\Models\FinanceTransaction::where('user_id', $userId)
+        $expensesCountQ = \App\Models\FinanceTransaction::whereIn('user_id', $effectiveUserIds)
             ->where('is_balance', 1)
             ->where('type', 'expenses')
             ->whereBetween('created_at', [$start, $end]);
@@ -160,7 +176,7 @@ class AnalyticFinanceScreen extends Screen
         $data['charts']['expenses']['source'] = $transactionExpenses->chartPieSource($start, $end, '', $billId);
         $data['top_sources_monthly'] = $transactionExpenses->getTopSourcesMonthlyExpenses($start, $end, $billId, 5, 6);
 
-        $insights = new FinanceInsightsService($userId, $billId);
+        $insights = new FinanceInsightsService($effectiveUserIds, $billId);
         $data['insights'] = [
             'forecast' => $insights->monthForecast(),
             'fund' => $insights->emergencyFund(),
@@ -170,9 +186,53 @@ class AnalyticFinanceScreen extends Screen
             ],
         ];
 
+        // Member comparison for shared budget
+        $membersComparison = [];
+        if ($authUser && $authUser->isSharingBudget()) {
+            $totalPeriodIncome = max(0.001, $incomeCurrent);
+            $totalPeriodExpenses = max(0.001, $expensesCurrent);
+
+            foreach ($authUser->getSharedUsers() as $su) {
+                $mIncQ = \App\Models\FinanceTransaction::where('user_id', $su->id)
+                    ->where('is_balance', 1)
+                    ->where('type', 'income')
+                    ->whereBetween('created_at', [$start, $end]);
+                $mExpQ = \App\Models\FinanceTransaction::where('user_id', $su->id)
+                    ->where('is_balance', 1)
+                    ->where('type', 'expenses')
+                    ->whereBetween('created_at', [$start, $end]);
+
+                if ($billId) {
+                    $mIncQ->where('finance_bill_id', $billId);
+                    $mExpQ->where('finance_bill_id', $billId);
+                }
+
+                $mInc = (float)$mIncQ->sum('currency_amount');
+                $mExp = abs((float)$mExpQ->sum('currency_amount'));
+                $mNet = $mInc - $mExp;
+                $mTxCount = (clone $mIncQ)->count() + (clone $mExpQ)->count();
+
+                $membersComparison[] = [
+                    'user' => $su,
+                    'is_me' => ($su->id === $authUser->id),
+                    'income' => $mInc,
+                    'expenses' => $mExp,
+                    'net' => $mNet,
+                    'tx_count' => $mTxCount,
+                    'income_share' => $totalPeriodIncome > 0 ? round(($mInc / $totalPeriodIncome) * 100, 1) : 0,
+                    'expense_share' => $totalPeriodExpenses > 0 ? round(($mExp / $totalPeriodExpenses) * 100, 1) : 0,
+                ];
+            }
+        }
+
+        $data['members_comparison'] = $membersComparison;
+        $data['is_sharing_budget'] = $authUser?->isSharingBudget() ?? false;
+        $data['filter_user_id'] = $filterUserId;
+        $data['shared_users'] = $authUser?->getSharedUsers() ?? collect();
+
         $data['transactions'] = $transaction->list(AnalyticFinanceSelection::class, $start, $end, $billId, $categoryId);
 
-        $bills = \App\Models\FinanceBill::where('user_id', $userId)->with('currency')->orderBy('name')->get();
+        $bills = \App\Models\FinanceBill::whereIn('user_id', $effectiveUserIds)->with(['currency', 'owner'])->orderBy('name')->get();
         $selectedBill = $billId ? $bills->firstWhere('id', $billId) : null;
         $selectedCategory = $categoryId ? \App\Models\FinanceTransactionCategory::find($categoryId) : null;
 
@@ -222,6 +282,13 @@ class AnalyticFinanceScreen extends Screen
         return 'Analytic finance';
     }
 
+    public function permission(): ?iterable
+    {
+        return [
+            'platform.analytic.finance',
+        ];
+    }
+
     /**
      * The screen's action buttons.
      *
@@ -241,6 +308,7 @@ class AnalyticFinanceScreen extends Screen
     {
         return [
             Layout::view('components.date-range-picker'),
+            Layout::view('analytic.finance.members-comparison'),
             Layout::view('analytic.finance.metrics'),
             Layout::view('analytic.finance.insights'),
             Layout::view('dashboard.category-list'),

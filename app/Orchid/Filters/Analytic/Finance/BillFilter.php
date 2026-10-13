@@ -54,10 +54,25 @@ class BillFilter extends Filter
      */
     public function display(): iterable
     {
+        $sharedIds = auth()->user()?->getSharedUserIds() ?? [auth()->id()];
+        $bills = FinanceBill::whereIn('user_id', $sharedIds)->with('owner')->orderBy('name')->get();
+
+        $options = [];
+        $isSharing = count($sharedIds) > 1;
+        foreach ($bills as $bill) {
+            $label = $bill->name;
+            if ($isSharing && $bill->owner) {
+                $ownerSuffix = $bill->user_id === auth()->id() ? ' (Я)' : " ({$bill->owner->name})";
+                $label .= $ownerSuffix;
+            }
+            $options[$bill->id] = $label;
+        }
+
         return [
             Select::make('bill_id')
-                ->fromModel(FinanceBill::where('user_id', auth()->id()), 'name')
+                ->options($options)
                 ->empty('Всі рахунки')
+                ->value($this->request->get('bill_id'))
                 ->title('Рахунок'),
         ];
     }

@@ -23,7 +23,7 @@ class FinanceInsightsService
     public const NON_FLOW_TYPE_IDS = [3, 4];
 
     public function __construct(
-        protected int $userId,
+        protected int|array $userId,
         protected ?int $billId = null
     ) {
     }
@@ -35,9 +35,14 @@ class FinanceInsightsService
     protected function baseQuery()
     {
         $q = DB::table('finance_transactions')
-            ->where('finance_transactions.user_id', $this->userId)
             ->where('finance_transactions.is_balance', 1)
             ->whereNull('finance_transactions.deleted_at');
+
+        if (is_array($this->userId)) {
+            $q->whereIn('finance_transactions.user_id', $this->userId);
+        } else {
+            $q->where('finance_transactions.user_id', $this->userId);
+        }
 
         if ($this->billId) {
             $q->where('finance_transactions.finance_bill_id', $this->billId);

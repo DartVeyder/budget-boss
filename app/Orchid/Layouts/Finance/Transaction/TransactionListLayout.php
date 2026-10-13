@@ -67,11 +67,23 @@ class TransactionListLayout extends Table
                     };
                 }),
 
+            TD::make('user_id', __('Користувач'))
+                ->canSee(count(Auth::user()?->getSharedUserIds() ?? []) > 1)
+                ->sort()
+                ->class('text-nowrap')
+                ->render(function (FinanceTransaction $transaction) {
+                    $uName = $transaction->user?->name ?? '—';
+                    $isMe = $transaction->user_id === Auth::id();
+                    $badgeClass = $isMe ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-light text-dark border';
+                    $meSuffix = $isMe ? ' (Я)' : '';
+                    return "<span class='badge {$badgeClass} px-2 py-1'><i class='bi bi-person me-1'></i>" . e($uName . $meSuffix) . "</span>";
+                }),
+
             TD::make('transaction_category_id', __('Category'))
                 ->sort()
                 ->filter(
                     TD::FILTER_SELECT,
-                    FinanceTransactionCategory::where('user_id', Auth::id())
+                    FinanceTransactionCategory::whereIn('user_id', Auth::user()?->getSharedUserIds() ?? [Auth::id()])
                         ->pluck('name', 'id'))
                 ->render(
                      function(FinanceTransaction $transaction){
@@ -84,7 +96,7 @@ class TransactionListLayout extends Table
                 ->sort()
                 ->filter(
                     TD::FILTER_SELECT,
-                    FinanceBill::where('user_id', Auth::id())
+                    FinanceBill::whereIn('user_id', Auth::user()?->getSharedUserIds() ?? [Auth::id()])
                         ->pluck('name', 'id'))
                 ->render(
                 fn(FinanceTransaction $transaction) => $transaction->bill?->name ?? '—'
@@ -93,7 +105,7 @@ class TransactionListLayout extends Table
                 ->sort()
                 ->filter(
                     TD::FILTER_SELECT,
-                    Customer::where('user_id', Auth::id())
+                    Customer::whereIn('user_id', Auth::user()?->getSharedUserIds() ?? [Auth::id()])
                         ->pluck('name', 'id'))
                 ->render(
                     function (FinanceTransaction $transaction) {

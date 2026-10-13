@@ -137,7 +137,8 @@ class TransactionIncomeListener extends Listener
                 $helpText = '✓ ФОП контрагента автоматично підтягнуто з профілю замовника';
             }
         } else {
-            $allCounterparties = CustomerCounterparty::where('user_id', \Illuminate\Support\Facades\Auth::id())
+            $sharedIds = \Illuminate\Support\Facades\Auth::user()?->getSharedUserIds() ?? [\Illuminate\Support\Facades\Auth::id()];
+            $allCounterparties = CustomerCounterparty::whereIn('user_id', $sharedIds)
                 ->active()
                 ->with('customer')
                 ->get();
@@ -148,8 +149,20 @@ class TransactionIncomeListener extends Listener
             }
         }
 
+        $sharedUserIds = \Illuminate\Support\Facades\Auth::user()?->getSharedUserIds() ?? [\Illuminate\Support\Facades\Auth::id()];
+        $userOptions = count($sharedUserIds) > 1
+            ? \App\Models\User::whereIn('id', $sharedUserIds)->pluck('name', 'id')->toArray()
+            : [];
+
         return [
             Layout::rows([
+                Select::make('transaction.user_id')
+                    ->title('Користувач')
+                    ->options($userOptions)
+                    ->value(\Illuminate\Support\Facades\Auth::id())
+                    ->help('Хто з учасників бюджету отримує дохід')
+                    ->canSee(count($sharedUserIds) > 1),
+
                 Relation::make('transaction.transaction_category_id')
                     ->title('Category')
                     ->required()
