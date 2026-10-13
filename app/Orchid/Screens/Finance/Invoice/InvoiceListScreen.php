@@ -45,6 +45,13 @@ class InvoiceListScreen extends Screen
         return 'Рахунки на оплату';
     }
 
+    public function permission(): ?iterable
+    {
+        return [
+            'platform.finance.invoices',
+        ];
+    }
+
     /**
      * The screen's action buttons.
      *

@@ -72,6 +72,13 @@ class FopTaxScreen extends Screen
         return 'Податки та Календар ФОП';
     }
 
+    public function permission(): ?iterable
+    {
+        return [
+            'platform.fop.tax',
+        ];
+    }
+
     /**
      * The description is displayed on the user's screen under the heading
      */

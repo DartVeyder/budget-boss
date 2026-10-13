@@ -65,6 +65,13 @@ class FopScreen extends Screen
         return 'Мій ФОП';
     }
 
+    public function permission(): ?iterable
+    {
+        return [
+            'platform.fop.profile',
+        ];
+    }
+
     /**
      * The description is displayed on the user's screen under the heading
      */

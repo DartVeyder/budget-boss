@@ -34,6 +34,13 @@ class TaxRateListScreen extends Screen
         return 'Податкові ставки';
     }
 
+    public function permission(): ?iterable
+    {
+        return [
+            'platform.setting.taxes',
+        ];
+    }
+
     /**
      * The screen's action buttons.
      *

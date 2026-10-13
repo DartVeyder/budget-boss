@@ -32,6 +32,13 @@ class CustomerListScreen extends Screen
         return 'Клієнти';
     }
 
+    public function permission(): ?iterable
+    {
+        return [
+            'platform.customers',
+        ];
+    }
+
     /**
      * The screen's action buttons.
      *

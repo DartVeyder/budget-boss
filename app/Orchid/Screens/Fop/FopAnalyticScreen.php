@@ -73,6 +73,13 @@ class FopAnalyticScreen extends Screen
         return 'Аналітика ФОП';
     }
 
+    public function permission(): ?iterable
+    {
+        return [
+            'platform.fop.analytic',
+        ];
+    }
+
     /**
      * The description is displayed on the user's screen under the heading
      */

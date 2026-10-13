@@ -27,6 +27,13 @@ class CategoryScreen extends Screen
         return 'CategoryScreen';
     }
 
+    public function permission(): ?iterable
+    {
+        return [
+            'platform.finance.categories',
+        ];
+    }
+
     /**
      * The screen's action buttons.
      *

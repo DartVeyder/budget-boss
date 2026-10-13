@@ -41,6 +41,13 @@ class CryptoBinanceScreen extends Screen
         return 'Binance';
     }
 
+    public function permission(): ?iterable
+    {
+        return [
+            'platform.crypto.binance',
+        ];
+    }
+
     /**
      * The screen's action buttons.
      *

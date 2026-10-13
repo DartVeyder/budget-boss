@@ -49,6 +49,13 @@ class BillEditScreen extends Screen
         return $this->bill->exists ? 'Редагування рахунку' : 'Створення рахунку';
     }
 
+    public function permission(): ?iterable
+    {
+        return [
+            'platform.finance.bills',
+        ];
+    }
+
     /**
      * The description is displayed on the user's screen under the heading
      */

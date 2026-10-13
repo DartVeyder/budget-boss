@@ -46,6 +46,13 @@ class ActListScreen extends Screen
         return 'Акти наданих послуг';
     }
 
+    public function permission(): ?iterable
+    {
+        return [
+            'platform.finance.acts',
+        ];
+    }
+
     /**
      * The screen's description.
      */

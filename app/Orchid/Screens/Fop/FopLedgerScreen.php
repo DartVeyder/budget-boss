@@ -78,6 +78,13 @@ class FopLedgerScreen extends Screen
         return 'Книга обліку доходів ФОП';
     }
 
+    public function permission(): ?iterable
+    {
+        return [
+            'platform.fop.ledger',
+        ];
+    }
+
     /**
      * The description is displayed on the user's screen under the heading
      */

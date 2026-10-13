@@ -32,6 +32,13 @@ class FopGroupListScreen extends Screen
         return 'Групи ФОП';
     }
 
+    public function permission(): ?iterable
+    {
+        return [
+            'platform.setting.taxes',
+        ];
+    }
+
     /**
      * The screen's action buttons.
      *
