@@ -30,7 +30,10 @@ class TransactionExpensesService extends TransactionsService
         $transaction['balance'] = $this->getTotalBalance() - $transaction['amount'];
         $transaction['balance_bill'] = $this->getBalanceToBill($transaction['finance_bill_id']) - $transaction['amount'];
         $transaction['amount'] = $this->getAmountNegative($transaction['amount']);
-        $transaction['user_id'] = $this->getUserId();
+        $selectedUserId = !empty($transaction['user_id']) ? (int)$transaction['user_id'] : null;
+        $transaction['user_id'] = ($selectedUserId && in_array($selectedUserId, $this->getUserIds(), true))
+            ? $selectedUserId
+            : $this->getUserId();
 
         $transaction['fop_id'] = !empty($transaction['fop_id']) ? (int)$transaction['fop_id'] : null;
         $transaction['tax_type'] = !empty($transaction['tax_type']) ? $transaction['tax_type'] : null;

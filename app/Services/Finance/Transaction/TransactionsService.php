@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 class TransactionsService
 {
     protected int $userId;
+    protected array $userIds = [];
     protected string $type;
     protected ?int $billId = null;
 
@@ -35,7 +36,7 @@ class TransactionsService
     }
 
     public function list($filter = null, $start = null, $end = null, ?int $billId = null, ?int $categoryId = null){
-        $query = FinanceTransaction::where('user_id', $this->getUserId());
+        $query = FinanceTransaction::whereIn('user_id', $this->getUserIds());
         if ($filter && !empty($_GET['created_at']['start'])) {
             $query = $query->filters($filter);
         } elseif ($start && $end) {
@@ -58,7 +59,7 @@ class TransactionsService
 
     public function getTotalAmount(  string $value, bool $isCurrency = false, $filter = null, $start = null,$end = null, ?int $billId = null ):float|string
     {
-        $query = FinanceTransaction::where('user_id', $this->getUserId())->where('is_balance' ,1) ;
+        $query = FinanceTransaction::whereIn('user_id', $this->getUserIds())->where('is_balance' ,1) ;
         if ($filter && !empty($_GET['created_at']['start'])) {
             $query = $query->filters($filter);
         } else {
@@ -83,7 +84,7 @@ class TransactionsService
         return (float) FinanceTransaction::leftJoin('finance_currencies', 'finance_transactions.finance_currency_id', '=', 'finance_currencies.id')
             ->select(DB::raw('SUM(finance_transactions.amount * finance_currencies.value) as total_amount'))
             ->where('finance_transactions.is_balance' ,1)
-            ->where('finance_transactions.user_id', $this->getUserId())
+            ->whereIn('finance_transactions.user_id', $this->getUserIds())
             ->value('total_amount'); // Отримання значення суми
 
     }
@@ -109,7 +110,7 @@ class TransactionsService
 
     public function getBalanceToBill($billId) :float
     {
-        return FinanceTransaction::where('user_id', $this->getUserId())->where('finance_bill_id', $billId)->sum('amount');
+        return FinanceTransaction::where('finance_bill_id', $billId)->sum('amount');
     }
     private function formatChartData($collection, $name)
     {
@@ -151,7 +152,7 @@ class TransactionsService
         $effectiveBillId = $billId ?? $this->billId;
         $q = DB::table('finance_transactions')
             ->whereBetween('finance_transactions.created_at', [$start, $end])
-            ->where('finance_transactions.user_id', $this->getUserId())
+            ->whereIn('finance_transactions.user_id', $this->getUserIds())
             ->where('is_balance' ,1)
             ->whereNull('finance_transactions.deleted_at')
             ->where('finance_transactions.type', $this->getType());
@@ -171,7 +172,7 @@ class TransactionsService
         $effectiveBillId = $billId ?? $this->billId;
         $q = DB::table('finance_transactions')
             ->whereBetween('finance_transactions.created_at', [$start, $end])
-            ->where('finance_transactions.user_id', $this->getUserId())
+            ->whereIn('finance_transactions.user_id', $this->getUserIds())
             ->where('is_balance' ,1)
             ->whereNull('finance_transactions.deleted_at')
             ->where('finance_transactions.type', $this->getType());
@@ -192,7 +193,7 @@ class TransactionsService
         $effectiveBillId = $billId ?? $this->billId;
         $q = DB::table('finance_transactions')
             ->whereBetween('finance_transactions.created_at', [$start, $end])
-            ->where('finance_transactions.user_id', $this->getUserId())
+            ->whereIn('finance_transactions.user_id', $this->getUserIds())
             ->where('is_balance' ,1)
             ->whereNull('finance_transactions.deleted_at')
             ->where('finance_transactions.type', $this->getType());
@@ -213,7 +214,7 @@ class TransactionsService
         $effectiveBillId = $billId ?? $this->billId;
         $q = DB::table('finance_transactions')
             ->whereBetween('finance_transactions.created_at', [$start, $end])
-            ->where('finance_transactions.user_id', $this->getUserId())
+            ->whereIn('finance_transactions.user_id', $this->getUserIds())
             ->whereNull('finance_transactions.deleted_at')
             ->where('is_balance' ,1);
 
@@ -231,7 +232,7 @@ class TransactionsService
     public function chartBarBalance(?string $name = null, ?string $start = null, ?string $end = null, ?string $dateColumn = null, string $value = 'currency_amount', ?int $billId = null) :array
     {
         $effectiveBillId = $billId ?? $this->billId;
-        $q = FinanceTransaction::where('user_id', $this->getUserId())->where('is_balance' ,1);
+        $q = FinanceTransaction::whereIn('user_id', $this->getUserIds())->where('is_balance' ,1);
         if ($effectiveBillId) {
             $q->where('finance_bill_id', $effectiveBillId);
         }
@@ -283,11 +284,11 @@ class TransactionsService
         $stopDate = Carbon::parse($end)->endOfMonth();
         $effectiveBillId = $billId ?? $this->billId;
 
-        $initQ = FinanceTransaction::where('user_id', $this->getUserId())
+        $initQ = FinanceTransaction::whereIn('user_id', $this->getUserIds())
             ->where('is_balance', 1)
             ->where($dateColumn, '<', $startDate);
 
-        $monthlyQ = FinanceTransaction::where('user_id', $this->getUserId())
+        $monthlyQ = FinanceTransaction::whereIn('user_id', $this->getUserIds())
             ->where('is_balance', 1)
             ->whereBetween($dateColumn, [$startDate, $stopDate]);
 
@@ -334,7 +335,7 @@ class TransactionsService
      */
     public function getMonthlyExpensesBySource(int $sourceId, ?string $start = null, ?string $end = null, ?int $billId = null, int $monthsCount = 6): array
     {
-        $userId = $this->getUserId();
+        $userIds = $this->getUserIds();
         $source = DB::table('finance_transaction_sources')->where('id', $sourceId)->first();
         $sourceName = $source ? $source->name : ('Джерело #' . $sourceId);
 
@@ -350,7 +351,7 @@ class TransactionsService
         $effectiveBillId = $billId ?? $this->billId;
 
         $q = DB::table('finance_transactions')
-            ->where('user_id', $userId)
+            ->whereIn('user_id', $userIds)
             ->where('is_balance', 1)
             ->whereNull('deleted_at')
             ->where('type', 'expenses')
@@ -463,7 +464,7 @@ class TransactionsService
      */
     public function getTopSourcesMonthlyExpenses(?string $start = null, ?string $end = null, ?int $billId = null, int $topLimit = 5, int $monthsCount = 6): array
     {
-        $userId = $this->getUserId();
+        $userIds = $this->getUserIds();
         $effectiveBillId = $billId ?? $this->billId;
 
         if ($start && $end) {
@@ -475,7 +476,7 @@ class TransactionsService
         }
 
         $topSourcesQ = DB::table('finance_transactions')
-            ->where('finance_transactions.user_id', $userId)
+            ->whereIn('finance_transactions.user_id', $userIds)
             ->where('finance_transactions.is_balance', 1)
             ->whereNull('finance_transactions.deleted_at')
             ->where('finance_transactions.type', 'expenses')
@@ -504,7 +505,7 @@ class TransactionsService
 
     public function query(): object
     {
-        $query = FinanceTransaction::where('type',$this->getType())->where('user_id', $this->getUserId())->where('is_balance' ,1);
+        $query = FinanceTransaction::where('type',$this->getType())->whereIn('user_id', $this->getUserIds())->where('is_balance' ,1);
         if ($this->billId) {
             $query->where('finance_bill_id', $this->billId);
         }
@@ -551,6 +552,37 @@ class TransactionsService
     public function getUserId(): int
     {
         return $this->userId;
+    }
+
+    public function getUserIds(): array
+    {
+        if (!empty($this->userIds)) {
+            return $this->userIds;
+        }
+        if (Auth::check() && method_exists(Auth::user(), 'getSharedUserIds')) {
+            return Auth::user()->getSharedUserIds();
+        }
+        return [$this->userId];
+    }
+
+    public function setTargetUserId(?int $userId = null): self
+    {
+        if ($userId && $userId > 0) {
+            $this->userId = $userId;
+            $this->userIds = [$userId];
+        } else {
+            $this->userId = Auth::id() ?? 0;
+            $this->userIds = (Auth::check() && method_exists(Auth::user(), 'getSharedUserIds'))
+                ? Auth::user()->getSharedUserIds()
+                : [$this->userId];
+        }
+        return $this;
+    }
+
+    public function setUserIds(array $userIds): self
+    {
+        $this->userIds = $userIds;
+        return $this;
     }
 
     public function setUserId(int $userId): void

@@ -18,13 +18,16 @@ class FinanceTransactionCategory extends Model
 
     public function scopeIncome(Builder $query)
     {
-        return $query->where('transaction_type_id', 2)->where('user_id',Auth::user()->id);
+        $userIds = Auth::user()?->getSharedUserIds() ?? [Auth::id()];
+        return $query->where('transaction_type_id', 2)->whereIn('user_id', $userIds);
     }
 
     public function scopeExpenses(Builder $query)
     {
-        return $query->where('transaction_type_id', 1)->where('user_id',Auth::user()->id);
+        $userIds = Auth::user()?->getSharedUserIds() ?? [Auth::id()];
+        return $query->where('transaction_type_id', 1)->whereIn('user_id', $userIds);
     }
+
 
     public function mccs()
     {

@@ -19,8 +19,16 @@ class FinanceBill extends Model
 
     public function scopeUser(Builder $query)
     {
-        return $query->where('user_id', Auth::id());
+        $userIds = Auth::user()?->getSharedUserIds() ?? [Auth::id()];
+        return $query->whereIn('user_id', $userIds);
     }
+
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+
 
     public  function scopeIsTransfer(Builder $query){
         return $query->where('is_transfer', 1);
@@ -40,5 +48,8 @@ class FinanceBill extends Model
         return $this->belongsTo(FinanceCurrency::class, 'finance_currency_id');
     }
 
-
+    public function calculateTotalBalance(): float
+    {
+        return (float)$this->transactions()->sum('amount');
+    }
 }

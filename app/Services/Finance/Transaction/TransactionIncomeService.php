@@ -108,7 +108,10 @@ class TransactionIncomeService extends  TransactionsService
             }
         }
 
-        $transaction['user_id'] = $this->getUserId();
+        $selectedUserId = !empty($transaction['user_id']) ? (int)$transaction['user_id'] : null;
+        $transaction['user_id'] = ($selectedUserId && in_array($selectedUserId, $this->getUserIds(), true))
+            ? $selectedUserId
+            : $this->getUserId();
 
         return $transaction;
     }
