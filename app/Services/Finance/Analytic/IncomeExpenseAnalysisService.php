@@ -832,4 +832,242 @@ class IncomeExpenseAnalysisService
 
         return $tips;
     }
+
+    /**
+     * Plan current month's budget based on the actual income of the PREVIOUS month ("що куди").
+     * Zero-based budgeting / YNAB principle: spend and save this month using money earned last month.
+     */
+    public function monthlyBudgetFromPreviousMonth(?Carbon $now = null): array
+    {
+        $now = $now ? $now->copy() : Carbon::now();
+        $prev = $now->copy()->subMonth();
+
+        $curStart = $now->copy()->startOfMonth()->format('Y-m-d H:i:s');
+        $curEnd   = $now->copy()->endOfMonth()->format('Y-m-d H:i:s');
+        $todayEnd = $now->copy()->endOfDay()->format('Y-m-d H:i:s');
+
+        $prevStart = $prev->copy()->startOfMonth()->format('Y-m-d H:i:s');
+        $prevEnd   = $prev->copy()->endOfMonth()->format('Y-m-d H:i:s');
+
+        $curMonthName  = FinanceInsightsService::UKR_MONTHS[(int)$now->month] . ' ' . $now->year;
+        $prevMonthName = FinanceInsightsService::UKR_MONTHS[(int)$prev->month] . ' ' . $prev->year;
+
+        // 1. Income received in the previous month (the resource base for this month)
+        $prevIncome = abs((float)$this->flowQuery()
+            ->where('finance_transactions.type', 'income')
+            ->whereBetween('finance_transactions.created_at', [$prevStart, $prevEnd])
+            ->sum('finance_transactions.currency_amount'));
+
+        $isFallback = false;
+        if ($prevIncome < 1.0) {
+            // Fallback: average monthly income or current month income
+            $histStart = $now->copy()->startOfMonth()->subMonths(3)->format('Y-m-d H:i:s');
+            $histEnd = $now->copy()->startOfMonth()->subSecond()->format('Y-m-d H:i:s');
+            $histIncome = abs((float)$this->flowQuery()
+                ->where('finance_transactions.type', 'income')
+                ->whereBetween('finance_transactions.created_at', [$histStart, $histEnd])
+                ->sum('finance_transactions.currency_amount'));
+            $histMonths = max(1, (int)$this->flowQuery()
+                ->where('finance_transactions.type', 'expenses')
+                ->whereBetween('finance_transactions.created_at', [$histStart, $histEnd])
+                ->selectRaw("COUNT(DISTINCT DATE_FORMAT(finance_transactions.created_at, '%Y-%m')) as c")
+                ->value('c'));
+            $avgInc = round($histIncome / $histMonths, 2);
+
+            $curIncome = abs((float)$this->flowQuery()
+                ->where('finance_transactions.type', 'income')
+                ->whereBetween('finance_transactions.created_at', [$curStart, $todayEnd])
+                ->sum('finance_transactions.currency_amount'));
+
+            $prevIncome = $avgInc > 0 ? $avgInc : ($curIncome > 0 ? $curIncome : 50000.0);
+            $isFallback = true;
+        }
+
+        // 2. Current month actual expenses so far
+        $curSpent = abs((float)$this->flowQuery()
+            ->where('finance_transactions.type', 'expenses')
+            ->whereBetween('finance_transactions.created_at', [$curStart, $todayEnd])
+            ->sum('finance_transactions.currency_amount'));
+
+        $curIncome = abs((float)$this->flowQuery()
+            ->where('finance_transactions.type', 'income')
+            ->whereBetween('finance_transactions.created_at', [$curStart, $todayEnd])
+            ->sum('finance_transactions.currency_amount'));
+
+        // Current month category breakdown
+        $categories = $this->getCategoryBreakdown($curStart, $todayEnd, $curSpent, $curIncome);
+        $buckets = $this->calculateBucketTotals($categories, $curSpent);
+
+        // Days progress
+        $daysTotal   = (int)$now->daysInMonth;
+        $daysElapsed = (int)$now->day;
+        $daysLeft    = max(0, $daysTotal - $daysElapsed);
+        $progressPct = round(($daysElapsed / max(1, $daysTotal)) * 100, 1);
+
+        // 3. 50 / 30 / 20 Plan for Current Month from Last Month's Income
+        $allocNeeds = round($prevIncome * 0.50, 2);
+        $allocWants = round($prevIncome * 0.30, 2);
+        $allocSavings = round($prevIncome * 0.20, 2);
+
+        $spentNeeds = round(($buckets[self::BUCKET_NEEDS]['amount'] ?? 0.0) + ($buckets[self::BUCKET_LONG_TERM]['amount'] ?? 0.0), 2);
+        $spentWants = round(
+            ($buckets[self::BUCKET_WANTS]['amount'] ?? 0.0)
+            + ($buckets[self::BUCKET_EDUCATION]['amount'] ?? 0.0)
+            + ($buckets[self::BUCKET_GIVE]['amount'] ?? 0.0)
+            + ($buckets[self::BUCKET_OTHER]['amount'] ?? 0.0),
+            2
+        );
+
+        $explicitSavings = round($buckets[self::BUCKET_SAVINGS]['amount'] ?? 0.0, 2);
+        $currentSurplus = max(0.0, $curIncome - $curSpent);
+        $savedSoFar = round($explicitSavings + $currentSurplus, 2);
+
+        $remNeeds = round($allocNeeds - $spentNeeds, 2);
+        $remWants = round($allocWants - $spentWants, 2);
+        $remSavings = round($allocSavings - $savedSoFar, 2);
+
+        $pctNeeds = $allocNeeds > 0 ? round(($spentNeeds / $allocNeeds) * 100, 1) : 0.0;
+        $pctWants = $allocWants > 0 ? round(($spentWants / $allocWants) * 100, 1) : 0.0;
+        $pctSavings = $allocSavings > 0 ? round(($savedSoFar / $allocSavings) * 100, 1) : 0.0;
+
+        $safeNeedsDaily = $daysLeft > 0 ? max(0.0, round($remNeeds / $daysLeft, 2)) : 0.0;
+        $safeWantsDaily = $daysLeft > 0 ? max(0.0, round($remWants / $daysLeft, 2)) : 0.0;
+        $weeksLeft = max(1, ceil($daysLeft / 7));
+        $safeWantsWeekly = max(0.0, round($remWants / $weeksLeft, 2));
+
+        // 4. 6 Jars Allocation from Previous Month Income
+        $jarsAlloc = [
+            'NEC' => [
+                'code' => 'NEC', 'name' => 'Обов\'язкове (55%)', 'icon' => '🏠', 'color' => '#3b82f6', 'bg' => '#eff6ff',
+                'allocated' => round($prevIncome * 0.55, 2),
+                'spent' => round($buckets[self::BUCKET_NEEDS]['amount'] ?? 0.0, 2),
+                'desc' => 'Оренда, комуналка, їжа, транспорт',
+            ],
+            'FFA' => [
+                'code' => 'FFA', 'name' => 'Інвестиції (10%)', 'icon' => '📈', 'color' => '#10b981', 'bg' => '#f0fdf4',
+                'allocated' => round($prevIncome * 0.10, 2),
+                'spent' => round($buckets[self::BUCKET_SAVINGS]['amount'] ?? 0.0, 2),
+                'desc' => 'Капітал, депозити, акції',
+            ],
+            'LTSS' => [
+                'code' => 'LTSS', 'name' => 'Резерв (10%)', 'icon' => '🛠️', 'color' => '#06b6d4', 'bg' => '#ecfeff',
+                'allocated' => round($prevIncome * 0.10, 2),
+                'spent' => round($buckets[self::BUCKET_LONG_TERM]['amount'] ?? 0.0, 2),
+                'desc' => 'Ремонт, техніка, авто',
+            ],
+            'EDU' => [
+                'code' => 'EDU', 'name' => 'Освіта (10%)', 'icon' => '📚', 'color' => '#8b5cf6', 'bg' => '#f5f3ff',
+                'allocated' => round($prevIncome * 0.10, 2),
+                'spent' => round($buckets[self::BUCKET_EDUCATION]['amount'] ?? 0.0, 2),
+                'desc' => 'Курси, книги, розвиток',
+            ],
+            'PLAY' => [
+                'code' => 'PLAY', 'name' => 'Розваги (10%)', 'icon' => '🎉', 'color' => '#f59e0b', 'bg' => '#fffbeb',
+                'allocated' => round($prevIncome * 0.10, 2),
+                'spent' => round($buckets[self::BUCKET_WANTS]['amount'] ?? 0.0, 2),
+                'desc' => 'Кафе, відпочинок, емоції',
+            ],
+            'GIVE' => [
+                'code' => 'GIVE', 'name' => 'Благодійність (5%)', 'icon' => '🎁', 'color' => '#ec4899', 'bg' => '#fdf2f8',
+                'allocated' => round($prevIncome * 0.05, 2),
+                'spent' => round($buckets[self::BUCKET_GIVE]['amount'] ?? 0.0, 2),
+                'desc' => 'Донати, допомога, подарунки',
+            ],
+        ];
+
+        foreach ($jarsAlloc as &$j) {
+            $j['remaining'] = round($j['allocated'] - $j['spent'], 2);
+            $j['percent_used'] = $j['allocated'] > 0 ? round(($j['spent'] / $j['allocated']) * 100, 1) : 0.0;
+        }
+        unset($j);
+
+        // 5. "Що куди" concrete step-by-step envelopes & recommendations
+        $fmt = fn ($v) => number_format((float)$v, 0, '.', ' ') . ' ₴';
+
+        $envelopes = [
+            [
+                'step' => 1,
+                'title' => 'Обов\'язкові потреби (50%)',
+                'amount' => $allocNeeds,
+                'spent' => $spentNeeds,
+                'remaining' => $remNeeds,
+                'icon' => '🏠',
+                'color' => '#3b82f6',
+                'bg' => '#eff6ff',
+                'destination' => 'Основний банківський рахунок або конверт «Обов\'язкове»',
+                'note' => "Виділено {$fmt($allocNeeds)}. Витрачено {$fmt($spentNeeds)}. Залишок до кінця місяця: {$fmt($remNeeds)} (можна витрачати до {$fmt($safeNeedsDaily)}/день).",
+            ],
+            [
+                'step' => 2,
+                'title' => 'Бажання та стиль життя (30%)',
+                'amount' => $allocWants,
+                'spent' => $spentWants,
+                'remaining' => $remWants,
+                'icon' => '☕',
+                'color' => '#f59e0b',
+                'bg' => '#fffbeb',
+                'destination' => 'Окрема повсякденна карта (Mono, Приват)',
+                'note' => "Виділено {$fmt($allocWants)}. Витрачено {$fmt($spentWants)}. Залишок: {$fmt($remWants)} — безпечний ліміт: {$fmt($safeWantsWeekly)}/тиждень ({$fmt($safeWantsDaily)}/день).",
+            ],
+            [
+                'step' => 3,
+                'title' => 'Заощадження та інвестиції (20%)',
+                'amount' => $allocSavings,
+                'spent' => $savedSoFar,
+                'remaining' => $remSavings,
+                'icon' => '🛡️',
+                'color' => '#10b981',
+                'bg' => '#f0fdf4',
+                'destination' => 'Депозит, інвест-рахунок або подушка безпеки',
+                'note' => "Ціль накопичень з минулого доходу: {$fmt($allocSavings)}. Вже збережено: {$fmt($savedSoFar)}. " . ($remSavings <= 0 ? "Ціль повністю досягнута! 🚀" : "Залишилось відкласти {$fmt($remSavings)}."),
+            ],
+        ];
+
+        return [
+            'current_month' => [
+                'name' => $curMonthName,
+                'days_total' => $daysTotal,
+                'days_elapsed' => $daysElapsed,
+                'days_left' => $daysLeft,
+                'progress_percent' => $progressPct,
+                'spent_so_far' => $curSpent,
+                'income_so_far' => $curIncome,
+            ],
+            'prev_month' => [
+                'name' => $prevMonthName,
+                'income' => $prevIncome,
+                'is_fallback' => $isFallback,
+            ],
+            'plan_50_30_20' => [
+                'needs' => [
+                    'allocated' => $allocNeeds,
+                    'spent' => $spentNeeds,
+                    'remaining' => $remNeeds,
+                    'percent_used' => $pctNeeds,
+                    'safe_daily' => $safeNeedsDaily,
+                    'status' => $spentNeeds <= $allocNeeds ? 'ok' : 'over',
+                ],
+                'wants' => [
+                    'allocated' => $allocWants,
+                    'spent' => $spentWants,
+                    'remaining' => $remWants,
+                    'percent_used' => $pctWants,
+                    'safe_weekly' => $safeWantsWeekly,
+                    'safe_daily' => $safeWantsDaily,
+                    'status' => $spentWants <= $allocWants ? 'ok' : 'over',
+                ],
+                'savings' => [
+                    'allocated' => $allocSavings,
+                    'saved' => $savedSoFar,
+                    'remaining' => $remSavings,
+                    'percent_used' => $pctSavings,
+                    'status' => $savedSoFar >= $allocSavings ? 'great' : 'pending',
+                ],
+            ],
+            'plan_6_jars' => $jarsAlloc,
+            'envelopes' => $envelopes,
+            'top_categories_this_month' => array_slice($categories, 0, 5),
+        ];
+    }
 }
+

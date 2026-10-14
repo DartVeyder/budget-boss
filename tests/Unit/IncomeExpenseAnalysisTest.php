@@ -185,4 +185,52 @@ class IncomeExpenseAnalysisTest extends TestCase
         $this->assertInstanceOf(\Illuminate\Http\RedirectResponse::class, $response);
         $this->assertEquals(route('platform.analytic.finance'), $response->getTargetUrl());
     }
+
+    public function test_monthly_budget_from_previous_month(): void
+    {
+        $service = new IncomeExpenseAnalysisService($this->user->id);
+        $budget = $service->monthlyBudgetFromPreviousMonth();
+
+        $this->assertIsArray($budget);
+        $this->assertArrayHasKey('current_month', $budget);
+        $this->assertArrayHasKey('prev_month', $budget);
+        $this->assertArrayHasKey('plan_50_30_20', $budget);
+        $this->assertArrayHasKey('plan_6_jars', $budget);
+        $this->assertArrayHasKey('envelopes', $budget);
+
+        $prevInc = $budget['prev_month']['income'];
+        $this->assertGreaterThan(0, $prevInc);
+
+        $p = $budget['plan_50_30_20'];
+        $this->assertEquals(round($prevInc * 0.50, 2), $p['needs']['allocated']);
+        $this->assertEquals(round($prevInc * 0.30, 2), $p['wants']['allocated']);
+        $this->assertEquals(round($prevInc * 0.20, 2), $p['savings']['allocated']);
+
+        $envelopes = $budget['envelopes'];
+        $this->assertCount(3, $envelopes);
+        foreach ($envelopes as $env) {
+            $this->assertArrayHasKey('step', $env);
+            $this->assertArrayHasKey('title', $env);
+            $this->assertArrayHasKey('amount', $env);
+            $this->assertArrayHasKey('destination', $env);
+            $this->assertArrayHasKey('note', $env);
+        }
+    }
+
+    public function test_dashboard_screen_contains_monthly_budget_widget(): void
+    {
+        $screen = new \App\Orchid\Screens\DashboardScreen();
+        $request = new Request();
+        $data = $screen->query(new \App\Models\FinanceTransaction(), $request);
+
+        $this->assertIsArray($data);
+        $this->assertArrayHasKey('monthlyBudget', $data);
+        $this->assertArrayHasKey('plan_50_30_20', $data['monthlyBudget']);
+        $this->assertArrayHasKey('envelopes', $data['monthlyBudget']);
+
+        $this->assertEquals('Інформаційна панель', $screen->name());
+        $layouts = $screen->layout();
+        $this->assertNotEmpty($layouts);
+    }
 }
+

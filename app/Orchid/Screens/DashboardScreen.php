@@ -11,6 +11,7 @@ use App\Orchid\Layouts\Finance\Transaction\TransactionListLayout;
 use App\Services\Currency\Currency;
 use App\Services\Finance\Bill\BillService;
 use App\Services\Finance\Crypto\Binance\BinanceService;
+use App\Services\Finance\Analytic\IncomeExpenseAnalysisService;
 use App\Services\Finance\Transaction\TransactionExpensesService;
 use App\Services\Finance\Transaction\TransactionIncomeService;
 use App\Services\Finance\Transaction\TransactionsService;
@@ -144,6 +145,9 @@ class DashboardScreen extends Screen
             $data['limitProgress'] = $taxService->getLimitProgress($fop, Carbon::now()->year);
         }
 
+        $analysisService = new IncomeExpenseAnalysisService($scopedUserIds);
+        $data['monthlyBudget'] = $analysisService->monthlyBudgetFromPreviousMonth();
+
         return $data;
     }
 
@@ -170,7 +174,7 @@ class DashboardScreen extends Screen
      */
     public function name(): ?string
     {
-        return 'Information panel';
+        return 'Інформаційна панель';
     }
 
     public function permission(): ?iterable
@@ -246,6 +250,8 @@ class DashboardScreen extends Screen
             Layout::metrics(
                 array_merge(['Total balance' => 'metrics.total.balance'], $bills)
             )->title('Bills'),
+
+            Layout::view('dashboard.monthly-recommendations-widget'),
 
             Layout::metrics([
                 'Income for this month' => 'metrics.currentMonth.income',

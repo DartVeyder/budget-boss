@@ -34,7 +34,8 @@ class PlatformProvider extends OrchidServiceProvider
     public function menu(): array
     {
         return [
-            Menu::make('Information panel')
+            Menu::make('Інформаційна панель')
+                ->icon('bs.speedometer2')
                 ->permission('platform.finance.dashboard')
                 ->route('platform.main'),
 
