@@ -167,6 +167,11 @@ class IncomeExpenseAnalysisTest extends TestCase
         $this->assertArrayHasKey('concentration', $data['analysis']);
         $this->assertArrayHasKey('recommendations', $data['analysis']);
 
+        // Verify default period is current year
+        $currentYear = Carbon::now()->year;
+        $this->assertEquals("01.01.{$currentYear}", $data['kpi']['period']['start']);
+        $this->assertEquals("31.12.{$currentYear}", $data['kpi']['period']['end']);
+
         $layouts = $screen->layout();
         $this->assertNotEmpty($layouts);
     }

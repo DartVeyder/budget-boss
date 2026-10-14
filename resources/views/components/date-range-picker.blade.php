@@ -41,9 +41,10 @@
             $formattedRange = 'Некоректний період';
         }
     } else {
-        $formattedRange = 'Останній рік (за замовчуванням)';
-        $startVal = \Carbon\Carbon::now()->subYear()->format('Y-m-d');
-        $endVal   = \Carbon\Carbon::now()->format('Y-m-d');
+        $presetBadge = 'Цей рік';
+        $formattedRange = 'Поточний рік (за замовчуванням)';
+        $startVal = \Carbon\Carbon::now()->startOfYear()->format('Y-m-d');
+        $endVal   = \Carbon\Carbon::now()->endOfYear()->format('Y-m-d');
     }
 
     $baseUrl = request()->url();
@@ -713,7 +714,7 @@
                     <button type="button" class="bb-preset-btn" data-preset="this-month">Цей місяць</button>
                     <button type="button" class="bb-preset-btn" data-preset="last-month">Минулий місяць</button>
                     <button type="button" class="bb-preset-btn" data-preset="this-quarter">Цей квартал</button>
-                    <button type="button" class="bb-preset-btn" data-preset="this-year">Цей рік</button>
+                    <button type="button" class="bb-preset-btn {{ (!$hasFilter || $presetBadge === 'Цей рік') ? 'active' : '' }}" data-preset="this-year">Цей рік</button>
                     <button type="button" class="bb-preset-btn" data-preset="last-year">Минулий рік</button>
                     <button type="button" class="bb-preset-btn" data-preset="all-time" style="color: #64748b; border-top: 1px solid #f1f5f9; margin-top: 0.25rem;">Весь час</button>
                 </div>

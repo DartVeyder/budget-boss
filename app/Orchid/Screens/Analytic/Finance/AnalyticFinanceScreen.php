@@ -31,10 +31,10 @@ class AnalyticFinanceScreen extends Screen
         $createdAt = $request->get('created_at', []);
         $start = !empty($createdAt['start'])
             ? (strlen($createdAt['start']) === 10 ? Carbon::parse($createdAt['start'])->startOfDay()->format('Y-m-d H:i:s') : $createdAt['start'])
-            : Carbon::now()->subYear()->startOfDay()->format('Y-m-d H:i:s');
+            : Carbon::now()->startOfYear()->startOfDay()->format('Y-m-d H:i:s');
         $end = !empty($createdAt['end'])
             ? (strlen($createdAt['end']) === 10 ? Carbon::parse($createdAt['end'])->endOfDay()->format('Y-m-d H:i:s') : $createdAt['end'])
-            : Carbon::now()->endOfDay()->format('Y-m-d H:i:s');
+            : Carbon::now()->endOfYear()->endOfDay()->format('Y-m-d H:i:s');
 
         $startDate = Carbon::parse($start);
         $endDate   = Carbon::parse($end);

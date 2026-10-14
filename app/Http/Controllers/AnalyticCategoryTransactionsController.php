@@ -42,8 +42,8 @@ class AnalyticCategoryTransactionsController extends Controller
         }
 
         if (empty($start) || empty($end)) {
-            $start = Carbon::now()->subYear()->startOfDay()->format('Y-m-d H:i:s');
-            $end = Carbon::now()->endOfDay()->format('Y-m-d H:i:s');
+            $start = Carbon::now()->startOfYear()->startOfDay()->format('Y-m-d H:i:s');
+            $end = Carbon::now()->endOfYear()->endOfDay()->format('Y-m-d H:i:s');
         } else {
             $start = Carbon::parse($start)->startOfDay()->format('Y-m-d H:i:s');
             $end = Carbon::parse($end)->endOfDay()->format('Y-m-d H:i:s');
