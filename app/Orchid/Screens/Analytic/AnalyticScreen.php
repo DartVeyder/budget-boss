@@ -1,16 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Orchid\Screens\Analytic;
 
-
+use Illuminate\Http\Request;
 use Orchid\Screen\Screen;
 
 class AnalyticScreen extends Screen
 {
     /**
+     * Redirect to the full Finance analytics & recommendations screen.
+     */
+    public function handle(Request $request, ...$arguments)
+    {
+        return redirect()->route('platform.analytic.finance');
+    }
+
+    /**
      * Fetch data to be displayed on the screen.
-     *
-     * @return array
      */
     public function query(): iterable
     {
@@ -19,18 +27,14 @@ class AnalyticScreen extends Screen
 
     /**
      * The name of the screen displayed in the header.
-     *
-     * @return string|null
      */
     public function name(): ?string
     {
-        return 'AnalyticScreen';
+        return 'Аналітика';
     }
 
     /**
      * The screen's action buttons.
-     *
-     * @return \Orchid\Screen\Action[]
      */
     public function commandBar(): iterable
     {
@@ -39,13 +43,10 @@ class AnalyticScreen extends Screen
 
     /**
      * The screen's layout elements.
-     *
-     * @return \Orchid\Screen\Layout[]|string[]
      */
     public function layout(): iterable
     {
-        return [
-
-        ];
+        return [];
     }
 }
+

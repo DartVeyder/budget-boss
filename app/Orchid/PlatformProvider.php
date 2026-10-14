@@ -74,10 +74,12 @@ class PlatformProvider extends OrchidServiceProvider
                         ->route('platform.crypto.binance'),
                 ]),
 
-            Menu::make('Analytic')
+            Menu::make('Аналітика')
+                ->icon('bs.pie-chart')
                 ->list([
-                    Menu::make('Finance')
+                    Menu::make('Фінанси та рекомендації')
                         ->permission('platform.analytic.finance')
+                        ->icon('bs.graph-up-arrow')
                         ->route('platform.analytic.finance'),
                     Menu::make('ФОП')
                         ->permission('platform.fop.analytic')

@@ -8,6 +8,7 @@ use App\Orchid\Layouts\Finance\Transaction\Charts\ChartPieTransaction;
 use App\Orchid\Layouts\Finance\Transaction\Charts\ChartPieTransactionLayout;
 use App\Orchid\Layouts\Finance\Transaction\TransactionListLayout;
 use App\Services\Finance\Analytic\FinanceInsightsService;
+use App\Services\Finance\Analytic\IncomeExpenseAnalysisService;
 use App\Services\Finance\Transaction\TransactionExpensesService;
 use App\Services\Finance\Transaction\TransactionIncomeService;
 
@@ -186,6 +187,9 @@ class AnalyticFinanceScreen extends Screen
             ],
         ];
 
+        $analysisService = new IncomeExpenseAnalysisService($effectiveUserIds, $billId);
+        $data['analysis'] = $analysisService->analyze($startDate, $endDate);
+
         // Member comparison for shared budget
         $membersComparison = [];
         if ($authUser && $authUser->isSharingBudget()) {
@@ -311,6 +315,7 @@ class AnalyticFinanceScreen extends Screen
             Layout::view('analytic.finance.members-comparison'),
             Layout::view('analytic.finance.metrics'),
             Layout::view('analytic.finance.insights'),
+            Layout::view('analytic.finance.recommendations'),
             Layout::view('dashboard.category-list'),
             \App\Orchid\Layouts\Dashboard\DashboardChartIncomeLayout::make('charts.income_year', __('Income for the year')),
             \App\Orchid\Layouts\Dashboard\DashboardChartCapitalLayout::make('charts.capital', __('Capital Statistics')),
