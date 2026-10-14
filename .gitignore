@@ -10,6 +10,9 @@
 /storage/framework/sessions/*
 /storage/framework/views/*
 /storage/logs/*.log
+/storage/fonts/*.ufm*
+/storage/fonts/arial_*
+/storage/fonts/installed-fonts.json
 /scratch
 /vendor
 .env

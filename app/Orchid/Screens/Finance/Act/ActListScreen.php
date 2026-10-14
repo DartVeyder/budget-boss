@@ -28,7 +28,7 @@ class ActListScreen extends Screen
     public function query(): iterable
     {
         return [
-            'acts' => Act::with(['customer', 'counterparty', 'fop', 'attachment', 'transaction.attachment'])
+            'acts' => Act::with(['customer', 'counterparty', 'fop', 'attachment', 'transaction.attachment', 'invoice'])
                 ->filters()
                 ->where('user_id', Auth::id())
                 ->defaultSort('act_date', 'desc')
@@ -81,6 +81,10 @@ class ActListScreen extends Screen
                 ->method('importFromTransactions')
                 ->confirm("Створити Акти та Рахунки для {$unimportedCount} доходів з прикріпленими файлами?")
                 ->canSee($unimportedCount > 0),
+
+            Link::make('Завантажити всі акти (ZIP)')
+                ->icon('bs.file-earmark-zip')
+                ->route('platform.acts.zip'),
 
             Link::make('Створити Акт / Рахунок')
                 ->icon('bs.plus-circle')

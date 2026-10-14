@@ -36,6 +36,12 @@ class InvoiceSaveRows extends Rows
                 ->required()
                 ->fromModel(Customer::class, 'name')
                 ->applyScope('user'),
+            \Orchid\Screen\Fields\DateTimer::make('invoice.invoice_date')
+                ->title('Дата складання рахунку')
+                ->format('Y-m-d')
+                ->value(\Carbon\Carbon::now()->toDateString())
+                ->required()
+                ->help('Дата складання рахунку та відповідного акту'),
             Select::make("invoice.finance_currency_id")
                 ->required()
                 ->fromModel(FinanceCurrency::class, 'name')

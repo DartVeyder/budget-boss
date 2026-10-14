@@ -369,12 +369,21 @@ Route::screen('acts/{act}/edit', \App\Orchid\Screens\Finance\Act\ActEditScreen::
         ->parent('platform.acts')
         ->push($act->act_number ?? 'Редагування', route('platform.acts.edit', $act)));
 
-// Print Act & Invoice endpoints (clean A4 pages)
+// Print & PDF Act & Invoice endpoints (clean A4 pages & direct PDF downloads)
+Route::get('acts/zip', [\App\Http\Controllers\ActPrintController::class, 'zipActs'])
+    ->name('platform.acts.zip');
+
 Route::get('acts/{act}/print', [\App\Http\Controllers\ActPrintController::class, 'printAct'])
     ->name('platform.acts.print');
 
+Route::get('acts/{act}/pdf', [\App\Http\Controllers\ActPrintController::class, 'pdfAct'])
+    ->name('platform.acts.pdf');
+
 Route::get('invoices/{invoice}/print', [\App\Http\Controllers\ActPrintController::class, 'printInvoice'])
     ->name('platform.invoices.print');
+
+Route::get('invoices/{invoice}/pdf', [\App\Http\Controllers\ActPrintController::class, 'pdfInvoice'])
+    ->name('platform.invoices.pdf');
 
 // Analytic finance category transactions quick view
 Route::get('analytic/finance/category-transactions', [\App\Http\Controllers\AnalyticCategoryTransactionsController::class, 'getTransactions'])

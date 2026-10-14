@@ -27,7 +27,7 @@ class InvoiceListScreen extends Screen
     {
         return [
             "invoices" =>
-                FinanceInvoice::with(['customer', 'fop', 'counterparty', 'currency', 'attachment'])
+                FinanceInvoice::with(['customer', 'fop', 'counterparty', 'currency', 'attachment', 'act'])
                     ->filters()
                     ->where('user_id', Auth::user()->id)
                     ->defaultSort('id', 'desc')
@@ -159,11 +159,50 @@ class InvoiceListScreen extends Screen
         unset($invoice['attachment']);
 
         $invoice['user_id'] = Auth::id();
-        $invoice['invoice_number'] = $this->generateInvoiceNumber();
+        if (!$financeInvoice->exists && empty($invoice['invoice_number'])) {
+            $invoice['invoice_number'] = app(\App\Services\Finance\Act\DocumentGenerationService::class)->generateInvoiceNumber();
+        }
         $financeInvoice->fill($invoice)->save();
 
         if (!empty($attachments)) {
             $financeInvoice->attachment()->sync($attachments);
+        }
+
+        // If this invoice has a linked act, sync changes to the act as well
+        if ($financeInvoice->act) {
+            $act = $financeInvoice->act;
+            if (isset($invoice['total'])) {
+                $act->total_amount = (float)$invoice['total'];
+            }
+            if (!empty($invoice['customer_id'])) {
+                $act->customer_id = $invoice['customer_id'];
+            }
+            if (!empty($invoice['counterparty_id'])) {
+                $act->counterparty_id = $invoice['counterparty_id'];
+            }
+            if (!empty($invoice['fop_id'])) {
+                $act->fop_id = $invoice['fop_id'];
+            }
+            if (!empty($invoice['invoice_date'])) {
+                $act->act_date = $invoice['invoice_date'];
+            }
+            if (!empty($invoice['contract_number'])) {
+                $act->contract_number = $invoice['contract_number'];
+            }
+            if (!empty($invoice['contract_date'])) {
+                $act->contract_date = $invoice['contract_date'];
+            }
+            $act->saveQuietly();
+        } else {
+            // Automatically generate and link an Act for new invoice
+            $documentService = app(\App\Services\Finance\Act\DocumentGenerationService::class);
+            $prepared = $documentService->prepareFromInvoice($financeInvoice);
+            $newAct = \App\Models\Act::create($prepared);
+            $items = $prepared['items'] ?? [];
+            foreach ($items as $item) {
+                $newAct->items()->create($item);
+            }
+            $financeInvoice->refresh();
         }
 
         Toast::info('Рахунок успішно збережено.');
@@ -171,15 +210,7 @@ class InvoiceListScreen extends Screen
 
     public function generateInvoiceNumber(): string
     {
-        $date = now()->format('Ymd');
-        $latestInvoice = Auth::user()->invoices()->whereDate('created_at', now()->toDateString())
-            ->orderBy('id', 'desc')
-            ->first();
-
-        $lastNumber = $latestInvoice ? (int)substr($latestInvoice->invoice_number, -4) : 0;
-        $nextNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-
-        return 'INV-' . $date . '-' . $nextNumber;
+        return app(\App\Services\Finance\Act\DocumentGenerationService::class)->generateInvoiceNumber();
     }
 
     public function remove(Request $request): object

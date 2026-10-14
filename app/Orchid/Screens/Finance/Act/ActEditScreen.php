@@ -196,10 +196,25 @@ class ActEditScreen extends Screen
         $actions = [];
 
         if ($this->act && $this->act->exists) {
+            $actions[] = Link::make('Завантажити PDF')
+                ->icon('bs.file-earmark-pdf')
+                ->route('platform.acts.pdf', ['act' => $this->act, 'download' => 1, 'v' => $this->act->updated_at?->timestamp ?? time()]);
+
             $actions[] = Link::make('Друк / Перегляд (A4)')
                 ->icon('bs.printer')
                 ->route('platform.acts.print', $this->act)
                 ->target('_blank');
+
+            if ($this->act->invoice) {
+                $actions[] = Link::make('PDF Рахунку')
+                    ->icon('bs.receipt')
+                    ->route('platform.invoices.pdf', ['invoice' => $this->act->invoice, 'download' => 1, 'v' => $this->act->invoice->updated_at?->timestamp ?? time()]);
+
+                $actions[] = Link::make('Друк Рахунку (A4)')
+                    ->icon('bs.printer')
+                    ->route('platform.invoices.print', $this->act->invoice)
+                    ->target('_blank');
+            }
         }
 
         $actions[] = Button::make('Зберегти Акт')
@@ -227,78 +242,72 @@ class ActEditScreen extends Screen
         return [
             ActPartiesListener::class,
 
-            Layout::block(
-                Layout::rows([
-                    Group::make([
-                        Input::make('act.act_number')
-                            ->title('Номер акту')
-                            ->required()
-                            ->placeholder('АКТ-2026/09-01'),
+            Layout::rows([
+                Group::make([
+                    Input::make('act.act_number')
+                        ->title('Номер акту')
+                        ->required()
+                        ->placeholder('АКТ-2026/09-01'),
 
-                        DateTimer::make('act.act_date')
-                            ->title('Дата складання акту')
-                            ->required()
-                            ->format('Y-m-d')
-                            ->allowEmpty(),
-                    ]),
+                    DateTimer::make('act.act_date')
+                        ->title('Дата складання акту')
+                        ->required()
+                        ->format('Y-m-d')
+                        ->allowEmpty(),
 
-                    Select::make('act.status')
-                        ->title('Статус акту')
-                        ->options([
-                            'draft' => 'Чернетка',
-                            'sent' => 'Надіслано клієнту',
-                            'signed' => 'Підписано обома сторонами',
-                            'cancelled' => 'Скасовано',
-                        ])
-                        ->required(),
+                    DateTimer::make('act.created_at')
+                        ->title('Дата створення')
+                        ->disabled()
+                        ->format('Y-m-d H:i')
+                        ->canSee((bool)($this->act?->exists)),
+                ]),
 
-                    CheckBox::make('create_invoice')
-                        ->title('Створити також Рахунок-фактуру на оплату?')
-                        ->sendTrueOrFalse()
-                        ->value(!(bool)($this->act?->exists))
-                        ->help('Одночасно сформує офіційний Рахунок на оплату з цими ж позиціями та реквізитами ФОП'),
+                Select::make('act.status')
+                    ->title('Статус акту')
+                    ->options([
+                        'draft' => 'Чернетка',
+                        'sent' => 'Надіслано клієнту',
+                        'signed' => 'Підписано обома сторонами',
+                        'cancelled' => 'Скасовано',
+                    ])
+                    ->required(),
 
-                    Upload::make('act.attachment')
-                        ->title('Підписаний акт (скан / PDF)')
-                        ->acceptedFiles('.pdf,.docx,.doc,.jpg,.jpeg,.png')
-                        ->help('Завантажте підписану скан-копію або файл з ЕЦП/КЕП (PDF, JPG тощо)'),
+                Input::make('act.finance_invoice_id')->type('hidden'),
 
-                    TextArea::make('act.notes')
-                        ->title('Додаткові примітки')
-                        ->rows(2)
-                        ->placeholder('Внутрішній коментар або примітка'),
-                ])
-            )
-            ->title('Параметри акту')
-            ->description('Номер, дата та статус документа'),
+                Input::make('invoice_number')
+                    ->title('Номер прив\'язаного рахунку на оплату')
+                    ->value($this->act?->invoice?->invoice_number)
+                    ->placeholder('Генерується автоматично з дати складання документу')
+                    ->help('Номер рахунку на оплату. Автоматично враховує дату складання або вказується вручну. Позиції, сума та реквізити синхронізуються автоматично.'),
 
-            Layout::block(
-                Layout::rows([
-                    Matrix::make('items')
-                        ->title('Позиції робіт / послуг')
-                        ->columns([
-                            'Найменування робіт (послуг)' => 'name',
-                            'Од. виміру' => 'unit',
-                            'Кількість' => 'quantity',
-                            'Ціна без ПДВ (грн)' => 'price',
-                        ])
-                        ->fields([
-                            'name' => Input::make()->required()->placeholder('Послуги з розробки програмного забезпечення'),
-                            'unit' => Input::make()->value('послуга')->placeholder('послуга'),
-                            'quantity' => Input::make()->type('number')->step(0.01)->value(1),
-                            'price' => Input::make()->type('number')->step(0.01)->placeholder('0.00'),
-                        ])
-                        ->help('Вкажіть перелік наданих послуг чи виконаних робіт. Сума розраховується автоматично.'),
-                ])
-            )
-            ->title('Таблична частина послуг')
-            ->description('Перелік послуг або робіт, які фіксуються в акті')
-            ->commands([
-                Button::make('Зберегти Акт')
-                    ->type(Color::PRIMARY)
-                    ->icon('bs.check-circle')
-                    ->method('save'),
-            ]),
+                Upload::make('act.attachment')
+                    ->title('Підписаний акт (скан / PDF)')
+                    ->acceptedFiles('.pdf,.docx,.doc,.jpg,.jpeg,.png')
+                    ->help('Завантажте підписану скан-копію або файл з ЕЦП/КЕП (PDF, JPG тощо)'),
+
+                TextArea::make('act.notes')
+                    ->title('Додаткові примітки')
+                    ->rows(2)
+                    ->placeholder('Внутрішній коментар або примітка'),
+            ])->title('Параметри акту'),
+
+            Layout::rows([
+                Matrix::make('items')
+                    ->title('Позиції робіт / послуг')
+                    ->columns([
+                        'Найменування робіт (послуг)' => 'name',
+                        'Од. виміру' => 'unit',
+                        'Кількість' => 'quantity',
+                        'Ціна без ПДВ (грн)' => 'price',
+                    ])
+                    ->fields([
+                        'name' => Input::make()->required()->placeholder('Послуги з розробки програмного забезпечення'),
+                        'unit' => Input::make()->value('послуга')->placeholder('послуга'),
+                        'quantity' => Input::make()->type('number')->step(0.01)->value(1),
+                        'price' => Input::make()->type('number')->step(0.01)->placeholder('0.00'),
+                    ])
+                    ->help('Вкажіть перелік наданих послуг чи виконаних робіт. Сума розраховується автоматично.'),
+            ])->title('Таблична частина послуг'),
         ];
     }
 
@@ -442,34 +451,54 @@ class ActEditScreen extends Screen
             $act->items()->create($cItem);
         }
 
-        // Check if we should also create or update Invoice
-        if ($request->boolean('create_invoice')) {
-            $invoice = $act->invoice ?: new FinanceInvoice();
-            if (!$invoice->exists) {
-                $invoice->user_id = Auth::id();
-                $invoice->invoice_number = $documentService->generateInvoiceNumber();
-            }
+        // Always synchronize linked Invoice (create new if not existing)
+        $invoiceId = $act->finance_invoice_id ?: ($request->input('act.finance_invoice_id') ?: $request->input('invoice_id'));
+        $invoice = $invoiceId ? FinanceInvoice::find($invoiceId) : $act->invoice;
 
-            $invoice->customer_id = $act->customer_id;
-            $invoice->fop_id = $act->fop_id;
-            $invoice->counterparty_id = $act->counterparty_id;
-            $invoice->invoice_date = $act->act_date;
-            $invoice->due_date = Carbon::parse($act->act_date)->addDays(3)->toDateString();
-            $invoice->contract_number = $act->contract_number;
-            $invoice->contract_date = $act->contract_date;
-            $invoice->total = $totalAmount;
-            $invoice->comment = $cleanItems[0]['name'] ?? 'Оплата послуг';
-            $invoice->items_data = $cleanItems;
-            $invoice->finance_currency_id = 1; // UAH
+        if (!$invoice) {
+            $invoice = new FinanceInvoice();
+            $invoice->user_id = Auth::id() ?: $act->user_id;
+            $invoice->invoice_number = $request->input('invoice_number') ?: $documentService->generateInvoiceNumber($invoice->user_id, $act->act_date);
             $invoice->status = 'not paid';
-            $invoice->save();
-
-            if (!empty($attachments)) {
-                $invoice->attachment()->syncWithoutDetaching($attachments);
+            $invoice->finance_currency_id = 1; // UAH
+        } else {
+            if ($request->filled('invoice_number')) {
+                $invoice->invoice_number = $request->input('invoice_number');
+            } elseif ($act->act_date && !empty($invoice->invoice_number)) {
+                $formattedYmd = $act->act_date->format('Ymd');
+                $formattedYm = $act->act_date->format('Y/m');
+                if (preg_match('/\b\d{8}\b/', $invoice->invoice_number)) {
+                    $invoice->invoice_number = preg_replace('/\b\d{8}\b/', $formattedYmd, $invoice->invoice_number);
+                } elseif (preg_match('/\b\d{4}\/\d{2}\b/', $invoice->invoice_number)) {
+                    $invoice->invoice_number = preg_replace('/\b\d{4}\/\d{2}\b/', $formattedYm, $invoice->invoice_number);
+                }
             }
+        }
 
+        $invoice->customer_id = $act->customer_id;
+        $invoice->fop_id = $act->fop_id;
+        $invoice->counterparty_id = $act->counterparty_id;
+        $invoice->invoice_date = $act->act_date;
+        if (empty($invoice->due_date)) {
+            $invoice->due_date = Carbon::parse($act->act_date)->addDays(3)->toDateString();
+        }
+        $invoice->contract_number = $act->contract_number;
+        $invoice->contract_date = $act->contract_date;
+        $invoice->total = $totalAmount;
+        if ($invoice->status === 'paid') {
+            $invoice->amount_paid = $totalAmount;
+        }
+        $invoice->comment = $cleanItems[0]['name'] ?? 'Оплата послуг';
+        $invoice->items_data = $cleanItems;
+        $invoice->save();
+
+        if (!empty($attachments)) {
+            $invoice->attachment()->syncWithoutDetaching($attachments);
+        }
+
+        if ($act->finance_invoice_id !== $invoice->id) {
             $act->finance_invoice_id = $invoice->id;
-            $act->save();
+            $act->saveQuietly();
         }
 
         Toast::info('Акт успішно збережено!');

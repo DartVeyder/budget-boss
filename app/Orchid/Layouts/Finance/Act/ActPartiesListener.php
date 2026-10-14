@@ -176,8 +176,7 @@ class ActPartiesListener extends Listener
         }
 
         return [
-            Layout::block(
-                Layout::rows([
+            Layout::rows([
                     Relation::make('act.fop_id')
                         ->title('Виконавець (мій ФОП)')
                         ->fromModel(Fop::class, 'name')
@@ -248,10 +247,7 @@ class ActPartiesListener extends Listener
                             ->allowEmpty()
                             ->help('Автоматично підтягується з обраного контрагента або ФОПа'),
                     ]),
-                ])
-            )
-            ->title('Сторони документа та Договір')
-            ->description('Вибір вашого ФОПа та замовника, реквізитів і договору для документа'),
+                ])->title('Сторони документа та Договір'),
         ];
     }
 }

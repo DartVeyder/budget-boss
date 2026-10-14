@@ -24,8 +24,26 @@ class InvoiceListLayout extends Table
     public function columns(): array
     {
         return [
-            TD::make('id', __('ID')),
-            TD::make('invoice_number', __('Invoice number')),
+            TD::make('invoice_number', '№ Рахунку')
+                ->sort()
+                ->filter(TD::FILTER_TEXT)
+                ->render(function (FinanceInvoice $invoice) {
+                    $html = '<strong>' . e($invoice->invoice_number) . '</strong>';
+
+                    if ($invoice->act) {
+                        $actUrl = route('platform.acts.edit', $invoice->act);
+                        $html .= "<br><a href='{$actUrl}' class='text-decoration-none small text-primary'><i class='bi bi-file-earmark-check me-1'></i>Акт: " . e($invoice->act->act_number) . "</a>";
+                    }
+
+                    return $html;
+                }),
+            TD::make('invoice_date', 'Дата рахунку')
+                ->sort()
+                ->filter(TD::FILTER_DATE_RANGE)
+                ->render(function (FinanceInvoice $invoice) {
+                    $date = $invoice->act?->act_date ?: ($invoice->invoice_date ?: $invoice->created_at);
+                    return $date ? $date->format('d.m.Y') : '—';
+                }),
             TD::make('customer_id', __('From whom'))
                 ->render(
                     fn(FinanceInvoice $invoice) => $invoice->customer->name
@@ -81,20 +99,23 @@ class InvoiceListLayout extends Table
                         ->asyncParameters(['invoice' => $invoice->id])
                         ->class('btn btn-sm btn-outline-secondary');
                 }),
-            TD::make('created_at', __('Created'))
+            TD::make('created_at', 'Дата створення')
                 ->sort()
                 ->filter(TD::FILTER_DATE_RANGE)
                 ->render(
-                    fn (FinanceInvoice $invoice) => $invoice->created_at
+                    fn (FinanceInvoice $invoice) => $invoice->created_at ? $invoice->created_at->format('d.m.Y H:i') : '—'
                 )
                 ->align(TD::ALIGN_RIGHT)
                 ->sort(),
             TD::make(__('Actions'))
                 ->align(TD::ALIGN_CENTER)
                 ->width('120px')
-                ->render(fn (FinanceInvoice $invoice) => DropDown::make()
-                    ->icon('bs.three-dots-vertical')
-                    ->list([
+                ->render(function (FinanceInvoice $invoice) {
+                    $actions = [
+                        Link::make('Завантажити PDF')
+                            ->icon('bs.file-earmark-pdf')
+                            ->route('platform.invoices.pdf', ['invoice' => $invoice, 'download' => 1, 'v' => $invoice->updated_at?->timestamp ?? time()]),
+
                         Link::make('Друк Рахунку (A4)')
                             ->icon('bs.printer')
                             ->route('platform.invoices.print', $invoice)
@@ -106,18 +127,33 @@ class InvoiceListLayout extends Table
                             ->modalTitle('Підписаний рахунок: ' . $invoice->invoice_number)
                             ->method('saveSignedInvoice')
                             ->asyncParameters(['invoice' => $invoice->id]),
+                    ];
 
-                        Link::make('Сформувати Акт')
+                    if ($invoice->act) {
+                        $actions[] = Link::make('Редагувати Акт')
+                            ->icon('bs.pencil')
+                            ->route('platform.acts.edit', $invoice->act);
+
+                        $actions[] = Link::make('PDF Акту')
+                            ->icon('bs.file-earmark-check')
+                            ->route('platform.acts.pdf', ['act' => $invoice->act, 'download' => 1]);
+                    } else {
+                        $actions[] = Link::make('Сформувати Акт')
                             ->icon('bs.file-earmark-plus')
-                            ->route('platform.acts.create', ['invoice_id' => $invoice->id]),
+                            ->route('platform.acts.create', ['invoice_id' => $invoice->id]);
+                    }
 
-                        Button::make(__('Delete'))
-                            ->icon('bs.trash3')
-                            ->confirm('Видалити цей рахунок?')
-                            ->method('remove', [
-                                'id' => $invoice->id,
-                            ]),
-                    ])),
+                    $actions[] = Button::make(__('Delete'))
+                        ->icon('bs.trash3')
+                        ->confirm('Видалити цей рахунок?')
+                        ->method('remove', [
+                            'id' => $invoice->id,
+                        ]);
+
+                    return DropDown::make()
+                        ->icon('bs.three-dots-vertical')
+                        ->list($actions);
+                }),
         ];
     }
 }

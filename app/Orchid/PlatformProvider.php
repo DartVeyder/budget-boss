@@ -52,14 +52,19 @@ class PlatformProvider extends OrchidServiceProvider
                 ->permission('platform.finance.bills')
                 ->route('platform.bills'),
 
-            Menu::make('Invoices')
-                ->permission('platform.finance.invoices')
-                ->route('platform.invoices'),
+            Menu::make('Документообіг')
+                ->icon('bs.folder2-open')
+                ->list([
+                    Menu::make('Акти послуг')
+                        ->permission('platform.finance.acts')
+                        ->icon('bs.file-earmark-check')
+                        ->route('platform.acts'),
 
-            Menu::make('Акти послуг')
-                ->permission('platform.finance.acts')
-                ->icon('bs.file-earmark-check')
-                ->route('platform.acts'),
+                    Menu::make('Рахунки на оплату')
+                        ->permission('platform.finance.invoices')
+                        ->icon('bs.receipt')
+                        ->route('platform.invoices'),
+                ]),
 
             Menu::make('Cryptocurrency')
                 ->permission('platform.crypto.binance')
@@ -147,10 +152,12 @@ class PlatformProvider extends OrchidServiceProvider
                 ->addPermission('platform.finance.dashboard', 'Головна панель (Дашборд)')
                 ->addPermission('platform.finance.transactions', 'Транзакції: перегляд та керування')
                 ->addPermission('platform.finance.bills', 'Рахунки: перегляд та керування')
-                ->addPermission('platform.finance.invoices', 'Інвойси (Рахунки-фактури)')
-                ->addPermission('platform.finance.acts', 'Акти виконаних робіт')
                 ->addPermission('platform.finance.categories', 'Категорії транзакцій')
                 ->addPermission('platform.crypto.binance', 'Криптовалюта та Binance'),
+
+            ItemPermission::group('Документообіг')
+                ->addPermission('platform.finance.acts', 'Акти виконаних робіт / послуг')
+                ->addPermission('platform.finance.invoices', 'Рахунки на оплату (інвойси)'),
 
             ItemPermission::group('Аналітика')
                 ->addPermission('platform.analytic.finance', 'Фінансова аналітика')

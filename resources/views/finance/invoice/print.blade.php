@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Рахунок на оплату {{ $invoice->invoice_number }}</title>
+    <title>{{ $documentTitle ?? ('Рахунок на оплату ' . $invoice->invoice_number) }}</title>
     <style>
         @page {
             size: A4 portrait;
@@ -11,6 +11,30 @@
         }
         * {
             box-sizing: border-box;
+        }
+        @font-face {
+            font-family: 'Arial';
+            src: url('{{ str_replace('\\', '/', storage_path('fonts/arial.ttf')) }}') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Arial';
+            src: url('{{ str_replace('\\', '/', storage_path('fonts/arialbd.ttf')) }}') format('truetype');
+            font-weight: bold;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Arial';
+            src: url('{{ str_replace('\\', '/', storage_path('fonts/ariali.ttf')) }}') format('truetype');
+            font-weight: normal;
+            font-style: italic;
+        }
+        @font-face {
+            font-family: 'Arial';
+            src: url('{{ str_replace('\\', '/', storage_path('fonts/arialbi.ttf')) }}') format('truetype');
+            font-weight: bold;
+            font-style: italic;
         }
         body {
             font-family: Arial, 'Helvetica Neue', Helvetica, 'DejaVu Sans', sans-serif;
@@ -21,6 +45,17 @@
             margin: 0;
             padding: 20px;
         }
+        @if(!empty($isPdf))
+        body {
+            padding: 0 !important;
+            font-size: 8.5pt !important;
+            line-height: 1.3 !important;
+        }
+        .container {
+            max-width: 100% !important;
+            padding: 0 !important;
+        }
+        @endif
         .container {
             max-width: 800px;
             margin: 0 auto;
@@ -224,19 +259,23 @@
 <body>
 <div class="container">
 
+    @if(empty($isPdf))
     <div class="no-print">
         <div>
             <a href="{{ route('platform.invoices') }}" class="btn btn-outline">← До списку рахунків</a>
             @if($invoice->act)
                 <a href="{{ route('platform.acts.print', $invoice->act) }}" class="btn btn-outline" style="margin-left: 8px;">Переглянути Акт</a>
+                <a href="{{ route('platform.acts.pdf', ['act' => $invoice->act, 'download' => 1, 'v' => time()]) }}" class="btn btn-outline" style="margin-left: 8px;">📥 PDF Акту</a>
             @else
                 <a href="{{ route('platform.acts.create', ['invoice_id' => $invoice->id]) }}" class="btn btn-outline" style="margin-left: 8px;">+ Сформувати Акт</a>
             @endif
         </div>
         <div>
-            <button onclick="window.print()" class="btn btn-primary">🖨️ Друк / Зберегти як PDF</button>
+            <a href="{{ route('platform.invoices.pdf', ['invoice' => $invoice, 'download' => 1, 'v' => time()]) }}" class="btn btn-primary" style="margin-right: 8px;">📥 Завантажити PDF</a>
+            <button onclick="window.print()" class="btn btn-outline">🖨️ Друк у браузері</button>
         </div>
     </div>
+    @endif
 
     <!-- Банківський зразок платіжного доручення / реквізити отримувача -->
     <table class="bank-box">
@@ -267,7 +306,7 @@
 
     <!-- Назва та номер рахунку -->
     <div class="invoice-title">
-        Рахунок на оплату № {{ $invoice->invoice_number }} від {{ \App\Services\Finance\Act\UkrainianNumberToWords::formatUkrainianDate($invoice->invoice_date ?? $invoice->created_at) }}
+        Рахунок на оплату № {{ $invoice->invoice_number }} від {{ \App\Services\Finance\Act\UkrainianNumberToWords::formatUkrainianDate($invoice->act?->act_date ?: ($invoice->invoice_date ?? $invoice->created_at)) }}
     </div>
     <hr class="doc-divider">
 
@@ -301,15 +340,25 @@
     </table>
 
     @php
-        $items = !empty($invoice->items_data) && is_array($invoice->items_data) ? $invoice->items_data : [
-            [
-                'name' => $invoice->comment ?: "Оплата згідно рахунку {$invoice->invoice_number}",
-                'unit' => 'послуга',
-                'quantity' => 1,
-                'price' => (float)$invoice->total,
-                'amount' => (float)$invoice->total,
-            ]
-        ];
+        $items = !empty($invoice->items_data) && is_array($invoice->items_data)
+            ? $invoice->items_data
+            : ($invoice->act && $invoice->act->items && $invoice->act->items->isNotEmpty()
+                ? $invoice->act->items->map(fn($it) => [
+                    'name' => $it->name,
+                    'unit' => $it->unit,
+                    'quantity' => (float)$it->quantity,
+                    'price' => (float)$it->price,
+                    'amount' => (float)$it->amount,
+                ])->toArray()
+                : [
+                    [
+                        'name' => $invoice->comment ?: "Оплата згідно рахунку {$invoice->invoice_number}",
+                        'unit' => 'послуга',
+                        'quantity' => 1,
+                        'price' => (float)$invoice->total,
+                        'amount' => (float)$invoice->total,
+                    ]
+                ]);
     @endphp
 
     <!-- Таблиця товарів та послуг -->

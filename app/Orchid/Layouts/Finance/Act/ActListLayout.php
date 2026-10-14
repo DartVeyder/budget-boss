@@ -31,11 +31,17 @@ class ActListLayout extends Table
             TD::make('act_number', '№ Акту')
                 ->sort()
                 ->filter(TD::FILTER_TEXT)
-                ->render(fn (Act $act) =>
-                    Link::make($act->act_number)
+                ->render(function (Act $act) {
+                    $html = Link::make($act->act_number)
                         ->route('platform.acts.edit', $act)
-                        ->icon('bs.file-earmark-text')
-                ),
+                        ->icon('bs.file-earmark-text');
+
+                    if ($act->invoice) {
+                        $html .= "<br><span class='text-muted small'><i class='bi bi-receipt me-1'></i>Рах. " . e($act->invoice->invoice_number) . "</span>";
+                    }
+
+                    return $html;
+                }),
 
             TD::make('act_date', 'Дата акту')
                 ->sort()
@@ -121,37 +127,60 @@ class ActListLayout extends Table
                         ->class('btn btn-sm btn-outline-secondary');
                 }),
 
+            TD::make('created_at', 'Дата створення')
+                ->sort()
+                ->filter(TD::FILTER_DATE_RANGE)
+                ->render(fn (Act $act) => $act->created_at ? $act->created_at->format('d.m.Y H:i') : '—')
+                ->align(TD::ALIGN_RIGHT),
+
             TD::make('actions', 'Дії')
                 ->align(TD::ALIGN_CENTER)
                 ->width('120px')
-                ->render(fn (Act $act) =>
-                    DropDown::make()
+                ->render(function (Act $act) {
+                    $actions = [
+                        Link::make('Завантажити PDF')
+                            ->icon('bs.file-earmark-pdf')
+                            ->route('platform.acts.pdf', ['act' => $act, 'download' => 1, 'v' => $act->updated_at?->timestamp ?? time()]),
+
+                        Link::make('Друк / Перегляд (A4)')
+                            ->icon('bs.printer')
+                            ->route('platform.acts.print', $act)
+                            ->target('_blank'),
+                    ];
+
+                    if ($act->invoice) {
+                        $actions[] = Link::make('PDF Рахунку')
+                            ->icon('bs.receipt')
+                            ->route('platform.invoices.pdf', ['invoice' => $act->invoice, 'download' => 1]);
+
+                        $actions[] = Link::make('Друк Рахунку (A4)')
+                            ->icon('bs.printer')
+                            ->route('platform.invoices.print', $act->invoice)
+                            ->target('_blank');
+                    }
+
+                    $actions[] = ModalToggle::make('Підписаний акт (скан)')
+                        ->icon('bs.file-earmark-arrow-up')
+                        ->modal('asyncUploadActModal')
+                        ->modalTitle('Підписаний акт: № ' . $act->act_number)
+                        ->method('saveSignedAct')
+                        ->asyncParameters(['act' => $act->id]);
+
+                    $actions[] = Link::make('Редагувати')
+                        ->icon('bs.pencil')
+                        ->route('platform.acts.edit', $act);
+
+                    $actions[] = Button::make('Видалити')
+                        ->icon('bs.trash3')
+                        ->confirm('Ви впевнені, що хочете видалити цей акт?')
+                        ->method('remove', [
+                            'id' => $act->id,
+                        ]);
+
+                    return DropDown::make()
                         ->icon('bs.three-dots-vertical')
-                        ->list([
-                            Link::make('Друк / Перегляд (A4)')
-                                ->icon('bs.printer')
-                                ->route('platform.acts.print', $act)
-                                ->target('_blank'),
-
-                            ModalToggle::make('Підписаний акт (скан)')
-                                ->icon('bs.file-earmark-arrow-up')
-                                ->modal('asyncUploadActModal')
-                                ->modalTitle('Підписаний акт: № ' . $act->act_number)
-                                ->method('saveSignedAct')
-                                ->asyncParameters(['act' => $act->id]),
-
-                            Link::make('Редагувати')
-                                ->icon('bs.pencil')
-                                ->route('platform.acts.edit', $act),
-
-                            Button::make('Видалити')
-                                ->icon('bs.trash3')
-                                ->confirm('Ви впевнені, що хочете видалити цей акт?')
-                                ->method('remove', [
-                                    'id' => $act->id,
-                                ]),
-                        ])
-                ),
+                        ->list($actions);
+                }),
         ];
     }
 }

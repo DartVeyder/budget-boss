@@ -7,6 +7,7 @@
     "require": {
         "php": "^8.1",
         "barryvdh/laravel-debugbar": "^3.13",
+        "barryvdh/laravel-dompdf": "^3.1",
         "binance/binance-connector-php": "^1.6",
         "guzzlehttp/guzzle": "^7.2",
         "laravel/framework": "^10.10",

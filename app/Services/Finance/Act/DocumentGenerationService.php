@@ -15,49 +15,273 @@ use Illuminate\Support\Facades\Auth;
 class DocumentGenerationService
 {
     /**
-     * Generate next act number in format: АКТ-YYYY/MM-01
+     * Generate next act number based on user settings template.
      */
-    public function generateActNumber(?int $userId = null): string
+    public function generateActNumber(?int $userId = null, $date = null): string
     {
         $userId = $userId ?? Auth::id();
-        $datePrefix = Carbon::now()->format('Y/m');
+        $setting = \App\Models\UserSetting::where('user_id', $userId)->first();
+        $template = $setting?->act_number_template ?: 'АКТ-{YYYY}/{MM}-{NUM}';
 
-        $latestAct = Act::where('user_id', $userId)
-            ->where('act_number', 'LIKE', "АКТ-{$datePrefix}-%")
-            ->orderBy('id', 'desc')
-            ->first();
-
-        $lastSeq = 0;
-        if ($latestAct && preg_match('/-(\d+)$/', $latestAct->act_number, $matches)) {
-            $lastSeq = (int)$matches[1];
-        }
-
-        $nextSeq = str_pad($lastSeq + 1, 2, '0', STR_PAD_LEFT);
-
-        return "АКТ-{$datePrefix}-{$nextSeq}";
+        return $this->generateDocumentNumber(Act::class, 'act_number', $template, $userId, 'АКТ', $date);
     }
 
     /**
-     * Generate next invoice number in format: РАХ-YYYY/MM-01
+     * Generate next invoice number based on user settings template.
      */
-    public function generateInvoiceNumber(?int $userId = null): string
+    public function generateInvoiceNumber(?int $userId = null, $date = null): string
     {
         $userId = $userId ?? Auth::id();
-        $datePrefix = Carbon::now()->format('Y/m');
+        $setting = \App\Models\UserSetting::where('user_id', $userId)->first();
+        $template = $setting?->invoice_number_template ?: 'РАХ-{YYYY}/{MM}-{NUM}';
 
-        $latestInvoice = FinanceInvoice::where('user_id', $userId)
-            ->where('invoice_number', 'LIKE', "РАХ-{$datePrefix}-%")
-            ->orderBy('id', 'desc')
-            ->first();
+        return $this->generateDocumentNumber(FinanceInvoice::class, 'invoice_number', $template, $userId, 'РАХ', $date);
+    }
 
-        $lastSeq = 0;
-        if ($latestInvoice && preg_match('/-(\d+)$/', $latestInvoice->invoice_number, $matches)) {
-            $lastSeq = (int)$matches[1];
+    /**
+     * Resolve document number based on custom template and existing records.
+     *
+     * Supported placeholders:
+     * - {PREFIX} -> e.g. "АКТ" or "РАХ"
+     * - {YYYY}   -> 2026 (4-digit year)
+     * - {YY}     -> 26 (2-digit year)
+     * - {MM}     -> 10 (2-digit month)
+     * - {M}      -> 10 (1-12 month)
+     * - {DD}     -> 13 (2-digit day)
+     * - {NUM}    -> 01, 02 (default 2-digit sequence)
+     * - {NUM:N}  -> sequence padded to N digits, e.g. {NUM:3} => 001
+     */
+    public function generateDocumentNumber(
+        string $modelClass,
+        string $numberField,
+        string $template,
+        ?int $userId = null,
+        string $defaultPrefix = 'ДОК',
+        $date = null
+    ): string {
+        $userId = $userId ?? Auth::id();
+        $template = trim($template ?: "{$defaultPrefix}-{YYYY}/{MM}-{NUM}");
+
+        // 1. Substitute prefix and date variables
+        $docDate = $date ? Carbon::parse($date) : Carbon::now();
+        $resolved = str_replace(
+            ['{PREFIX}', '{YYYY}', '{YY}', '{MM}', '{M}', '{DD}'],
+            [$defaultPrefix, $docDate->format('Y'), $docDate->format('y'), $docDate->format('m'), $docDate->format('n'), $docDate->format('d')],
+            $template
+        );
+
+        // 2. Identify sequence placeholder: {NUM} or {NUM:X}
+        $padLength = 2;
+        $placeholder = '{NUM}';
+        if (preg_match('/\{NUM(?::(\d+))?\}/', $resolved, $matches)) {
+            $placeholder = $matches[0];
+            $padLength = !empty($matches[1]) ? (int)$matches[1] : 2;
         }
 
-        $nextSeq = str_pad($lastSeq + 1, 2, '0', STR_PAD_LEFT);
+        // 3. Split static prefix and suffix around placeholder
+        $parts = explode($placeholder, $resolved, 2);
+        $prefixPart = $parts[0] ?? '';
+        $suffixPart = $parts[1] ?? '';
 
-        return "РАХ-{$datePrefix}-{$nextSeq}";
+        // 4. Query highest matching sequence
+        $query = $modelClass::where('user_id', $userId);
+        if ($prefixPart !== '') {
+            $query->where($numberField, 'LIKE', "{$prefixPart}%");
+        }
+        $latest = $query->orderBy('id', 'desc')->first();
+
+        $lastSeq = 0;
+        if ($latest) {
+            $currentVal = (string)$latest->$numberField;
+            if ($prefixPart !== '' && str_starts_with($currentVal, $prefixPart)) {
+                $rest = substr($currentVal, strlen($prefixPart));
+                if ($suffixPart !== '' && str_ends_with($rest, $suffixPart)) {
+                    $rest = substr($rest, 0, -strlen($suffixPart));
+                }
+                if (preg_match('/^(\d+)/', $rest, $m)) {
+                    $lastSeq = (int)$m[1];
+                }
+            }
+
+            if ($lastSeq === 0 && preg_match('/(\d+)(?:' . preg_quote($suffixPart, '/') . ')?$/', $currentVal, $m)) {
+                $lastSeq = (int)$m[1];
+            }
+        }
+
+        $nextSeq = str_pad((string)($lastSeq + 1), $padLength, '0', STR_PAD_LEFT);
+
+        return $prefixPart . $nextSeq . $suffixPart;
+    }
+
+    /**
+     * Preview what a document number will look like for a template.
+     */
+    public function previewDocumentNumber(string $template, string $defaultPrefix = 'АКТ'): string
+    {
+        $now = Carbon::now();
+        $resolved = str_replace(
+            ['{PREFIX}', '{YYYY}', '{YY}', '{MM}', '{M}', '{DD}'],
+            [$defaultPrefix, $now->format('Y'), $now->format('y'), $now->format('m'), $now->format('n'), $now->format('d')],
+            trim($template)
+        );
+
+        $padLength = 2;
+        if (preg_match('/\{NUM(?::(\d+))?\}/', $resolved, $matches)) {
+            $placeholder = $matches[0];
+            $padLength = !empty($matches[1]) ? (int)$matches[1] : 2;
+            $sampleSeq = str_pad('1', $padLength, '0', STR_PAD_LEFT);
+            return str_replace($placeholder, $sampleSeq, $resolved);
+        }
+
+        return $resolved;
+    }
+
+    /**
+     * Format a party's name into a short representation for document filenames.
+     * E.g. "Медвідь Дмитро Степанович" -> "ФОП Медвідь Д"
+     *      "ФОП Мисак Оксана Степанівна" -> "ФОП Мисак О"
+     *      "ТОВ \"Твайс ЮА\"" -> "ТОВ Твайс ЮА"
+     *      "Twice" -> "Twice"
+     */
+    public function formatPartyShortName(?string $name, bool $isFop = true): string
+    {
+        if (empty($name)) {
+            return '';
+        }
+
+        $name = trim(preg_replace('/\s+/u', ' ', $name));
+        $name = trim($name, " \t\n\r\0\x0B\"'«»");
+
+        $hasFopPrefix = (bool)preg_match('/^(?:ФОП|FOP)\b/ui', $name);
+        $hasFopSuffix = (bool)preg_match('/\b(?:ФОП|FOP)$/ui', $name);
+        $isFop = $isFop || $hasFopPrefix || $hasFopSuffix;
+
+        $clean = trim(preg_replace('/^(?:ФОП|FOP)\s+|\s+(?:ФОП|FOP)$/ui', '', $name));
+        $clean = trim($clean, " \t\n\r\0\x0B\"'«»");
+
+        if (empty($clean)) {
+            return $isFop ? 'ФОП' : '';
+        }
+
+        // If it's a corporate entity (ТОВ, ПП, АТ, TOV, etc.), preserve company name
+        if (preg_match('/^(?:ТОВ|ПП|ПрАТ|АТ|ВАТ|TOV|LLC)\b/ui', $clean)) {
+            return preg_replace('/["\'«»]/u', '', $clean);
+        }
+
+        $words = explode(' ', $clean);
+
+        if ($isFop) {
+            if (count($words) >= 2) {
+                $lastName = $words[0];
+                $firstInitial = mb_substr(rtrim($words[1], '.'), 0, 1, 'UTF-8');
+                return "ФОП {$lastName} {$firstInitial}";
+            }
+            return "ФОП {$words[0]}";
+        }
+
+        if (count($words) >= 2 && !preg_match('/[0-9]/', $clean)) {
+            $lastName = $words[0];
+            $firstInitial = mb_substr(rtrim($words[1], '.'), 0, 1, 'UTF-8');
+            return "{$lastName} {$firstInitial}";
+        }
+
+        return $clean;
+    }
+
+    /**
+     * Format a date into Ukrainian words: e.g. "18 вересня 2026 р"
+     */
+    public function formatUkrainianDateInWords($date): string
+    {
+        if (!$date) {
+            $date = Carbon::now();
+        } elseif (is_string($date)) {
+            $date = Carbon::parse($date);
+        }
+
+        $months = [
+            1 => 'січня', 2 => 'лютого', 3 => 'березня', 4 => 'квітня',
+            5 => 'травня', 6 => 'червня', 7 => 'липня', 8 => 'серпня',
+            9 => 'вересня', 10 => 'жовтня', 11 => 'листопада', 12 => 'грудня',
+        ];
+
+        $day = $date->format('j');
+        $month = $months[(int)$date->format('n')] ?? '';
+        $year = $date->format('Y');
+
+        return "{$day} {$month} {$year} р";
+    }
+
+    /**
+     * Generate standard human-readable filename for an Act.
+     * Example: "Акт надання послуг ФОП Медвідь Д і ФОП Мисак О № 20260918-01 від 18 вересня 2026 р.pdf"
+     */
+    public function generateActFilename(Act $act, string $extension = 'pdf'): string
+    {
+        $act->loadMissing(['fop', 'customer', 'counterparty']);
+
+        $fopShort = $this->formatPartyShortName($act->fop?->name, true);
+
+        $customerName = $act->counterparty?->name ?: ($act->customer?->name ?: '');
+        $isCustomerFop = ($act->counterparty !== null) || ($act->customer?->is_fop ?? true);
+        $customerShort = $this->formatPartyShortName($customerName, $isCustomerFop);
+
+        $parties = '';
+        if ($fopShort !== '' && $customerShort !== '') {
+            $parties = "{$fopShort} і {$customerShort}";
+        } elseif ($fopShort !== '') {
+            $parties = $fopShort;
+        } elseif ($customerShort !== '') {
+            $parties = $customerShort;
+        }
+
+        $cleanNumber = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', trim((string)$act->act_number));
+        $numberPart = $cleanNumber !== '' ? "№ {$cleanNumber}" : '';
+
+        $dateFormatted = $this->formatUkrainianDateInWords($act->act_date);
+        $datePart = "від {$dateFormatted}";
+
+        $parts = array_filter(['Акт надання послуг', $parties, $numberPart, $datePart]);
+        $baseName = trim(preg_replace('/\s+/u', ' ', implode(' ', $parts)));
+
+        return $baseName . '.' . ltrim($extension, '.');
+    }
+
+    /**
+     * Generate standard human-readable filename for an Invoice.
+     * Example: "Рахунок на оплату ФОП Медвідь Д і ФОП Мисак О № 20260918-01 від 18 вересня 2026 р.pdf"
+     */
+    public function generateInvoiceFilename(FinanceInvoice $invoice, string $extension = 'pdf'): string
+    {
+        $invoice->loadMissing(['fop', 'customer', 'counterparty', 'act.fop']);
+
+        $fop = $invoice->fop ?: ($invoice->customer?->fop ?: ($invoice->act?->fop ?: Fop::where('user_id', $invoice->user_id)->first()));
+        $fopShort = $this->formatPartyShortName($fop?->name, true);
+
+        $customerName = $invoice->counterparty?->name ?: ($invoice->customer?->name ?: '');
+        $isCustomerFop = ($invoice->counterparty !== null) || ($invoice->customer?->is_fop ?? true);
+        $customerShort = $this->formatPartyShortName($customerName, $isCustomerFop);
+
+        $parties = '';
+        if ($fopShort !== '' && $customerShort !== '') {
+            $parties = "{$fopShort} і {$customerShort}";
+        } elseif ($fopShort !== '') {
+            $parties = $fopShort;
+        } elseif ($customerShort !== '') {
+            $parties = $customerShort;
+        }
+
+        $cleanNumber = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '-', trim((string)$invoice->invoice_number));
+        $numberPart = $cleanNumber !== '' ? "№ {$cleanNumber}" : '';
+
+        $invoiceDate = $invoice->act?->act_date ?: ($invoice->invoice_date ?: $invoice->created_at);
+        $dateFormatted = $this->formatUkrainianDateInWords($invoiceDate);
+        $datePart = "від {$dateFormatted}";
+
+        $parts = array_filter(['Рахунок на оплату', $parties, $numberPart, $datePart]);
+        $baseName = trim(preg_replace('/\s+/u', ' ', implode(' ', $parts)));
+
+        return $baseName . '.' . ltrim($extension, '.');
     }
 
     /**
@@ -343,7 +567,7 @@ class DocumentGenerationService
 
         return [
             'act_number' => $this->generateActNumber($invoice->user_id),
-            'act_date' => Carbon::now()->toDateString(),
+            'act_date' => $invoice->invoice_date ? $invoice->invoice_date->toDateString() : ($invoice->created_at ? $invoice->created_at->toDateString() : Carbon::now()->toDateString()),
             'fop_id' => $fop?->id,
             'customer_id' => $customer?->id,
             'counterparty_id' => $counterparty?->id,

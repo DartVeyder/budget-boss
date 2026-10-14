@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Акт надання послуг {{ $act->act_number }}</title>
+    <title>{{ $documentTitle ?? ('Акт надання послуг ' . $act->act_number) }}</title>
     <style>
         @page {
             size: A4 portrait;
@@ -11,6 +11,30 @@
         }
         * {
             box-sizing: border-box;
+        }
+        @font-face {
+            font-family: 'Arial';
+            src: url('{{ str_replace('\\', '/', storage_path('fonts/arial.ttf')) }}') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Arial';
+            src: url('{{ str_replace('\\', '/', storage_path('fonts/arialbd.ttf')) }}') format('truetype');
+            font-weight: bold;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Arial';
+            src: url('{{ str_replace('\\', '/', storage_path('fonts/ariali.ttf')) }}') format('truetype');
+            font-weight: normal;
+            font-style: italic;
+        }
+        @font-face {
+            font-family: 'Arial';
+            src: url('{{ str_replace('\\', '/', storage_path('fonts/arialbi.ttf')) }}') format('truetype');
+            font-weight: bold;
+            font-style: italic;
         }
         body {
             font-family: Arial, 'Helvetica Neue', Helvetica, 'DejaVu Sans', sans-serif;
@@ -21,6 +45,17 @@
             margin: 0;
             padding: 20px;
         }
+        @if(!empty($isPdf))
+        body {
+            padding: 0 !important;
+            font-size: 8.5pt !important;
+            line-height: 1.3 !important;
+        }
+        .container {
+            max-width: 100% !important;
+            padding: 0 !important;
+        }
+        @endif
         .container {
             max-width: 800px;
             margin: 0 auto;
@@ -229,6 +264,7 @@
 <body>
 <div class="container">
 
+    @if(empty($isPdf))
     <div class="no-print">
         <div>
             <a href="{{ route('platform.acts') }}" class="btn btn-outline">← До списку актів</a>
@@ -237,10 +273,13 @@
         <div>
             @if($act->invoice)
                 <a href="{{ route('platform.invoices.print', $act->invoice) }}" class="btn btn-outline" style="margin-right: 8px;">Друк Рахунку</a>
+                <a href="{{ route('platform.invoices.pdf', ['invoice' => $act->invoice, 'download' => 1, 'v' => time()]) }}" class="btn btn-outline" style="margin-right: 8px;">📥 PDF Рахунку</a>
             @endif
-            <button onclick="window.print()" class="btn btn-primary">🖨️ Друк / Зберегти як PDF</button>
+            <a href="{{ route('platform.acts.pdf', ['act' => $act, 'download' => 1, 'v' => time()]) }}" class="btn btn-primary" style="margin-right: 8px;">📥 Завантажити PDF</a>
+            <button onclick="window.print()" class="btn btn-outline">🖨️ Друк у браузері</button>
         </div>
     </div>
+    @endif
 
     <!-- Блок "ЗАТВЕРДЖУЮ" вгорі -->
     <table class="approval-table">
