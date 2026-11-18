@@ -61,8 +61,21 @@ class DashboardScreen extends Screen
 
         $data = [];
 
-        $income = FinanceTransaction::where('is_balance', 1)->where('type', 'income')->whereIn('user_id', $scopedUserIds);
-        $expenses = FinanceTransaction::where('is_balance', 1)->where('type', 'expenses')->whereIn('user_id', $scopedUserIds);
+        $income = FinanceTransaction::where('is_balance', 1)
+            ->where('type', 'income')
+            ->where(function ($q) {
+                $q->whereNull('transaction_type_id')
+                  ->orWhereNotIn('transaction_type_id', [3, 4, 5]);
+            })
+            ->whereIn('user_id', $scopedUserIds);
+
+        $expenses = FinanceTransaction::where('is_balance', 1)
+            ->where('type', 'expenses')
+            ->where(function ($q) {
+                $q->whereNull('transaction_type_id')
+                  ->orWhereNotIn('transaction_type_id', [3, 4, 5]);
+            })
+            ->whereIn('user_id', $scopedUserIds);
 
         $transaction = new TransactionsService();
         $transactionIncome = new TransactionIncomeService();
@@ -110,6 +123,10 @@ class DashboardScreen extends Screen
                 $uMonthIncome = (float)FinanceTransaction::where('user_id', $su->id)
                     ->where('is_balance', 1)
                     ->where('type', 'income')
+                    ->where(function ($q) {
+                        $q->whereNull('transaction_type_id')
+                          ->orWhereNotIn('transaction_type_id', [3, 4, 5]);
+                    })
                     ->whereMonth('created_at', $currentMonth)
                     ->whereYear('created_at', Carbon::now()->year)
                     ->sum('currency_amount');
@@ -117,6 +134,10 @@ class DashboardScreen extends Screen
                 $uMonthExpenses = abs((float)FinanceTransaction::where('user_id', $su->id)
                     ->where('is_balance', 1)
                     ->where('type', 'expenses')
+                    ->where(function ($q) {
+                        $q->whereNull('transaction_type_id')
+                          ->orWhereNotIn('transaction_type_id', [3, 4, 5]);
+                    })
                     ->whereMonth('created_at', $currentMonth)
                     ->whereYear('created_at', Carbon::now()->year)
                     ->sum('currency_amount'));

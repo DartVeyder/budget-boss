@@ -73,7 +73,7 @@ class TransactionEditScreen extends Screen
             Link::make('Сформувати Акт')
                 ->icon('bs.file-earmark-plus')
                 ->route('platform.acts.create', ['transaction_id' => $this->transaction->id])
-                ->canSee($this->transaction->exists && $this->transaction->type === 'income' && (int)$this->transaction->transaction_type_id !== 3),
+                ->canSee($this->transaction->exists && $this->transaction->type === 'income' && !in_array((int)$this->transaction->transaction_type_id, [3, 4, 5], true)),
 
             Button::make(__('Back'))
                 ->method('back'),
@@ -105,6 +105,8 @@ class TransactionEditScreen extends Screen
                 return 'saveTransfer';
             case 4:
                 return 'saveAudit';
+            case 5:
+                return 'saveIncome';
             default:
                 return '';
         }
@@ -125,6 +127,9 @@ class TransactionEditScreen extends Screen
                 break;
             case 4:
                 $layouts[] = TransactionEditAuditRows::class;
+                break;
+            case 5:
+                $layouts[] = TransactionEditIncomeRows::class;
                 break;
         }
          if ($this->transaction->exists && $this->transaction->attachment->count() > 0) {

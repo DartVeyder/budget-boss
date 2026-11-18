@@ -19,8 +19,8 @@ class FinanceInsightsService
         9 => 'Вересень', 10 => 'Жовтень', 11 => 'Листопад', 12 => 'Грудень',
     ];
 
-    /** Transaction types that are not real income/expenses: 3 = transfer, 4 = revision. */
-    public const NON_FLOW_TYPE_IDS = [3, 4];
+    /** Transaction types that are not real income/expenses: 3 = transfer, 4 = revision, 5 = refund / cancellation. */
+    public const NON_FLOW_TYPE_IDS = [3, 4, 5];
 
     public function __construct(
         protected int|array $userId,

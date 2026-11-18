@@ -40,6 +40,10 @@ class FopTaxService
         $incomeQuery = FinanceTransaction::query()
             ->where('is_balance', 1)
             ->where('type', 'income')
+            ->where(function ($q) {
+                $q->whereNull('transaction_type_id')
+                  ->orWhereNotIn('transaction_type_id', [3, 4, 5]);
+            })
             ->whereYear('created_at', $year)
             ->where(function ($q) use ($fop) {
                 $q->where('fop_id', $fop->id);
@@ -138,6 +142,10 @@ class FopTaxService
             $query = FinanceTransaction::query()
                 ->where('is_balance', 1)
                 ->where('type', 'income')
+                ->where(function ($sq) {
+                    $sq->whereNull('transaction_type_id')
+                      ->orWhereNotIn('transaction_type_id', [3, 4, 5]);
+                })
                 ->whereBetween('created_at', [$startDate, $endDate])
                 ->where(function ($sq) use ($fop) {
                     $sq->where('fop_id', $fop->id);
@@ -243,6 +251,10 @@ class FopTaxService
             $cumulativeIncome = (float)FinanceTransaction::query()
                 ->where('is_balance', 1)
                 ->where('type', 'income')
+                ->where(function ($sq) {
+                    $sq->whereNull('transaction_type_id')
+                      ->orWhereNotIn('transaction_type_id', [3, 4, 5]);
+                })
                 ->whereBetween('created_at', [Carbon::createFromDate($year, 1, 1)->startOfDay(), $endDate])
                 ->where(function ($sq) use ($fop) {
                     $sq->where('fop_id', $fop->id);
@@ -323,6 +335,10 @@ class FopTaxService
             ->with(['customer', 'counterparty', 'bill'])
             ->where('is_balance', 1)
             ->where('type', 'income')
+            ->where(function ($sq) {
+                $sq->whereNull('transaction_type_id')
+                  ->orWhereNotIn('transaction_type_id', [3, 4, 5]);
+            })
             ->whereYear('created_at', $year)
             ->where(function ($sq) use ($fop) {
                 $sq->where('fop_id', $fop->id);
@@ -390,6 +406,10 @@ class FopTaxService
         $cumulativeIncome = (float)FinanceTransaction::query()
             ->where('is_balance', 1)
             ->where('type', 'income')
+            ->where(function ($sq) {
+                $sq->whereNull('transaction_type_id')
+                  ->orWhereNotIn('transaction_type_id', [3, 4, 5]);
+            })
             ->whereBetween('created_at', [$yearStart, $endDate])
             ->where(function ($sq) use ($fop) {
                 $sq->where('fop_id', $fop->id);
@@ -409,6 +429,10 @@ class FopTaxService
             $prevIncome = (float)FinanceTransaction::query()
                 ->where('is_balance', 1)
                 ->where('type', 'income')
+                ->where(function ($sq) {
+                    $sq->whereNull('transaction_type_id')
+                      ->orWhereNotIn('transaction_type_id', [3, 4, 5]);
+                })
                 ->whereBetween('created_at', [$yearStart, $prevEndDate])
                 ->where(function ($sq) use ($fop) {
                     $sq->where('fop_id', $fop->id);

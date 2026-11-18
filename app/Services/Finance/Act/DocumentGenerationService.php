@@ -691,7 +691,7 @@ class DocumentGenerationService
             ->where('type', 'income')
             ->where(function($q) {
                 $q->whereNull('transaction_type_id')
-                  ->orWhere('transaction_type_id', '!=', 3);
+                  ->orWhereNotIn('transaction_type_id', [3, 4, 5]);
             })
             ->whereDoesntHave('act')
             ->has('attachment')

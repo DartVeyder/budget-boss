@@ -350,10 +350,9 @@ class TransactionExpensesService extends TransactionsService
             $categoryId = $mcc > 0 ? $this->getCategoryWithMcc($mcc) : null;
 
             if ($isPositive) {
-                $type = 'income';
-                $typeId = 2; // Дохід
-
                 if ($isRefund) {
+                    $type = 'income';
+                    $typeId = 5; // Скасування / Повернення (не є доходом у статистиці)
                     $comment = 'Повернення коштів';
                     if (!$categoryId) {
                         $refundCategory = FinanceTransactionCategory::firstOrCreate(
@@ -362,12 +361,14 @@ class TransactionExpensesService extends TransactionsService
                                 'name' => 'Повернення коштів',
                             ],
                             [
-                                'transaction_type_id' => 2,
+                                'transaction_type_id' => 5,
                             ]
                         );
                         $categoryId = $refundCategory->id;
                     }
                 } else {
+                    $type = 'income';
+                    $typeId = 2; // Дохід
                     $comment = null;
                 }
             } else {

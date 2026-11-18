@@ -39,7 +39,7 @@ class FopAnalyticService
             ->where('finance_transactions.is_balance', 1)
             ->where(function ($q) {
                 $q->whereNull('finance_transactions.transaction_type_id')
-                  ->orWhere('finance_transactions.transaction_type_id', '!=', 3);
+                  ->orWhereNotIn('finance_transactions.transaction_type_id', [3, 4, 5]);
             })
             ->where(function ($q) use ($fop) {
                 $q->where('finance_transactions.fop_id', $fop->id);

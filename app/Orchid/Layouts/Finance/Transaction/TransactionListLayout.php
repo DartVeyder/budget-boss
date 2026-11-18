@@ -59,6 +59,7 @@ class TransactionListLayout extends Table
                         2 => "<span class='badge bg-success-subtle text-success border border-success-subtle px-2 py-1'><i class='bi bi-arrow-down-left me-1'></i> " . e($typeName) . "</span>",
                         3 => "<span class='badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1'><i class='bi bi-arrow-left-right me-1'></i> " . e($typeName) . "</span>",
                         4 => "<span class='badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1'><i class='bi bi-clipboard-check me-1'></i> " . e($typeName) . "</span>",
+                        5 => "<span class='badge bg-info-subtle text-info border border-info-subtle px-2 py-1'><i class='bi bi-arrow-counterclockwise me-1'></i> " . e($typeName) . "</span>",
                         default => match ($transaction->type) {
                             'income' => "<span class='badge bg-success-subtle text-success border border-success-subtle px-2 py-1'><i class='bi bi-arrow-down-left me-1'></i> " . e($typeName) . "</span>",
                             'expenses' => "<span class='badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1'><i class='bi bi-arrow-up-right me-1'></i> " . e($typeName) . "</span>",
@@ -197,7 +198,7 @@ class TransactionListLayout extends Table
                         Link::make('Сформувати Акт')
                             ->icon('bs.file-earmark-plus')
                             ->route('platform.acts.create', ['transaction_id' => $transaction->id])
-                            ->canSee($transaction->type === 'income' && (int)$transaction->transaction_type_id !== 3),
+                            ->canSee($transaction->type === 'income' && !in_array((int)$transaction->transaction_type_id, [3, 4, 5], true)),
 
                         Button::make(__('Delete'))
                             ->icon('bs.trash3')

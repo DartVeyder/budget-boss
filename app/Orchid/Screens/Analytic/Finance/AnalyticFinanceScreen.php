@@ -104,6 +104,10 @@ class AnalyticFinanceScreen extends Screen
         $incomeCountQ = \App\Models\FinanceTransaction::whereIn('user_id', $effectiveUserIds)
             ->where('is_balance', 1)
             ->where('type', 'income')
+            ->where(function ($q) {
+                $q->whereNull('transaction_type_id')
+                  ->orWhereNotIn('transaction_type_id', [3, 4, 5]);
+            })
             ->whereBetween('created_at', [$start, $end]);
         if ($billId) {
             $incomeCountQ->where('finance_bill_id', $billId);
@@ -113,6 +117,10 @@ class AnalyticFinanceScreen extends Screen
         $expensesCountQ = \App\Models\FinanceTransaction::whereIn('user_id', $effectiveUserIds)
             ->where('is_balance', 1)
             ->where('type', 'expenses')
+            ->where(function ($q) {
+                $q->whereNull('transaction_type_id')
+                  ->orWhereNotIn('transaction_type_id', [3, 4, 5]);
+            })
             ->whereBetween('created_at', [$start, $end]);
         if ($billId) {
             $expensesCountQ->where('finance_bill_id', $billId);
@@ -200,10 +208,18 @@ class AnalyticFinanceScreen extends Screen
                 $mIncQ = \App\Models\FinanceTransaction::where('user_id', $su->id)
                     ->where('is_balance', 1)
                     ->where('type', 'income')
+                    ->where(function ($q) {
+                        $q->whereNull('transaction_type_id')
+                          ->orWhereNotIn('transaction_type_id', [3, 4, 5]);
+                    })
                     ->whereBetween('created_at', [$start, $end]);
                 $mExpQ = \App\Models\FinanceTransaction::where('user_id', $su->id)
                     ->where('is_balance', 1)
                     ->where('type', 'expenses')
+                    ->where(function ($q) {
+                        $q->whereNull('transaction_type_id')
+                          ->orWhereNotIn('transaction_type_id', [3, 4, 5]);
+                    })
                     ->whereBetween('created_at', [$start, $end]);
 
                 if ($billId) {

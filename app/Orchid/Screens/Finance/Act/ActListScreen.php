@@ -70,6 +70,10 @@ class ActListScreen extends Screen
     {
         $unimportedCount = FinanceTransaction::where('user_id', Auth::id())
             ->where('type', 'income')
+            ->where(function($q) {
+                $q->whereNull('transaction_type_id')
+                  ->orWhereNotIn('transaction_type_id', [3, 4, 5]);
+            })
             ->whereDoesntHave('act')
             ->has('attachment')
             ->count();

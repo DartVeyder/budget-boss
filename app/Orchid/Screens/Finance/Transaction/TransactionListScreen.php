@@ -63,10 +63,18 @@ class TransactionListScreen extends Screen
                 $suInc = (float)FinanceTransaction::where('user_id', $su->id)
                     ->where('is_balance', 1)
                     ->where('type', 'income')
+                    ->where(function ($q) {
+                        $q->whereNull('transaction_type_id')
+                          ->orWhereNotIn('transaction_type_id', [3, 4, 5]);
+                    })
                     ->sum('currency_amount');
                 $suExp = abs((float)FinanceTransaction::where('user_id', $su->id)
                     ->where('is_balance', 1)
                     ->where('type', 'expenses')
+                    ->where(function ($q) {
+                        $q->whereNull('transaction_type_id')
+                          ->orWhereNotIn('transaction_type_id', [3, 4, 5]);
+                    })
                     ->sum('currency_amount'));
                 $suCount = FinanceTransaction::where('user_id', $su->id)->count();
 
@@ -127,11 +135,16 @@ class TransactionListScreen extends Screen
             ModalToggle::make(__('Transfer'))
                 ->modal('transfer')
                 ->method('saveTransfer'),
-            ModalToggle::make(__('Audit'))
+            ModalToggle::make('Ревізія / Баланс')
+                ->icon('bs.sliders')
                 ->modal('audit')
                 ->method('saveAudit'),
-            Button::make("Mono")
-                ->method("saveMono")
+            Button::make("Mono (Особистий)")
+                ->icon('bs.wallet2')
+                ->method("saveMono"),
+            Button::make("Mono (ФОП)")
+                ->icon('bs.briefcase')
+                ->method("saveMonoFop"),
         ];
     }
 
@@ -288,26 +301,44 @@ class TransactionListScreen extends Screen
         $transaction = $request->input('transaction');
         $attachments = $transaction['attachment'] ?? [];
         unset($transaction['attachment']);
+
+        $bill = FinanceBill::find($transaction['bill_id']);
+        if (!$bill) {
+            Toast::error('Рахунок не знайдено');
+            return;
+        }
+
+        if ($bill->user_id !== Auth::id() && !Auth::user()->canEditSharedBudgetWith($bill->user_id)) {
+            Toast::error('У вас немає прав редактора для цього спільного рахунку.');
+            return;
+        }
+
         $total = FinanceTransaction::where('finance_bill_id', $transaction['bill_id'])->sum('amount');
 
-        $diffTotal = $transaction['current_balance'] - $total;
+        $diffTotal = (float)$transaction['current_balance'] - (float)$total;
         $data['amount'] =  $diffTotal ;
-        $data['type'] =  ( $diffTotal > 0) ? 'income': 'expenses';
+        $data['type'] =  ( $diffTotal >= 0) ? 'income': 'expenses';
 
         $data['transaction_type_id'] = 4;
         $data['transaction_category_id'] =  2;
-        if($transaction['created_at']){
+        if(!empty($transaction['created_at'])){
             $data['accrual_date'] = $transaction['created_at'];
             $data['created_at'] = $transaction['created_at'];
+        } else {
+            $data['accrual_date'] = now();
+            $data['created_at'] = now();
         }
         $data['finance_bill_id'] = $transaction['bill_id'];
+        $data['user_id'] = $bill->user_id;
+        $data['is_balance'] = 1;
+        $data['comment'] = !empty($transaction['comment']) ? $transaction['comment'] : 'Ревізія / Встановлення балансу';
         $data = array_merge(  $data,$transactionsService->getCurrency( $transaction['bill_id'],  $diffTotal));
 
-        $auditTransaction = Auth::user()->transactions()->create($data);
+        $auditTransaction = FinanceTransaction::create($data);
         if (!empty($attachments)) {
             $auditTransaction->attachment()->syncWithoutDetaching($attachments);
         }
-        Toast::info(__('You have successfully created.'));
+        Toast::info('Баланс успішно встановлено.');
     }
     public function remove(Request $request,TransactionsService  $transactionsService): object
     {
@@ -374,6 +405,25 @@ class TransactionListScreen extends Screen
             }
         } else {
             Toast::info(__('Нема нових транзакцій з Моно'));
+        }
+    }
+
+    public function saveMonoFop(\App\Services\Finance\Fop\FopMonoSyncService $fopSyncService)
+    {
+        $fop = \App\Models\Fop::where('user_id', Auth::id())->where('is_active', true)->first()
+            ?? \App\Models\Fop::where('user_id', Auth::id())->first();
+
+        if (!$fop) {
+            Toast::warning(__('Не знайдено активного профілю ФОП.'));
+            return;
+        }
+
+        $result = $fopSyncService->sync($fop);
+
+        if ($result['success']) {
+            Toast::info($result['message']);
+        } else {
+            Toast::error($result['message']);
         }
     }
 

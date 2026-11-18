@@ -14,6 +14,9 @@ use Illuminate\Support\Facades\DB;
 
 class TransactionsService
 {
+    /** Transaction types that are not real income/expenses: 3 = transfer, 4 = revision / initial balance, 5 = refund / cancellation. */
+    public const NON_FLOW_TYPE_IDS = [3, 4, 5];
+
     protected int $userId;
     protected array $userIds = [];
     protected string $type;
@@ -155,7 +158,11 @@ class TransactionsService
             ->whereIn('finance_transactions.user_id', $this->getUserIds())
             ->where('is_balance' ,1)
             ->whereNull('finance_transactions.deleted_at')
-            ->where('finance_transactions.type', $this->getType());
+            ->where('finance_transactions.type', $this->getType())
+            ->where(function ($sub) {
+                $sub->whereNull('finance_transactions.transaction_type_id')
+                    ->orWhereNotIn('finance_transactions.transaction_type_id', self::NON_FLOW_TYPE_IDS);
+            });
 
         if ($effectiveBillId) {
             $q->where('finance_transactions.finance_bill_id', $effectiveBillId);
@@ -175,7 +182,11 @@ class TransactionsService
             ->whereIn('finance_transactions.user_id', $this->getUserIds())
             ->where('is_balance' ,1)
             ->whereNull('finance_transactions.deleted_at')
-            ->where('finance_transactions.type', $this->getType());
+            ->where('finance_transactions.type', $this->getType())
+            ->where(function ($sub) {
+                $sub->whereNull('finance_transactions.transaction_type_id')
+                    ->orWhereNotIn('finance_transactions.transaction_type_id', self::NON_FLOW_TYPE_IDS);
+            });
 
         if ($effectiveBillId) {
             $q->where('finance_transactions.finance_bill_id', $effectiveBillId);
@@ -196,7 +207,11 @@ class TransactionsService
             ->whereIn('finance_transactions.user_id', $this->getUserIds())
             ->where('is_balance' ,1)
             ->whereNull('finance_transactions.deleted_at')
-            ->where('finance_transactions.type', $this->getType());
+            ->where('finance_transactions.type', $this->getType())
+            ->where(function ($sub) {
+                $sub->whereNull('finance_transactions.transaction_type_id')
+                    ->orWhereNotIn('finance_transactions.transaction_type_id', self::NON_FLOW_TYPE_IDS);
+            });
 
         if ($effectiveBillId) {
             $q->where('finance_transactions.finance_bill_id', $effectiveBillId);
@@ -216,7 +231,11 @@ class TransactionsService
             ->whereBetween('finance_transactions.created_at', [$start, $end])
             ->whereIn('finance_transactions.user_id', $this->getUserIds())
             ->whereNull('finance_transactions.deleted_at')
-            ->where('is_balance' ,1);
+            ->where('is_balance' ,1)
+            ->where(function ($sub) {
+                $sub->whereNull('finance_transactions.transaction_type_id')
+                    ->orWhereNotIn('finance_transactions.transaction_type_id', self::NON_FLOW_TYPE_IDS);
+            });
 
         if ($effectiveBillId) {
             $q->where('finance_transactions.finance_bill_id', $effectiveBillId);
@@ -355,6 +374,10 @@ class TransactionsService
             ->where('is_balance', 1)
             ->whereNull('deleted_at')
             ->where('type', 'expenses')
+            ->where(function ($sub) {
+                $sub->whereNull('transaction_type_id')
+                    ->orWhereNotIn('transaction_type_id', self::NON_FLOW_TYPE_IDS);
+            })
             ->where('transaction_source_id', $sourceId)
             ->whereBetween('created_at', [$startDate->format('Y-m-d H:i:s'), $endDate->format('Y-m-d H:i:s')]);
 
@@ -480,6 +503,10 @@ class TransactionsService
             ->where('finance_transactions.is_balance', 1)
             ->whereNull('finance_transactions.deleted_at')
             ->where('finance_transactions.type', 'expenses')
+            ->where(function ($sub) {
+                $sub->whereNull('finance_transactions.transaction_type_id')
+                    ->orWhereNotIn('finance_transactions.transaction_type_id', self::NON_FLOW_TYPE_IDS);
+            })
             ->whereNotNull('finance_transactions.transaction_source_id')
             ->whereBetween('finance_transactions.created_at', [$startDate->format('Y-m-d H:i:s'), $endDate->format('Y-m-d H:i:s')]);
 
@@ -505,7 +532,13 @@ class TransactionsService
 
     public function query(): object
     {
-        $query = FinanceTransaction::where('type',$this->getType())->whereIn('user_id', $this->getUserIds())->where('is_balance' ,1);
+        $query = FinanceTransaction::where('type', $this->getType())
+            ->whereIn('user_id', $this->getUserIds())
+            ->where('is_balance', 1)
+            ->where(function ($sub) {
+                $sub->whereNull('transaction_type_id')
+                    ->orWhereNotIn('transaction_type_id', self::NON_FLOW_TYPE_IDS);
+            });
         if ($this->billId) {
             $query->where('finance_bill_id', $this->billId);
         }
