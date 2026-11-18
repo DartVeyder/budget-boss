@@ -287,6 +287,13 @@ class BudgetShareScreen extends Screen
                     ->default(BudgetShare::ROLE_EDITOR)
                     ->help('Редактор або Спостерігач'),
 
+                Input::make('initial_balance')
+                    ->type('number')
+                    ->step(0.01)
+                    ->title('Початковий баланс на рахунку "Готівка"')
+                    ->placeholder('0.00')
+                    ->help('Початкова сума коштів на рахунку користувача (необов\'язково)'),
+
                 Input::make('nickname')
                     ->title('Примітка / Нікнейм (необов\'язково)')
                     ->placeholder('напр. Дружина, Чоловік, Партнер')
@@ -399,8 +406,10 @@ class BudgetShareScreen extends Screen
             $newUser->roles()->attach($systemRole->id);
         }
 
+        $initialBalance = (float)$request->input('initial_balance', 0);
+
         // Initialize default user settings and categories
-        $this->initializeUserData($newUser->id);
+        $this->initializeUserData($newUser->id, $initialBalance);
 
         // Link with current user
         BudgetShare::create([
@@ -507,7 +516,7 @@ class BudgetShareScreen extends Screen
     /**
      * Initialize starter settings, default bill, and transaction categories for new user.
      */
-    private function initializeUserData(int $userId): void
+    private function initializeUserData(int $userId, float $initialBalance = 0): void
     {
         UserSetting::firstOrCreate([
             'user_id' => $userId,
@@ -515,13 +524,34 @@ class BudgetShareScreen extends Screen
             'currency' => 'UAH',
         ]);
 
-        FinanceBill::firstOrCreate([
+        $bill = FinanceBill::firstOrCreate([
             'user_id' => $userId,
             'name' => 'Готівка',
         ], [
             'finance_currency_id' => 1,
             'currency_code' => 'UAH',
+            'is_transfer' => 1,
         ]);
+
+        if ($initialBalance != 0) {
+            $transactionsService = app(\App\Services\Finance\Transaction\TransactionsService::class);
+            $currencyData = $transactionsService->getCurrency($bill->id, $initialBalance);
+
+            \App\Models\FinanceTransaction::create(array_merge([
+                'user_id' => $userId,
+                'finance_bill_id' => $bill->id,
+                'transaction_type_id' => 4, // Ревізія
+                'transaction_category_id' => 2, // Ревізія
+                'type' => $initialBalance > 0 ? 'income' : 'expenses',
+                'amount' => $initialBalance,
+                'balance' => $initialBalance,
+                'balance_bill' => $initialBalance,
+                'is_balance' => 1,
+                'comment' => 'Початковий баланс',
+                'accrual_date' => now(),
+                'created_at' => now(),
+            ], $currencyData));
+        }
 
         $defaultCategories = [
             ['name' => 'Зарплата', 'transaction_type_id' => 2, 'user_id' => $userId],

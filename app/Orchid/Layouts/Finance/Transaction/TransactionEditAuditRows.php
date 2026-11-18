@@ -34,23 +34,26 @@ class TransactionEditAuditRows extends Rows
     {
         return [
             Relation::make('transaction.bill_id')
-                ->title('Bills')
+                ->title('Рахунок')
                 ->required()
                 ->fromModel(FinanceBill::class, 'name')
                 ->applyScope('user'),
             Input::make("transaction.current_balance")
-                ->title('Current balance')
+                ->title('Фактичний / початковий баланс')
+                ->placeholder('0.00')
                 ->required()
-                ->type('number') ,
+                ->step(0.01)
+                ->type('number'),
             TextArea::make("transaction.comment")
-                ->title('Comment')
+                ->title('Коментар')
+                ->placeholder('напр. Початковий баланс або Ревізія')
                 ->value(''),
             Input::make('transaction.user_id')
                 ->value(Auth::user()->id)
                 ->hidden(),
             DateTimer::make('transaction.created_at')
-                ->title('Date created')
-                ->enableTime() ,
+                ->title('Дата')
+                ->enableTime(),
             Upload::make('transaction.attachment')
                 ->title('Документи / Зображення'),
 

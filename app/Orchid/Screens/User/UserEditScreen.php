@@ -176,7 +176,8 @@ class UserEditScreen extends Screen
         $user->replaceRoles($request->input('user.roles'));
 
         if($user->wasRecentlyCreated) {
-            $this->dataInsert($user->id);
+            $initialBalance = (float)$request->input('user.initial_balance', 0);
+            $this->dataInsert($user->id, $initialBalance);
         }
 
 
@@ -213,15 +214,41 @@ class UserEditScreen extends Screen
         return redirect()->route(config('platform.index'));
     }
 
-    private function  dataInsert($user_id): void{
+    private function dataInsert($user_id, float $initialBalance = 0): void{
 
         DB::table('user_settings')->insert([
             ['currency' => 'UAH', 'user_id' => $user_id ],
         ]);
 
-        DB::table('finance_bills')->insert([
-            ['name' => 'Готівка', 'user_id' => $user_id, 'finance_currency_id' => 1 , 'currency_code' => 'UAH' ],
+        $billId = DB::table('finance_bills')->insertGetId([
+            'name' => 'Готівка', 
+            'user_id' => $user_id, 
+            'finance_currency_id' => 1, 
+            'currency_code' => 'UAH',
+            'is_transfer' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
+
+        if ($initialBalance != 0) {
+            $transactionsService = app(\App\Services\Finance\Transaction\TransactionsService::class);
+            $currencyData = $transactionsService->getCurrency($billId, $initialBalance);
+
+            \App\Models\FinanceTransaction::create(array_merge([
+                'user_id' => $user_id,
+                'finance_bill_id' => $billId,
+                'transaction_type_id' => 4, // Ревізія
+                'transaction_category_id' => 2, // Ревізія
+                'type' => $initialBalance > 0 ? 'income' : 'expenses',
+                'amount' => $initialBalance,
+                'balance' => $initialBalance,
+                'balance_bill' => $initialBalance,
+                'is_balance' => 1,
+                'comment' => 'Початковий баланс',
+                'accrual_date' => now(),
+                'created_at' => now(),
+            ], $currencyData));
+        }
 
         DB::table('finance_transaction_categories')->insert([
             ['name' => 'Зарплата', 'transaction_type_id' => 2, 'user_id'=> $user_id],

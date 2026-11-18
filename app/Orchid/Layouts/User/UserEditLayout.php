@@ -30,6 +30,14 @@ class UserEditLayout extends Rows
                 ->required()
                 ->title(__('Email'))
                 ->placeholder(__('Email')),
+
+            Input::make('user.initial_balance')
+                ->type('number')
+                ->step(0.01)
+                ->title('Початковий баланс (Готівка)')
+                ->placeholder('0.00')
+                ->help('Початкова сума на першому рахунку користувача (необов\'язково)')
+                ->canSee(!$this->query->get('user')?->exists),
         ];
     }
 }
