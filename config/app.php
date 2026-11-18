@@ -55,7 +55,7 @@ return [
     |
     */
 
-    'url' => env('APP_URL', 'http://budget_boss'),
+    'url' => env('APP_URL', 'http://budget-boss.loc'),
 
     'asset_url' => env('ASSET_URL'),
 

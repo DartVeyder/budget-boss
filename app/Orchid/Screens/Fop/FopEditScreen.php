@@ -138,6 +138,11 @@ class FopEditScreen extends Screen
                     ->title('Назва банку')
                     ->placeholder('АТ «УНІВЕРСАЛ БАНК»'),
 
+                Input::make('fop.monobank_account_id')
+                    ->title('ID рахунку в Monobank')
+                    ->placeholder('Визначається автоматично')
+                    ->help('ID рахунку ФОП для автоматичної синхронізації з Monobank API'),
+
                 Relation::make('fop.fop_group_id')
                     ->title('Група ФОП')
                     ->placeholder('Виберіть групу ФОП')

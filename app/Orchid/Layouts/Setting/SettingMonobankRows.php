@@ -26,18 +26,25 @@ class SettingMonobankRows extends Rows
     {
         return [
             Input::make('monobank.api_key')
-                ->title('Api key'),
+                ->title('API-ключ')
+                ->type('password')
+                ->help('Отримати персональний токен можна на <a href="https://api.monobank.ua/" target="_blank" rel="noopener">api.monobank.ua</a> (скануйте QR-код у додатку Monobank). Підтримуються як особисті картки, так і рахунки ФОП.'),
             Select::make('monobank.active')
                 ->options([
                     1  => 'Включити',
                     2  => 'Виключити',
                 ])
-                ->title('Status'),
+                ->title('Статус синхронізації'),
+
+            \Orchid\Screen\Fields\TextArea::make('monobank.accounts_summary')
+                ->title('Підключені рахунки Monobank')
+                ->disabled()
+                ->rows(5)
+                ->help('Автоматично визначені особисті та ФОП рахунки (оновлюється при збереженні).'),
 
             Input::make('monobank.user_id')
                 ->value(Auth::user()->id)
                 ->hidden(),
-            ];
-
+        ];
     }
 }

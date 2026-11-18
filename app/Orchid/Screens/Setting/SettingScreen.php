@@ -22,10 +22,35 @@ class SettingScreen extends Screen
     public function query(): iterable
     {
         $setting = Auth::user()?->setting;
+
+        $accountsSummary = 'Введіть API ключ та увімкніть статус для перегляду підключених рахунків.';
+        if ($setting?->monobank_api_key) {
+            $clientInfo = \App\Services\Api\Monobank\Monobank::getClientInfo($setting->monobank_api_key);
+            if ($clientInfo && !empty($clientInfo['accounts'])) {
+                $lines = [];
+                $lines[] = 'Власник: ' . ($clientInfo['name'] ?? '—');
+                foreach ($clientInfo['accounts'] as $acc) {
+                    $type = strtoupper($acc['type'] ?? 'CARD');
+                    $currency = match ($acc['currencyCode'] ?? 980) {
+                        840 => '$',
+                        978 => '€',
+                        default => '₴',
+                    };
+                    $bal = number_format(($acc['balance'] ?? 0) / 100, 2, '.', ' ') . " {$currency}";
+                    $iban = !empty($acc['iban']) ? " (IBAN: {$acc['iban']})" : '';
+                    $lines[] = "• [{$type}] {$bal}{$iban}";
+                }
+                $accountsSummary = implode("\n", $lines);
+            } elseif ($clientInfo === false) {
+                $accountsSummary = 'Помилка отримання даних або очікування ліміту 60 сек.';
+            }
+        }
+
         return [
             'monobank' => [
                 'api_key' => $setting?->monobank_api_key ?? '',
                 'active'  => $setting?->monobank_active ? 1 : 2,
+                'accounts_summary' => $accountsSummary,
             ],
             'document_numbering' => [
                 'act_template'     => $setting?->act_number_template ?: 'АКТ-{YYYY}/{MM}-{NUM}',

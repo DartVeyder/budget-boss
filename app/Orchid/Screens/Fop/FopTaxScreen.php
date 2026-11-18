@@ -106,6 +106,10 @@ class FopTaxScreen extends Screen
             Link::make('Книга обліку доходів')
                 ->icon('bs.book')
                 ->route('platform.fop.ledger'),
+
+            \Orchid\Screen\Actions\Button::make('Синхронізувати з Моно')
+                ->icon('bs.arrow-repeat')
+                ->method('syncMonoFop'),
         ];
     }
 
@@ -166,5 +170,29 @@ class FopTaxScreen extends Screen
         Alert::success("Створено транзакцію витрат на суму " . number_format($amount, 2, '.', ' ') . " ₴ ({$taxTitle}).");
 
         return redirect()->route('platform.fop.tax', ['year' => $year]);
+    }
+
+    /**
+     * Synchronize FOP transactions from Monobank.
+     */
+    public function syncMonoFop(\App\Services\Finance\Fop\FopMonoSyncService $fopSyncService)
+    {
+        $taxService = new FopTaxService();
+        $fop = $this->fop ?? $taxService->getFop();
+
+        if (!$fop) {
+            Toast::error('ФОП не знайдено.');
+            return redirect()->back();
+        }
+
+        $result = $fopSyncService->sync($fop);
+
+        if ($result['success']) {
+            Toast::info($result['message']);
+        } else {
+            Toast::error($result['message']);
+        }
+
+        return redirect()->back();
     }
 }

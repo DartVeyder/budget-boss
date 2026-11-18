@@ -28,6 +28,7 @@ class Fop extends Model
         'ewn',
         'address',
         'iban',
+        'monobank_account_id',
         'bank_name',
         'phone',
         'contract_number',
