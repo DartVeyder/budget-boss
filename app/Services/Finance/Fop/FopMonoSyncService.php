@@ -603,6 +603,7 @@ class FopMonoSyncService
         $desc = $item['description'] ?? '';
         $comment = $item['comment'] ?? '';
         $fullText = "{$desc} {$comment} {$counterName}";
+        $itemDate = !empty($item['time']) ? Carbon::createFromTimestamp($item['time']) : Carbon::parse($dateStr);
 
         // 1. Match Counterparty & Customer
         $counterparty = null;

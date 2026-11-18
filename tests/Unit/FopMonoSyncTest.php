@@ -11,10 +11,12 @@ use App\Services\Finance\Fop\FopMonoSyncService;
 use App\Services\Finance\Transaction\TransactionExpensesService;
 use App\Services\Finance\Transaction\TransactionIncomeService;
 use Carbon\Carbon;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class FopMonoSyncTest extends TestCase
 {
+    use DatabaseTransactions;
     protected function getService(): FopMonoSyncService
     {
         return new FopMonoSyncService(
@@ -131,6 +133,68 @@ class FopMonoSyncTest extends TestCase
         $itemDate3 = Carbon::parse('2026-01-10 10:00:00');
         $accrual3 = $itemDate3->copy()->subMonthNoOverflow()->endOfMonth()->format('Y-m-d 00:00:00');
         $this->assertSame('2025-12-31 00:00:00', $accrual3);
+    }
+
+    public function test_create_income_transaction_sets_accrual_date_without_error(): void
+    {
+        $user = User::create([
+            'name' => 'Fop Sync Test User',
+            'email' => 'fop_sync_' . uniqid() . '@example.com',
+            'password' => bcrypt('password'),
+        ]);
+
+        $bill = FinanceBill::create([
+            'user_id' => $user->id,
+            'name' => 'Рахунок ФОП',
+            'finance_currency_id' => 1,
+            'currency_code' => 'UAH',
+        ]);
+
+        $fop = Fop::create([
+            'user_id' => $user->id,
+            'name' => 'ФОП Тестер',
+            'ipn' => '3333333333',
+            'finance_bill_id' => $bill->id,
+            'fop_group_id' => 1,
+            'is_active' => true,
+        ]);
+
+        $service = $this->getService();
+        $ref = new \ReflectionClass($service);
+        $method = $ref->getMethod('createIncomeTransaction');
+        $method->setAccessible(true);
+
+        $paymentTime = Carbon::parse('2026-11-05 14:30:00')->timestamp;
+        $mockItem = [
+            'id' => 'mono_tx_' . uniqid(),
+            'time' => $paymentTime,
+            'description' => 'Оплата за послуги за договором #12',
+            'comment' => 'Без ПДВ',
+            'counterName' => 'ТОВ "Клієнт"',
+            'counterEdrpou' => '44444444',
+            'counterIban' => 'UA112233445566778899001122334',
+            'amount' => 5000000, // +50 000.00 UAH
+            'mcc' => 7372,
+        ];
+
+        /** @var \App\Models\FinanceTransaction $tx */
+        $tx = $method->invoke(
+            $service,
+            $fop,
+            $mockItem,
+            50000.00,
+            '2026-11-05 14:30:00',
+            $mockItem['id'],
+            collect(),
+            []
+        );
+
+        $this->assertNotNull($tx);
+        $this->assertEquals(50000.00, (float)$tx->amount);
+        $this->assertSame('2026-11-05 14:30:00', Carbon::parse($tx->created_at)->format('Y-m-d H:i:s'));
+        // Accrual date goes for the previous month (2026-10-31)
+        $this->assertSame('2026-10-31 00:00:00', Carbon::parse($tx->accrual_date)->format('Y-m-d 00:00:00'));
+        $this->assertSame(2, $tx->transaction_type_id);
     }
 }
 
