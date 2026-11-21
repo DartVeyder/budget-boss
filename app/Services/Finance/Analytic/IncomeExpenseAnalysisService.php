@@ -852,10 +852,12 @@ class IncomeExpenseAnalysisService
         $curMonthName  = FinanceInsightsService::UKR_MONTHS[(int)$now->month] . ' ' . $now->year;
         $prevMonthName = FinanceInsightsService::UKR_MONTHS[(int)$prev->month] . ' ' . $prev->year;
 
+        $incomeDateExpr = DB::raw('COALESCE(finance_transactions.accrual_date, finance_transactions.created_at)');
+
         // 1. Income received in the previous month (the resource base for this month)
         $prevIncome = abs((float)$this->flowQuery()
             ->where('finance_transactions.type', 'income')
-            ->whereBetween('finance_transactions.created_at', [$prevStart, $prevEnd])
+            ->whereBetween($incomeDateExpr, [$prevStart, $prevEnd])
             ->sum('finance_transactions.currency_amount'));
 
         $isFallback = false;
@@ -865,7 +867,7 @@ class IncomeExpenseAnalysisService
             $histEnd = $now->copy()->startOfMonth()->subSecond()->format('Y-m-d H:i:s');
             $histIncome = abs((float)$this->flowQuery()
                 ->where('finance_transactions.type', 'income')
-                ->whereBetween('finance_transactions.created_at', [$histStart, $histEnd])
+                ->whereBetween($incomeDateExpr, [$histStart, $histEnd])
                 ->sum('finance_transactions.currency_amount'));
             $histMonths = max(1, (int)$this->flowQuery()
                 ->where('finance_transactions.type', 'expenses')
@@ -876,7 +878,7 @@ class IncomeExpenseAnalysisService
 
             $curIncome = abs((float)$this->flowQuery()
                 ->where('finance_transactions.type', 'income')
-                ->whereBetween('finance_transactions.created_at', [$curStart, $todayEnd])
+                ->whereBetween($incomeDateExpr, [$curStart, $todayEnd])
                 ->sum('finance_transactions.currency_amount'));
 
             $prevIncome = $avgInc > 0 ? $avgInc : ($curIncome > 0 ? $curIncome : 50000.0);
@@ -891,7 +893,7 @@ class IncomeExpenseAnalysisService
 
         $curIncome = abs((float)$this->flowQuery()
             ->where('finance_transactions.type', 'income')
-            ->whereBetween('finance_transactions.created_at', [$curStart, $todayEnd])
+            ->whereBetween($incomeDateExpr, [$curStart, $todayEnd])
             ->sum('finance_transactions.currency_amount'));
 
         // Current month category breakdown

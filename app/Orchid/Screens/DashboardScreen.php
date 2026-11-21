@@ -88,18 +88,18 @@ class DashboardScreen extends Screen
         }
 
         $data['metrics']['total']['balance'] = Currency::convertValueToCurrency($transaction->getTotalBalance());
-        $data['metrics']['currentMonth']['income'] = Currency::convertValueToCurrency((clone $income)->whereMonth('created_at', $currentMonth)->whereYear('created_at', Carbon::now()->year)->sum('currency_amount'));
+        $data['metrics']['currentMonth']['income'] = Currency::convertValueToCurrency((clone $income)->whereMonth(DB::raw('COALESCE(accrual_date, created_at)'), $currentMonth)->whereYear(DB::raw('COALESCE(accrual_date, created_at)'), Carbon::now()->year)->sum('currency_amount'));
         $data['metrics']['currentMonth']['expenses'] = Currency::convertValueToCurrency((clone $expenses)->whereMonth('created_at', $currentMonth)->whereYear('created_at', Carbon::now()->year)->sum('currency_amount'));
 
-        $data['metrics']['currentYear']['income'] = Currency::convertValueToCurrency((clone $income)->whereYear('created_at', Carbon::now()->year)->sum('currency_amount'));
+        $data['metrics']['currentYear']['income'] = Currency::convertValueToCurrency((clone $income)->whereYear(DB::raw('COALESCE(accrual_date, created_at)'), Carbon::now()->year)->sum('currency_amount'));
         $data['metrics']['currentYear']['expenses'] = Currency::convertValueToCurrency((clone $expenses)->whereYear('created_at', Carbon::now()->year)->sum('currency_amount'));
 
         $data['metrics']['bills'] = $this->generateMetricsToBill(4, $filterUserId);
-        $data['charts']['transactions'][] = $transactionIncome->chartBar(__("Income"), $start, $end, 'created_at', 'currency_amount');
+        $data['charts']['transactions'][] = $transactionIncome->chartBar(__("Income"), $start, $end, 'COALESCE(accrual_date, created_at)', 'currency_amount');
         $data['charts']['transactions'][] = $transactionExpenses->chartBar(__("Expenses"), $start, $end, 'created_at', 'absolute_currency_amount');
         $data['charts']['transactions'][] = $transaction->chartBarBalance(__("Balance"), $start, $end, 'created_at', 'currency_amount');
         
-        $data['charts']['income_year'] = $transactionIncome->chartBarComparison(__('Current Year'), __('Previous Year'), $start, $end, 'created_at', 'currency_amount');
+        $data['charts']['income_year'] = $transactionIncome->chartBarComparison(__('Current Year'), __('Previous Year'), $start, $end, 'COALESCE(accrual_date, created_at)', 'currency_amount');
         $data['charts']['capital'] = $transaction->chartCapital(__('Capital'), $start, $end, 'created_at');
         
         $data['charts']['categories']['income'] = $transactionIncome->chartPieCategory(Carbon::now()->startOfMonth(), $end);
@@ -127,8 +127,8 @@ class DashboardScreen extends Screen
                         $q->whereNull('transaction_type_id')
                           ->orWhereNotIn('transaction_type_id', [3, 4, 5]);
                     })
-                    ->whereMonth('created_at', $currentMonth)
-                    ->whereYear('created_at', Carbon::now()->year)
+                    ->whereMonth(DB::raw('COALESCE(accrual_date, created_at)'), $currentMonth)
+                    ->whereYear(DB::raw('COALESCE(accrual_date, created_at)'), Carbon::now()->year)
                     ->sum('currency_amount');
 
                 $uMonthExpenses = abs((float)FinanceTransaction::where('user_id', $su->id)

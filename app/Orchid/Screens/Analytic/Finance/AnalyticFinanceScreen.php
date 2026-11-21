@@ -108,7 +108,7 @@ class AnalyticFinanceScreen extends Screen
                 $q->whereNull('transaction_type_id')
                   ->orWhereNotIn('transaction_type_id', [3, 4, 5]);
             })
-            ->whereBetween('created_at', [$start, $end]);
+            ->whereBetween(\Illuminate\Support\Facades\DB::raw('COALESCE(accrual_date, created_at)'), [$start, $end]);
         if ($billId) {
             $incomeCountQ->where('finance_bill_id', $billId);
         }
@@ -169,11 +169,11 @@ class AnalyticFinanceScreen extends Screen
         $data['metrics']['sum']['expenses'] = \App\Services\Currency\Currency::convertValueToCurrency(-1 * $expensesCurrent);
         $data['metrics']['sum']['total'] = \App\Services\Currency\Currency::convertValueToCurrency($balanceCurrent);
 
-        $data['charts']['transactions'][] = $transactionIncome->chartBar(__("Income"), $start, $end, 'created_at', 'currency_amount', $billId);
+        $data['charts']['transactions'][] = $transactionIncome->chartBar(__("Income"), $start, $end, 'COALESCE(accrual_date, created_at)', 'currency_amount', $billId);
         $data['charts']['transactions'][] = $transactionExpenses->chartBar(__("Expenses"), $start, $end, 'created_at', 'absolute_currency_amount', $billId);
         $data['charts']['transactions'][] = $transaction->chartBarBalance(__("Balance"), $start, $end, 'created_at', 'currency_amount', $billId);
         
-        $data['charts']['income_year'] = $transactionIncome->chartBarComparison(__('Current Year'), __('Previous Year'), $start, $end, 'created_at', 'currency_amount', $billId);
+        $data['charts']['income_year'] = $transactionIncome->chartBarComparison(__('Current Year'), __('Previous Year'), $start, $end, 'COALESCE(accrual_date, created_at)', 'currency_amount', $billId);
         $data['charts']['capital'] = $transaction->chartCapital(__('Capital'), $start, $end, 'created_at', $billId);
         
         $data['charts']['categories']['income'] = $transactionIncome->chartPieCategory($start, $end, __('Income'), $billId);
@@ -212,7 +212,7 @@ class AnalyticFinanceScreen extends Screen
                         $q->whereNull('transaction_type_id')
                           ->orWhereNotIn('transaction_type_id', [3, 4, 5]);
                     })
-                    ->whereBetween('created_at', [$start, $end]);
+                    ->whereBetween(\Illuminate\Support\Facades\DB::raw('COALESCE(accrual_date, created_at)'), [$start, $end]);
                 $mExpQ = \App\Models\FinanceTransaction::where('user_id', $su->id)
                     ->where('is_balance', 1)
                     ->where('type', 'expenses')

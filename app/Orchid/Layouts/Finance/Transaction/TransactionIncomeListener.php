@@ -214,7 +214,9 @@ class TransactionIncomeListener extends Listener
                     ->title('Tax rate'),
 
                 DateTimer::make('transaction.accrual_date')
+                    ->enableTime()
                     ->format24hr()
+                    ->allowInput()
                     ->title('Date accrual'),
 
                 DateTimer::make('transaction.created_at')

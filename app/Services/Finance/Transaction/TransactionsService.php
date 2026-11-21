@@ -60,22 +60,20 @@ class TransactionsService
         return $query->orderBy('created_at', 'DESC')->paginate();
     }
 
-    public function getTotalAmount(  string $value, bool $isCurrency = false, $filter = null, $start = null,$end = null, ?int $billId = null ):float|string
+    public function getTotalAmount(string $value, bool $isCurrency = false, $filter = null, $start = null, $end = null, ?int $billId = null): float|string
     {
-        $query = FinanceTransaction::whereIn('user_id', $this->getUserIds())->where('is_balance' ,1) ;
+        $query = $this->baseFlowQuery($billId);
         if ($filter && !empty($_GET['created_at']['start'])) {
             $query = $query->filters($filter);
         } else {
-            $query = $query->whereBetween('created_at', [$start, $end]);
+            $query = $query->whereBetween(
+                DB::raw("CASE WHEN type = 'income' THEN COALESCE(accrual_date, created_at) ELSE created_at END"),
+                [$start, $end]
+            );
         }
 
-        $effectiveBillId = $billId ?? $this->billId;
-        if ($effectiveBillId) {
-            $query->where('finance_bill_id', $effectiveBillId);
-        }
-
-        if($isCurrency){
-            return  Currency::convertValueToCurrency($query->sum($value));
+        if ($isCurrency) {
+            return Currency::convertValueToCurrency($query->sum($value));
         }
 
         return (float) $query->sum($value);
@@ -96,7 +94,10 @@ class TransactionsService
         if ($filter && !empty($_GET['created_at']['start'])) {
             $query = $this->query()->filters($filter);
         } else {
-            $query = $this->query()->whereBetween('created_at', [$start, $end]);
+            $dateCol = ($this->type ?? null) === 'income'
+                ? DB::raw('COALESCE(accrual_date, created_at)')
+                : 'created_at';
+            $query = $this->query()->whereBetween($dateCol, [$start, $end]);
         }
 
         $effectiveBillId = $billId ?? $this->billId;
@@ -248,14 +249,15 @@ class TransactionsService
             ->get();
         return $this->formatChartData($collection, $name);
     }
-    public function chartBarBalance(?string $name = null, ?string $start = null, ?string $end = null, ?string $dateColumn = null, string $value = 'currency_amount', ?int $billId = null) :array
+    public function chartBarBalance(?string $name = null, ?string $start = null, ?string $end = null, ?string $dateColumn = null, string $value = 'currency_amount', ?int $billId = null): array
     {
-        $effectiveBillId = $billId ?? $this->billId;
-        $q = FinanceTransaction::whereIn('user_id', $this->getUserIds())->where('is_balance' ,1);
-        if ($effectiveBillId) {
-            $q->where('finance_bill_id', $effectiveBillId);
-        }
-        return $q->SumByMonths($value,  $start, $end, $dateColumn)->toChart($name);
+        $effectiveDateColumn = ($dateColumn === null || $dateColumn === 'created_at')
+            ? "CASE WHEN type = 'income' THEN COALESCE(accrual_date, created_at) ELSE created_at END"
+            : $dateColumn;
+
+        return $this->baseFlowQuery($billId)
+            ->SumByMonths($value, $start, $end, $effectiveDateColumn)
+            ->toChart($name);
     }
 
     public function chartBar(?string $name = null, ?string $start = null, ?string $end = null, ?string $dateColumn = null, string $value = 'currency_amount', ?int $billId = null) :array
@@ -530,19 +532,29 @@ class TransactionsService
         return $result;
     }
 
-    public function query(): object
+    /**
+     * Build a base query for real cash-flow transactions (excluding transfers, revisions/initial balances, and refunds).
+     */
+    protected function baseFlowQuery(?int $billId = null)
     {
-        $query = FinanceTransaction::where('type', $this->getType())
-            ->whereIn('user_id', $this->getUserIds())
+        $query = FinanceTransaction::whereIn('user_id', $this->getUserIds())
             ->where('is_balance', 1)
             ->where(function ($sub) {
                 $sub->whereNull('transaction_type_id')
                     ->orWhereNotIn('transaction_type_id', self::NON_FLOW_TYPE_IDS);
             });
-        if ($this->billId) {
-            $query->where('finance_bill_id', $this->billId);
+
+        $effectiveBillId = $billId ?? $this->billId;
+        if ($effectiveBillId) {
+            $query->where('finance_bill_id', $effectiveBillId);
         }
+
         return $query;
+    }
+
+    public function query(): object
+    {
+        return $this->baseFlowQuery()->where('type', $this->getType());
     }
 
     public function getCurrency(int $bill_id, float $amount): array{

@@ -46,9 +46,13 @@ trait Chartable
             ? Carbon::now()
             : Carbon::parse($stopDate);
 
+        $dateExpr = (str_contains($dateColumn, '(') || str_contains($dateColumn, ' '))
+            ? DB::raw($dateColumn)
+            : $dateColumn;
+
         $query = $builder
             ->select(DB::raw("$value as value, DATE($dateColumn) as label"))
-            ->whereBetween($dateColumn, [$startDate, $stopDate])
+            ->whereBetween($dateExpr, [$startDate, $stopDate])
             ->groupBy('label')
             ->orderBy('label')
             ->get();
@@ -83,9 +87,13 @@ trait Chartable
             ? Carbon::now()
             : Carbon::parse($stopDate)->endOfMonth();
 
+        $dateExpr = (str_contains($dateColumn, '(') || str_contains($dateColumn, ' '))
+            ? DB::raw($dateColumn)
+            : $dateColumn;
+
         $query = $builder
             ->select(DB::raw("$value as value, DATE_FORMAT($dateColumn, '%Y-%m') as label"))
-            ->whereBetween($dateColumn, [$startDate, $stopDate])
+            ->whereBetween($dateExpr, [$startDate, $stopDate])
             ->groupBy('label')
             ->orderBy('label')
             ->get();

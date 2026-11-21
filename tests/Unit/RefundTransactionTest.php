@@ -156,4 +156,229 @@ class RefundTransactionTest extends TestCase
         $this->assertNotNull($incomeTx);
         $this->assertEquals(2, $incomeTx['transaction_type_id']);
     }
+
+    public function test_yearly_balance_chart_and_total_amount_exclude_non_flow_transactions(): void
+    {
+        $user = User::create([
+            'name' => 'Chart Balance User',
+            'email' => 'chartbalance_' . uniqid() . '@example.com',
+            'password' => bcrypt('password'),
+        ]);
+        Auth::login($user);
+        UserSetting::create(['user_id' => $user->id, 'currency' => 'UAH']);
+
+        $bill = FinanceBill::create([
+            'user_id' => $user->id,
+            'name' => 'Основний',
+            'finance_currency_id' => 1,
+            'currency_code' => 'UAH',
+        ]);
+
+        // Real income: +10 000
+        FinanceTransaction::create([
+            'finance_bill_id' => $bill->id,
+            'finance_currency_id' => 1,
+            'user_id' => $user->id,
+            'amount' => 10000.00,
+            'currency_amount' => 10000.00,
+            'absolute_currency_amount' => 10000.00,
+            'currency_code' => 'UAH',
+            'type' => 'income',
+            'transaction_type_id' => 2,
+            'is_balance' => 1,
+            'created_at' => now(),
+            'accrual_date' => now(),
+        ]);
+
+        // Real expense: -2 500
+        FinanceTransaction::create([
+            'finance_bill_id' => $bill->id,
+            'finance_currency_id' => 1,
+            'user_id' => $user->id,
+            'amount' => -2500.00,
+            'currency_amount' => -2500.00,
+            'absolute_currency_amount' => 2500.00,
+            'currency_code' => 'UAH',
+            'type' => 'expenses',
+            'transaction_type_id' => 1,
+            'is_balance' => 1,
+            'created_at' => now(),
+            'accrual_date' => now(),
+        ]);
+
+        // Initial balance / revision (type 4): +200 000
+        FinanceTransaction::create([
+            'finance_bill_id' => $bill->id,
+            'finance_currency_id' => 1,
+            'user_id' => $user->id,
+            'amount' => 200000.00,
+            'currency_amount' => 200000.00,
+            'absolute_currency_amount' => 200000.00,
+            'currency_code' => 'UAH',
+            'type' => 'income',
+            'transaction_type_id' => 4,
+            'is_balance' => 1,
+            'created_at' => now(),
+            'accrual_date' => now(),
+        ]);
+
+        // Cancellation / refund (type 5): +500
+        FinanceTransaction::create([
+            'finance_bill_id' => $bill->id,
+            'finance_currency_id' => 1,
+            'user_id' => $user->id,
+            'amount' => 500.00,
+            'currency_amount' => 500.00,
+            'absolute_currency_amount' => 500.00,
+            'currency_code' => 'UAH',
+            'type' => 'income',
+            'transaction_type_id' => 5,
+            'is_balance' => 1,
+            'created_at' => now(),
+            'accrual_date' => now(),
+        ]);
+
+        $service = new \App\Services\Finance\Transaction\TransactionsService();
+        $service->setTargetUserId($user->id);
+
+        $start = now()->startOfMonth()->format('Y-m-d H:i:s');
+        $end = now()->endOfMonth()->format('Y-m-d H:i:s');
+
+        $balanceChart = $service->chartBarBalance('Balance', $start, $end, 'created_at', 'currency_amount');
+        $this->assertEquals([7500.0], $balanceChart['values']);
+        $this->assertEquals(7500.0, $service->getTotalAmount('currency_amount', false, null, $start, $end));
+    }
+
+    public function test_monthly_income_is_grouped_by_accrual_date_with_created_at_fallback(): void
+    {
+        $user = User::create([
+            'name' => 'Accrual Income User',
+            'email' => 'accrual_' . uniqid() . '@example.com',
+            'password' => bcrypt('password'),
+        ]);
+        Auth::login($user);
+        UserSetting::create(['user_id' => $user->id, 'currency' => 'UAH']);
+
+        $bill = FinanceBill::create([
+            'user_id' => $user->id,
+            'name' => 'ФОП',
+            'finance_currency_id' => 1,
+            'currency_code' => 'UAH',
+        ]);
+
+        // Income received in current month (created_at = now), but accrued in previous month
+        FinanceTransaction::create([
+            'finance_bill_id' => $bill->id,
+            'finance_currency_id' => 1,
+            'user_id' => $user->id,
+            'amount' => 30000.00,
+            'currency_amount' => 30000.00,
+            'absolute_currency_amount' => 30000.00,
+            'currency_code' => 'UAH',
+            'type' => 'income',
+            'transaction_type_id' => 2,
+            'is_balance' => 1,
+            'created_at' => now(),
+            'accrual_date' => now()->subMonth()->endOfMonth(),
+        ]);
+
+        // Income in current month without explicit accrual_date (falls back to created_at)
+        FinanceTransaction::create([
+            'finance_bill_id' => $bill->id,
+            'finance_currency_id' => 1,
+            'user_id' => $user->id,
+            'amount' => 12000.00,
+            'currency_amount' => 12000.00,
+            'absolute_currency_amount' => 12000.00,
+            'currency_code' => 'UAH',
+            'type' => 'income',
+            'transaction_type_id' => 2,
+            'is_balance' => 1,
+            'created_at' => now(),
+            'accrual_date' => null,
+        ]);
+
+        $dashboardScreen = new DashboardScreen();
+        $dashboardData = $dashboardScreen->query(new FinanceTransaction(), new Request());
+
+        $this->assertEquals(
+            Currency::convertValueToCurrency(12000.00),
+            $dashboardData['metrics']['currentMonth']['income']
+        );
+
+        $incomeService = new TransactionIncomeService();
+        $incomeService->setTargetUserId($user->id);
+        $prevStart = now()->subMonth()->startOfMonth()->format('Y-m-d H:i:s');
+        $prevEnd = now()->subMonth()->endOfMonth()->format('Y-m-d H:i:s');
+        $this->assertEquals(30000.0, (float)$incomeService->getSum('currency_amount', false, null, $prevStart, $prevEnd));
+    }
+
+    public function test_income_edit_preserves_custom_accrual_date_even_with_invoice(): void
+    {
+        $user = User::create([
+            'name' => 'Edit Accrual User',
+            'email' => 'editaccrual_' . uniqid() . '@example.com',
+            'password' => bcrypt('password'),
+        ]);
+        Auth::login($user);
+        UserSetting::create(['user_id' => $user->id, 'currency' => 'UAH']);
+
+        $bill = FinanceBill::create([
+            'user_id' => $user->id,
+            'name' => 'ФОП',
+            'finance_currency_id' => 1,
+            'currency_code' => 'UAH',
+        ]);
+
+        $category = FinanceTransactionCategory::firstOrCreate(
+            ['name' => 'ІТ послуги'],
+            ['user_id' => $user->id]
+        );
+
+        $customer = \App\Models\Customer::create([
+            'user_id' => $user->id,
+            'name' => 'Test Customer',
+        ]);
+
+        $invoice = \App\Models\FinanceInvoice::create([
+            'user_id' => $user->id,
+            'customer_id' => $customer->id,
+            'finance_currency_id' => 1,
+            'invoice_number' => 'INV-' . uniqid(),
+            'total' => 50000,
+            'status' => 'not paid',
+            'created_at' => '2026-09-19 13:11:40',
+        ]);
+
+        $service = new TransactionIncomeService();
+        $service->setTargetUserId($user->id);
+
+        // Explicit accrual_date in June must NOT be overwritten by invoice created_at (September)
+        $reqWithDate = new Request([
+            'transaction' => [
+                'finance_bill_id' => $bill->id,
+                'transaction_category_id' => $category->id,
+                'finance_invoice_id' => $invoice->id,
+                'amount' => 50000,
+                'accrual_date' => '2026-06-30 12:00:00',
+                'created_at' => '2026-07-28 00:13:00',
+            ],
+        ]);
+        $data = $service->createInsertData($reqWithDate);
+        $this->assertEquals('2026-06-30 12:00:00', $data['accrual_date']);
+
+        // Empty accrual_date still defaults to invoice created_at
+        $reqWithoutDate = new Request([
+            'transaction' => [
+                'finance_bill_id' => $bill->id,
+                'transaction_category_id' => $category->id,
+                'finance_invoice_id' => $invoice->id,
+                'amount' => 50000,
+                'accrual_date' => null,
+                'created_at' => '2026-07-28 00:13:00',
+            ],
+        ]);
+        $dataDefault = $service->createInsertData($reqWithoutDate);
+        $this->assertEquals('2026-09-19 13:11:40', \Carbon\Carbon::parse($dataDefault['accrual_date'])->format('Y-m-d H:i:s'));
+    }
 }

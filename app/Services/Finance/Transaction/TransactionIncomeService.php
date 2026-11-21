@@ -25,7 +25,7 @@ class TransactionIncomeService extends  TransactionsService
             unset($transaction['accrual_date']);
         }
 
-        if (!empty($transaction['finance_invoice_id'])) {
+        if (empty($transaction['accrual_date']) && !empty($transaction['finance_invoice_id'])) {
             $invoice = FinanceInvoice::find($transaction['finance_invoice_id']);
             if ($invoice) {
                 $transaction['accrual_date'] = $invoice->created_at;

@@ -67,9 +67,13 @@ class FinanceInsightsService
 
     protected function sumByType(string $type, Carbon $start, Carbon $end): float
     {
+        $dateCol = $type === 'income'
+            ? DB::raw('COALESCE(finance_transactions.accrual_date, finance_transactions.created_at)')
+            : 'finance_transactions.created_at';
+
         return abs((float)$this->flowQuery()
             ->where('finance_transactions.type', $type)
-            ->whereBetween('finance_transactions.created_at', [
+            ->whereBetween($dateCol, [
                 $start->format('Y-m-d H:i:s'),
                 $end->format('Y-m-d H:i:s'),
             ])
@@ -81,13 +85,17 @@ class FinanceInsightsService
      */
     protected function activeMonths(string $type, Carbon $start, Carbon $end): int
     {
+        $dateExpr = $type === 'income'
+            ? 'COALESCE(finance_transactions.accrual_date, finance_transactions.created_at)'
+            : 'finance_transactions.created_at';
+
         return (int)$this->flowQuery()
             ->where('finance_transactions.type', $type)
-            ->whereBetween('finance_transactions.created_at', [
+            ->whereBetween(DB::raw($dateExpr), [
                 $start->format('Y-m-d H:i:s'),
                 $end->format('Y-m-d H:i:s'),
             ])
-            ->selectRaw("COUNT(DISTINCT DATE_FORMAT(finance_transactions.created_at, '%Y-%m')) as c")
+            ->selectRaw("COUNT(DISTINCT DATE_FORMAT({$dateExpr}, '%Y-%m')) as c")
             ->value('c');
     }
 
